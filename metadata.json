@@ -1,0 +1,6 @@
+{
+  "name": "NADIRA Café & Resto",
+  "description": "Sistem POS Kasir, Pemesanan Waitress 30 Meja Kafe, Kitchen Display System (KDS), dan Manajemen Kafe Modern NADIRA Café & Resto",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
