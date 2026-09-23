@@ -28,7 +28,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNotifications }) => {
     unreadNotificationsCount,
     isSoundEnabled,
     setIsSoundEnabled,
-    resetToDefaultData 
+    resetToDefaultData,
+    syncStatus,
+    syncBrokerName,
+    connectedDevicesCount,
+    triggerManualSync
   } = useCafe();
 
   const pendingCookingCount = activeOrders.filter(
@@ -110,6 +114,35 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNotifications }) => {
 
           {/* Right Action buttons */}
           <div className="flex items-center gap-1.5 sm:gap-2.5">
+            {/* Live Cloud Multi-Device Indicator */}
+            <button
+              onClick={triggerManualSync}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#2B1B0F] border border-[#3D2817] hover:border-[#6E421B] text-xs transition-all cursor-pointer group"
+              title={`Status Cloud Sync: ${syncStatus === 'connected' ? 'Terhubung (' + syncBrokerName + ')' : syncStatus === 'connecting' ? 'Menghubungkan...' : 'Terputus'}. Klik untuk sinkronisasi manual.`}
+            >
+              <span className="relative flex h-2 w-2">
+                {syncStatus === 'connected' && (
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                )}
+                <span
+                  className={`relative inline-flex rounded-full h-2 w-2 ${
+                    syncStatus === 'connected'
+                      ? 'bg-emerald-500'
+                      : syncStatus === 'connecting' || syncStatus === 'reconnecting'
+                      ? 'bg-amber-500 animate-pulse'
+                      : 'bg-rose-500'
+                  }`}
+                ></span>
+              </span>
+              <span className="text-[11px] font-medium hidden lg:inline text-stone-300 group-hover:text-white">
+                {syncStatus === 'connected'
+                  ? `${connectedDevicesCount} Perangkat Live`
+                  : syncStatus === 'connecting' || syncStatus === 'reconnecting'
+                  ? 'Koneksi Cloud...'
+                  : 'Mode Lokal'}
+              </span>
+            </button>
+
             {/* Audio Toggle Button */}
             <button
               id="btn-sound-toggle"

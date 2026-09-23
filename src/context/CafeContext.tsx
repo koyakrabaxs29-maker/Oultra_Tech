@@ -24,12 +24,19 @@ import {
 } from '../data/initialData';
 import { soundAlerts } from '../utils/soundAlerts';
 import { getElapsedMinutes } from '../utils/formatters';
+import { cloudSync, ConnectionStatus, SyncMessage } from '../services/realtimeSync';
 
 export { INITIAL_EXPENSES, INITIAL_NOTIFICATIONS };
 
 interface CafeContextType {
   activeRole: UserRole;
   setActiveRole: (role: UserRole) => void;
+
+  // Cloud Multi-Device Real-time Sync
+  syncStatus: ConnectionStatus;
+  syncBrokerName: string;
+  connectedDevicesCount: number;
+  triggerManualSync: () => void;
   
   // Menu
   menuItems: MenuItem[];
@@ -226,11 +233,12 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(expenses));
   }, [expenses]);
 
-  // Real-time Multi-Device Synchronization Engine
-  const clientIdRef = useRef<string>(
-    'client-' + Math.random().toString(36).substring(2, 9) + '-' + Date.now()
-  );
-  const localVersionRef = useRef<number>(0);
+  // Real-time Cloud Multi-Device Synchronization
+  const [syncStatus, setSyncStatus] = useState<ConnectionStatus>('connecting');
+  const [syncBrokerName, setSyncBrokerName] = useState<string>('Cloud Sync');
+  const [connectedDevicesCount, setConnectedDevicesCount] = useState<number>(1);
+  const localVersionRef = useRef<number>(1);
+  const isSyncInitializedRef = useRef<boolean>(false);
 
   const applyServerState = (serverState: any, version?: number) => {
     if (!serverState) return;
@@ -239,149 +247,325 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localVersionRef.current = version;
     }
 
-    if (Array.isArray(serverState.menuItems)) setMenuItems(serverState.menuItems);
+    if (Array.isArray(serverState.menuItems) && serverState.menuItems.length > 0) setMenuItems(serverState.menuItems);
     if (Array.isArray(serverState.activeOrders)) setActiveOrders(serverState.activeOrders);
     if (Array.isArray(serverState.completedOrders)) setCompletedOrders(serverState.completedOrders);
     if (Array.isArray(serverState.deletedOrderIds)) setDeletedOrderIds(serverState.deletedOrderIds);
-    if (Array.isArray(serverState.tables)) setTables(serverState.tables);
-    if (Array.isArray(serverState.inventory)) setInventory(serverState.inventory);
-    if (Array.isArray(serverState.users)) setUsers(serverState.users);
+    if (Array.isArray(serverState.tables) && serverState.tables.length > 0) setTables(serverState.tables);
+    if (Array.isArray(serverState.inventory) && serverState.inventory.length > 0) setInventory(serverState.inventory);
+    if (Array.isArray(serverState.users) && serverState.users.length > 0) setUsers(serverState.users);
     if (Array.isArray(serverState.notifications)) setNotifications(serverState.notifications);
     if (Array.isArray(serverState.expenses)) setExpenses(serverState.expenses);
   };
 
   const dispatchServerAction = (action: string, payload: any) => {
-    fetch('/api/action', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action,
-        payload,
-        clientId: clientIdRef.current,
-      }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.version) {
-          localVersionRef.current = data.version;
-        }
+    localVersionRef.current = (localVersionRef.current || 0) + 1;
+    const currentVersion = localVersionRef.current;
+
+    // 1. Broadcast instantly to cloud broker for all connected devices (< 50ms)
+    cloudSync.publishAction(action as any, payload, currentVersion);
+
+    // 2. Publish retained state snapshot to cloud broker with a short debounce
+    setTimeout(() => {
+      cloudSync.publishRetainedState(
+        {
+          activeOrders,
+          completedOrders,
+          deletedOrderIds,
+          tables,
+          menuItems,
+          inventory,
+          users,
+          expenses,
+          notifications,
+        },
+        currentVersion
+      );
+    }, 150);
+
+    // 3. Fallback to local express server if available
+    try {
+      fetch('/api/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          payload,
+          clientId: cloudSync.getClientId(),
+        }),
       })
-      .catch((err) => {
-        console.warn('[Sync] Server action dispatch offline:', err);
-      });
+        .then((res) => {
+          if (!res.ok) return null;
+          return res.json();
+        })
+        .then((data) => {
+          if (data?.version) {
+            localVersionRef.current = Math.max(localVersionRef.current, data.version);
+          }
+        })
+        .catch(() => {});
+    } catch {
+      // ignore
+    }
+  };
+
+  const triggerManualSync = () => {
+    showToast('🔄 Memperbarui koneksi sinkronisasi cloud...');
+    cloudSync.publishAction('request_state' as any, {}, localVersionRef.current);
+    try {
+      fetch('/api/state')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.state) applyServerState(data.state, data.version);
+        })
+        .catch(() => {});
+    } catch {
+      // ignore
+    }
   };
 
   useEffect(() => {
-    let isMounted = true;
-    let eventSource: EventSource | null = null;
+    cloudSync.setRole(activeRole);
+  }, [activeRole]);
 
-    const fetchState = async (force = false) => {
-      try {
-        const res = await fetch('/api/state');
-        if (res.ok) {
-          const data = await res.json();
-          if (isMounted && data.state) {
-            if (force || data.version === undefined || data.version >= localVersionRef.current) {
-              applyServerState(data.state, data.version);
-            }
-          }
+  useEffect(() => {
+    if (isSyncInitializedRef.current) return;
+    isSyncInitializedRef.current = true;
+
+    cloudSync.init({
+      onStatusChange: (status, broker, peers) => {
+        setSyncStatus(status);
+        setSyncBrokerName(broker);
+        setConnectedDevicesCount(peers);
+      },
+      onRetainedState: (retainedState, version) => {
+        if (retainedState) {
+          applyServerState(retainedState, version);
         }
-      } catch {
-        // Offline / fallback to local storage
-      }
-    };
+      },
+      onMessage: (msg: SyncMessage) => {
+        if (!msg) return;
+        if (msg.version && msg.version > localVersionRef.current) {
+          localVersionRef.current = msg.version;
+        }
 
-    // Initial fetch from central server
-    fetchState(true);
-
-    // SSE connection for instant multi-device event sync
-    try {
-      eventSource = new EventSource('/api/events');
-
-      eventSource.onmessage = (e) => {
-        if (!isMounted) return;
-        try {
-          const event = JSON.parse(e.data);
-          if (!event) return;
-
-          const isFromMe = event.sourceClientId === clientIdRef.current;
-
-          if (event.type === 'connected' && event.state) {
-            applyServerState(event.state, event.version);
-          } else if (event.type === 'order_created') {
-            if (!isFromMe) {
-              soundAlerts.playNewOrderChime();
-              showToast(`📝 Pesanan Baru Masuk: Meja #${event.payload?.order?.tableNumber || '?'} (${event.payload?.order?.orderNumber || ''})!`);
-            }
-            if (event.payload?.order) {
-              const incoming = event.payload.order;
-              setActiveOrders((prev) => [incoming, ...prev.filter((o) => o.id !== incoming.id)]);
-              if (incoming.tableNumber) {
+        switch (msg.type) {
+          case 'create_order':
+          case 'order_created': {
+            const order = msg.payload?.order;
+            if (order) {
+              setActiveOrders((prev) => [order, ...prev.filter((o) => o.id !== order.id)]);
+              if (order.tableNumber) {
                 setTables((prev) =>
                   prev.map((t) =>
-                    t.number === incoming.tableNumber
-                      ? { ...t, status: 'occupied', currentOrderId: incoming.id }
+                    t.number === order.tableNumber
+                      ? { ...t, status: 'occupied', currentOrderId: order.id }
                       : t
                   )
                 );
               }
+              if (msg.payload?.notification) {
+                setNotifications((prev) => [
+                  msg.payload.notification,
+                  ...prev.filter((n) => n.id !== msg.payload.notification.id),
+                ]);
+              }
+              soundAlerts.playNewOrderChime();
+              showToast(
+                `📝 Pesanan Baru Masuk: Meja #${order.tableNumber} (${order.orderNumber}) dari ${order.waitressName || 'Waitress'}!`
+              );
             }
-            fetchState(true);
-          } else if (event.type === 'items_added') {
-            if (!isFromMe) {
-              soundAlerts.playAdditionalItemChime();
-              showToast(`🔔 Tambahan Pesanan Meja #${event.payload?.order?.tableNumber || '?'} masuk!`);
-            }
-            if (event.payload?.order) {
-              const updated = event.payload.order;
-              setActiveOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
-            }
-            fetchState(true);
-          } else if (event.type === 'item_status_updated') {
-            if (!isFromMe && event.payload?.itemStatus === 'ready') {
-              soundAlerts.playReadyChime();
-              showToast(`🍽️ Menu Meja #${event.payload?.order?.tableNumber || '?'} Siap Saji!`);
-            }
-            if (event.payload?.order) {
-              const updated = event.payload.order;
-              setActiveOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
-            }
-            fetchState(true);
-          } else if (event.type === 'order_status_updated') {
-            if (!isFromMe && event.payload?.status === 'ready') {
-              soundAlerts.playReadyChime();
-              showToast(`🍽️ Semua Menu Meja #${event.payload?.order?.tableNumber || '?'} Siap Saji!`);
-            }
-            if (event.payload?.order) {
-              const updated = event.payload.order;
-              setActiveOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
-            }
-            fetchState(true);
-          } else {
-            fetchState(true);
+            break;
           }
-        } catch {
-          // Parse error ignore
+          case 'add_items_to_order':
+          case 'items_added': {
+            const { order, newItems, orderId, notification } = msg.payload || {};
+            if (order) {
+              setActiveOrders((prev) => prev.map((o) => (o.id === order.id ? order : o)));
+            }
+            if (notification) {
+              setNotifications((prev) => [notification, ...prev.filter((n) => n.id !== notification.id)]);
+            }
+            soundAlerts.playAdditionalItemChime();
+            showToast(`🔔 Tambahan Menu Masuk untuk Meja #${order?.tableNumber || '?'}!`);
+            break;
+          }
+          case 'update_order_item_status':
+          case 'item_status_updated': {
+            const { orderId, itemId, itemStatus, notification } = msg.payload || {};
+            setActiveOrders((prev) =>
+              prev.map((order) => {
+                if (order.id !== orderId) return order;
+                const updatedItems = order.items.map((it) =>
+                  it.id === itemId ? { ...it, status: itemStatus } : it
+                );
+                const allReady = updatedItems.length > 0 && updatedItems.every((it) => it.status === 'ready');
+                const anyCooking = updatedItems.some((it) => it.status === 'cooking' || it.status === 'ready');
+                let newStatus = order.status;
+                if (allReady) newStatus = 'ready';
+                else if (anyCooking && order.status === 'pending') newStatus = 'cooking';
+                return {
+                  ...order,
+                  items: updatedItems,
+                  status: newStatus,
+                  updatedAt: new Date().toISOString(),
+                };
+              })
+            );
+            if (notification) {
+              setNotifications((prev) => [notification, ...prev.filter((n) => n.id !== notification.id)]);
+            }
+            if (itemStatus === 'ready') {
+              soundAlerts.playReadyChime();
+              showToast(`🍽️ Menu Pesanan Siap Saji!`);
+            }
+            break;
+          }
+          case 'update_order_status':
+          case 'order_status_updated': {
+            const { orderId, status, notification } = msg.payload || {};
+            setActiveOrders((prev) =>
+              prev.map((order) => {
+                if (order.id !== orderId) return order;
+                return {
+                  ...order,
+                  status,
+                  updatedAt: new Date().toISOString(),
+                };
+              })
+            );
+            if (notification) {
+              setNotifications((prev) => [notification, ...prev.filter((n) => n.id !== notification.id)]);
+            }
+            if (status === 'ready') {
+              soundAlerts.playReadyChime();
+              showToast(`🍽️ Seluruh Menu Meja Siap Saji!`);
+            }
+            break;
+          }
+          case 'mark_item_served': {
+            const { orderId, itemId, forceServed } = msg.payload || {};
+            const now = new Date().toISOString();
+            setActiveOrders((prev) =>
+              prev.map((order) => {
+                if (order.id !== orderId) return order;
+                const updatedItems = order.items.map((it) => {
+                  if (it.id !== itemId) return it;
+                  const newServed = forceServed !== undefined ? forceServed : !it.served;
+                  return { ...it, served: newServed, servedAt: newServed ? now : undefined };
+                });
+                const allServed = updatedItems.length > 0 && updatedItems.every((it) => it.served);
+                return {
+                  ...order,
+                  items: updatedItems,
+                  status: allServed ? 'served' : order.status,
+                  servedAt: allServed ? now : order.servedAt,
+                  updatedAt: now,
+                };
+              })
+            );
+            setNotifications((prev) =>
+              prev.map((n) =>
+                n.orderId === orderId && n.itemId === itemId ? { ...n, served: true, read: true } : n
+              )
+            );
+            break;
+          }
+          case 'mark_order_completed': {
+            const { orderId } = msg.payload || {};
+            const now = new Date().toISOString();
+            setActiveOrders((prev) =>
+              prev.map((order) =>
+                order.id === orderId ? { ...order, status: 'completed', completedAt: now } : order
+              )
+            );
+            break;
+          }
+          case 'process_payment': {
+            const { orderId, paidOrder } = msg.payload || {};
+            setActiveOrders((prev) => prev.filter((o) => o.id !== orderId));
+            if (paidOrder) {
+              setCompletedOrders((prev) => [paidOrder, ...prev.filter((o) => o.id !== paidOrder.id)]);
+              setTables((prev) =>
+                prev.map((t) =>
+                  t.number === paidOrder.tableNumber ? { ...t, status: 'available', currentOrderId: undefined } : t
+                )
+              );
+            }
+            break;
+          }
+          case 'cancel_order': {
+            const { orderId, cancelledOrder } = msg.payload || {};
+            setActiveOrders((prev) => prev.filter((o) => o.id !== orderId));
+            if (cancelledOrder) {
+              setCompletedOrders((prev) => [cancelledOrder, ...prev.filter((o) => o.id !== cancelledOrder.id)]);
+              setTables((prev) =>
+                prev.map((t) =>
+                  t.number === cancelledOrder.tableNumber ? { ...t, status: 'available', currentOrderId: undefined } : t
+                )
+              );
+            }
+            break;
+          }
+          case 'table_updated': {
+            const { tableNumber, status, orderId } = msg.payload || {};
+            setTables((prev) =>
+              prev.map((t) => (t.number === tableNumber ? { ...t, status, currentOrderId: orderId } : t))
+            );
+            break;
+          }
+          case 'request_state': {
+            if (activeOrders.length > 0) {
+              cloudSync.publishAction(
+                'provide_state',
+                {
+                  activeOrders,
+                  completedOrders: completedOrders.slice(0, 30),
+                  tables,
+                  notifications: notifications.slice(0, 20),
+                  version: localVersionRef.current,
+                },
+                localVersionRef.current
+              );
+            }
+            break;
+          }
+          case 'provide_state': {
+            const st = msg.payload;
+            if (st && st.version >= localVersionRef.current) {
+              applyServerState(st, st.version);
+            }
+            break;
+          }
+          case 'reset_data': {
+            setMenuItems(INITIAL_MENU_ITEMS);
+            setActiveOrders(INITIAL_ORDERS);
+            setCompletedOrders(INITIAL_PAID_ORDERS);
+            setDeletedOrderIds([]);
+            setTables(INITIAL_TABLES);
+            setInventory(INITIAL_INVENTORY);
+            setUsers(INITIAL_USERS);
+            setNotifications(INITIAL_NOTIFICATIONS);
+            setExpenses(INITIAL_EXPENSES);
+            showToast('🔄 Data kafe telah direset!');
+            break;
+          }
+          default:
+            break;
         }
-      };
+      },
+    });
 
-      eventSource.onerror = () => {
-        // SSE connection dropped, will automatically reconnect or fallback to poll
-      };
-    } catch {
-      // EventSource failed or unsupported
-    }
-
-    // Polling fallback every 2.0s for seamless multi-device updates even if SSE reconnects
-    const pollInterval = setInterval(() => {
-      if (isMounted) fetchState(false);
-    }, 2000);
-
-    return () => {
-      isMounted = false;
-      if (eventSource) eventSource.close();
-      clearInterval(pollInterval);
-    };
+    // Also attempt local dev server fetch if available
+    fetch('/api/state')
+      .then((res) => {
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .then((data) => {
+        if (data?.state) applyServerState(data.state, data.version);
+      })
+      .catch(() => {});
   }, []);
 
 
@@ -1306,6 +1490,10 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toastMessage,
         showToast,
         resetToDefaultData,
+        syncStatus,
+        syncBrokerName,
+        connectedDevicesCount,
+        triggerManualSync,
       }}
     >
       {children}
