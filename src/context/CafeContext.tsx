@@ -18,88 +18,14 @@ import {
   INITIAL_INVENTORY, 
   INITIAL_USERS, 
   INITIAL_ORDERS, 
-  INITIAL_PAID_ORDERS 
+  INITIAL_PAID_ORDERS,
+  INITIAL_EXPENSES,
+  INITIAL_NOTIFICATIONS
 } from '../data/initialData';
 import { soundAlerts } from '../utils/soundAlerts';
 import { getElapsedMinutes } from '../utils/formatters';
 
-export const INITIAL_EXPENSES: OperationalExpense[] = [
-  // Pengeluaran Hari Ini
-  {
-    id: 'exp-1',
-    category: 'Gaji & Karyawan',
-    name: 'Gaji Operasional 4 Barista & Waitress',
-    amount: 600000,
-    date: new Date().toISOString().split('T')[0],
-    notes: 'Shift harian 4 staf'
-  },
-  {
-    id: 'exp-2',
-    category: 'Utilitas (Listrik/Air/Wifi/Gas)',
-    name: 'Listrik Mesin Espresso & Gas Dapur',
-    amount: 150000,
-    date: new Date().toISOString().split('T')[0],
-    notes: 'Biaya utilitas harian'
-  },
-  {
-    id: 'exp-3',
-    category: 'Bahan Penunjang & Kebersihan',
-    name: 'Paper Cup, Straw & Packaging Takeaway',
-    amount: 95000,
-    date: new Date().toISOString().split('T')[0],
-    notes: 'Packaging & hygiene supplies'
-  },
-  {
-    id: 'exp-4',
-    category: 'Sewa & Lokasi',
-    name: 'Alokasi Biaya Gedung/Ruko Harian',
-    amount: 250000,
-    date: new Date().toISOString().split('T')[0],
-    notes: 'Prorata sewa tempat'
-  },
-  {
-    id: 'exp-5',
-    category: 'Pemasaran & Lainnya',
-    name: 'Promosi Digital Instagram & Wi-Fi Tamu',
-    amount: 75000,
-    date: new Date().toISOString().split('T')[0],
-    notes: 'Marketing & koneksi internet'
-  },
-  // Pengeluaran 3-5 Hari Lalu (Mingguan)
-  {
-    id: 'exp-6',
-    category: 'Pemeliharaan & Alat',
-    name: 'Servis Rutin Grinder & Mesin Espresso La Marzocco',
-    amount: 450000,
-    date: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString().split('T')[0],
-    notes: 'Ganti seal gasket & kalibrasi burr'
-  },
-  {
-    id: 'exp-7',
-    category: 'Bahan Penunjang & Kebersihan',
-    name: 'Restock Sabun Food Grade & Tissue Meja Kasir',
-    amount: 120000,
-    date: new Date(Date.now() - 1000 * 60 * 60 * 120).toISOString().split('T')[0],
-    notes: 'Perlengkapan sanitasi kafe'
-  },
-  // Pengeluaran 12-20 Hari Lalu (Bulanan)
-  {
-    id: 'exp-8',
-    category: 'Pemasaran & Lainnya',
-    name: 'Cetak Buku Menu Hardcover & Standing Banner Promo',
-    amount: 350000,
-    date: new Date(Date.now() - 1000 * 60 * 60 * 360).toISOString().split('T')[0],
-    notes: 'Marketing cetak materi promosi'
-  },
-  {
-    id: 'exp-9',
-    category: 'Utilitas (Listrik/Air/Wifi/Gas)',
-    name: 'Tagihan Internet Biznet Dedicated Kafe 100 Mbps',
-    amount: 550000,
-    date: new Date(Date.now() - 1000 * 60 * 60 * 480).toISOString().split('T')[0],
-    notes: 'Tagihan wifi bulanan kafe'
-  }
-];
+export { INITIAL_EXPENSES, INITIAL_NOTIFICATIONS };
 
 interface CafeContextType {
   activeRole: UserRole;
@@ -185,52 +111,6 @@ const STORAGE_KEYS = {
   SOUND_ENABLED: 'nadira_pos_sound_v4',
   EXPENSES: 'nadira_pos_expenses_v4',
 };
-
-const INITIAL_NOTIFICATIONS: CafeNotification[] = [
-  {
-    id: 'notif-init-1',
-    type: 'item_ready',
-    title: '🍽️ Minuman Siap Saji',
-    message: '2x Es Kopi Susu Aren Nadira untuk Meja #1 siap disajikan!',
-    tableNumber: 1,
-    orderId: 'ORD-101',
-    orderNumber: '#NDR-101',
-    itemId: 'item-101-1',
-    itemName: 'Es Kopi Susu Aren Nadira',
-    quantity: 2,
-    station: 'bar',
-    createdAt: new Date(Date.now() - 1000 * 60 * 3).toISOString(),
-    read: false,
-    served: false,
-  },
-  {
-    id: 'notif-init-2',
-    type: 'order_delay_warning',
-    title: '⚠️ Pengingat: Mendekati 15 Menit',
-    message: 'Pesanan #NDR-101 (Meja #1) sudah 14 menit belum selesai diracik!',
-    tableNumber: 1,
-    orderId: 'ORD-101',
-    orderNumber: '#NDR-101',
-    createdAt: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
-    read: false,
-  },
-  {
-    id: 'notif-init-3',
-    type: 'item_ready',
-    title: '🍽️ Makanan Siap Saji',
-    message: '2x Nasi Goreng Kampoeng Wagyu untuk Meja #3 siap disajikan!',
-    tableNumber: 3,
-    orderId: 'ORD-102',
-    orderNumber: '#NDR-102',
-    itemId: 'item-102-1',
-    itemName: 'Nasi Goreng Kampoeng Wagyu',
-    quantity: 2,
-    station: 'kitchen',
-    createdAt: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
-    read: true,
-    served: true,
-  }
-];
 
 export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeRole, setActiveRole] = useState<UserRole>('waitress');
@@ -346,6 +226,136 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(expenses));
   }, [expenses]);
 
+  // Real-time Multi-Device Synchronization Engine
+  const clientIdRef = useRef<string>(
+    'client-' + Math.random().toString(36).substring(2, 9) + '-' + Date.now()
+  );
+  const localVersionRef = useRef<number>(0);
+
+  const applyServerState = (serverState: any, version?: number) => {
+    if (!serverState) return;
+    if (version !== undefined && version <= localVersionRef.current) return;
+    if (version !== undefined) localVersionRef.current = version;
+
+    if (Array.isArray(serverState.menuItems)) setMenuItems(serverState.menuItems);
+    if (Array.isArray(serverState.activeOrders)) setActiveOrders(serverState.activeOrders);
+    if (Array.isArray(serverState.completedOrders)) setCompletedOrders(serverState.completedOrders);
+    if (Array.isArray(serverState.deletedOrderIds)) setDeletedOrderIds(serverState.deletedOrderIds);
+    if (Array.isArray(serverState.tables)) setTables(serverState.tables);
+    if (Array.isArray(serverState.inventory)) setInventory(serverState.inventory);
+    if (Array.isArray(serverState.users)) setUsers(serverState.users);
+    if (Array.isArray(serverState.notifications)) setNotifications(serverState.notifications);
+    if (Array.isArray(serverState.expenses)) setExpenses(serverState.expenses);
+  };
+
+  const dispatchServerAction = (action: string, payload: any) => {
+    fetch('/api/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action,
+        payload,
+        clientId: clientIdRef.current,
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.version) {
+          localVersionRef.current = data.version;
+        }
+      })
+      .catch((err) => {
+        console.warn('[Sync] Server action dispatch offline:', err);
+      });
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    let eventSource: EventSource | null = null;
+
+    const fetchState = async () => {
+      try {
+        const res = await fetch('/api/state');
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && data.state && data.version > localVersionRef.current) {
+            applyServerState(data.state, data.version);
+          }
+        }
+      } catch {
+        // Offline / fallback to local storage
+      }
+    };
+
+    // Initial fetch from central server
+    fetchState();
+
+    // SSE connection for instant multi-device event sync
+    try {
+      eventSource = new EventSource('/api/events');
+
+      eventSource.onmessage = (e) => {
+        if (!isMounted) return;
+        try {
+          const event = JSON.parse(e.data);
+          if (!event) return;
+
+          const isFromMe = event.sourceClientId === clientIdRef.current;
+
+          if (event.type === 'connected' && event.state) {
+            applyServerState(event.state, event.version);
+          } else if (event.type === 'order_created') {
+            if (!isFromMe) {
+              soundAlerts.playNewOrderChime();
+              showToast(`📝 Pesanan Baru Masuk: Meja #${event.payload?.order?.tableNumber || '?'} (${event.payload?.order?.orderNumber || ''})!`);
+            }
+            fetchState();
+          } else if (event.type === 'items_added') {
+            if (!isFromMe) {
+              soundAlerts.playAdditionalItemChime();
+              showToast(`🔔 Tambahan Pesanan Meja #${event.payload?.order?.tableNumber || '?'} masuk!`);
+            }
+            fetchState();
+          } else if (event.type === 'item_status_updated') {
+            if (!isFromMe && event.payload?.itemStatus === 'ready') {
+              soundAlerts.playWarningReminder();
+              showToast(`🍽️ Menu Meja #${event.payload?.order?.tableNumber || '?'} Siap Saji!`);
+            }
+            fetchState();
+          } else if (event.type === 'order_status_updated') {
+            if (!isFromMe && event.payload?.status === 'ready') {
+              soundAlerts.playWarningReminder();
+              showToast(`🍽️ Semua Menu Meja #${event.payload?.order?.tableNumber || '?'} Siap Saji!`);
+            }
+            fetchState();
+          } else {
+            fetchState();
+          }
+        } catch {
+          // Parse error ignore
+        }
+      };
+
+      eventSource.onerror = () => {
+        // SSE connection dropped, will automatically reconnect or fallback to poll
+      };
+    } catch {
+      // EventSource failed or unsupported
+    }
+
+    // Polling fallback every 2.5s for seamless multi-device updates even if SSE reconnects
+    const pollInterval = setInterval(() => {
+      if (isMounted) fetchState();
+    }, 2500);
+
+    return () => {
+      isMounted = false;
+      if (eventSource) eventSource.close();
+      clearInterval(pollInterval);
+    };
+  }, []);
+
+
   // Keep track of which orders have already fired delay reminders
   const alertedDelayOrdersRef = useRef<{ [orderId: string]: { warning15?: boolean; critical20?: boolean } }>({
     'ORD-101': { warning15: true }
@@ -429,15 +439,18 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
+    dispatchServerAction('mark_notification_read', { id });
   };
 
   const markAllNotificationsRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    dispatchServerAction('mark_all_notifications_read', {});
     showToast(`Semua notifikasi telah ditandai sudah dibaca.`);
   };
 
   const clearNotifications = () => {
     setNotifications([]);
+    dispatchServerAction('clear_notifications', {});
     showToast(`Riwayat notifikasi dibersihkan.`);
   };
 
@@ -517,6 +530,14 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       read: false,
     };
     setNotifications((prev) => [newOrderNotif, ...prev]);
+
+    // Dispatch to server for real-time multi-device sync
+    dispatchServerAction('create_order', {
+      tableNumber,
+      customerName,
+      items,
+      waitressName: newOrder.waitressName,
+    });
 
     showToast(`Pesanan ${newOrderNumber} berhasil dibuat untuk Meja ${tableNumber}!`);
     return newOrder;
@@ -606,6 +627,12 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     setNotifications((prev) => [addNotif, ...prev]);
 
+    // Dispatch to server for instant multi-device sync
+    dispatchServerAction('add_items_to_order', {
+      orderId,
+      newItems,
+    });
+
     showToast(`🔔 TAMBAHAN PESANAN MEJA #${affectedTableNumber || '?'}: ${itemsSummary} dikirim ke Dapur/Bar!`);
   };
 
@@ -615,6 +642,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         order.id === orderId ? { ...order, hasNewAdditions: false } : order
       )
     );
+    dispatchServerAction('acknowledge_order_additions', { orderId });
   };
 
   const updateOrderItems = (orderId: string, items: OrderItem[]) => {
@@ -633,6 +661,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
       })
     );
+    dispatchServerAction('update_order_items', { orderId, items });
     showToast(`Pesanan berhasil diperbarui!`);
   };
 
@@ -674,6 +703,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setNotifications((prev) => [readyNotif, ...prev]);
     }
 
+    dispatchServerAction('update_order_status', { orderId, status });
     showToast(`Status pesanan diperbarui menjadi: ${status.toUpperCase()}`);
   };
 
@@ -753,6 +783,8 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
       })
     );
+
+    dispatchServerAction('update_order_item_status', { orderId, itemId, itemStatus });
   };
 
   const markItemServed = (orderId: string, itemId: string, forceServed?: boolean) => {
@@ -828,6 +860,8 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       )
     );
 
+    dispatchServerAction('mark_item_served', { orderId, itemId, forceServed });
+
     if (affectedItemName) {
       showToast(
         isNowServed
@@ -889,6 +923,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       )
     );
 
+    dispatchServerAction('mark_all_order_items_served', { orderId });
     showToast(`🍽️ Makanan & minuman pesanan ${orderNum || orderId} (Meja #${tableNum}) telah disajikan lengkap!`);
   };
 
@@ -943,6 +978,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })
     );
 
+    dispatchServerAction('mark_order_completed', { orderId });
     showToast(`✅ Pesanan ${orderNum || orderId} (Meja #${tableNum}) berhasil ditandai sebagai Orderan Selesai!`);
   };
 
@@ -969,6 +1005,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       )
     );
 
+    dispatchServerAction('cancel_order', { orderId, reason });
     showToast(`Pesanan ${target.orderNumber} dibatalkan: ${reason}`);
   };
 
@@ -1004,6 +1041,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       )
     );
 
+    dispatchServerAction('process_payment', { orderId, method, details });
     showToast(`Pembayaran ${target.orderNumber} selesai via ${method.toUpperCase()}! Struk dicetak.`);
   };
 
@@ -1028,6 +1066,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
       })
     );
+    dispatchServerAction('update_completed_order', { orderId, updates });
     showToast('Data transaksi berhasil diperbarui!');
   };
 
@@ -1051,6 +1090,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem(STORAGE_KEYS.DELETED_ORDER_IDS, JSON.stringify(nextDeleted));
       return nextDeleted;
     });
+    dispatchServerAction('delete_completed_order', { orderId });
     showToast(`Transaksi ${target?.orderNumber || ''} berhasil dihapus dari sistem.`);
   };
 
@@ -1059,6 +1099,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newId = `exp-${Date.now()}`;
     const newExpense: OperationalExpense = { ...expense, id: newId };
     setExpenses((prev) => [newExpense, ...prev]);
+    dispatchServerAction('add_expense', { expense: newExpense });
     showToast(`Pengeluaran "${expense.name}" berhasil dicatat.`);
   };
 
@@ -1066,11 +1107,13 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setExpenses((prev) =>
       prev.map((exp) => (exp.id === id ? { ...exp, ...updates } : exp))
     );
+    dispatchServerAction('update_expense', { id, updates });
     showToast(`Catatan pengeluaran diperbarui.`);
   };
 
   const deleteExpense = (id: string) => {
     setExpenses((prev) => prev.filter((exp) => exp.id !== id));
+    dispatchServerAction('delete_expense', { id });
     showToast(`Catatan pengeluaran dihapus.`);
   };
 
@@ -1081,6 +1124,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         t.number === tableNumber ? { ...t, status, currentOrderId: orderId ?? t.currentOrderId } : t
       )
     );
+    dispatchServerAction('update_table_status', { tableNumber, status, orderId });
   };
 
   // MENU ACTIONS
@@ -1088,17 +1132,20 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newId = `item-${Date.now()}`;
     const newItem: MenuItem = { ...item, id: newId };
     setMenuItems((prev) => [newItem, ...prev]);
+    dispatchServerAction('add_menu_item', { item: newItem });
     showToast(`Menu baru "${newItem.name}" berhasil ditambahkan!`);
   };
 
   const updateMenuItem = (id: string, updates: Partial<MenuItem>) => {
     setMenuItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)));
+    dispatchServerAction('update_menu_item', { id, updates });
     showToast(`Menu berhasil diperbarui!`);
   };
 
   const deleteMenuItem = (id: string) => {
     const target = menuItems.find((i) => i.id === id);
     setMenuItems((prev) => prev.filter((item) => item.id !== id));
+    dispatchServerAction('delete_menu_item', { id });
     showToast(`Menu "${target?.name || ''}" telah dihapus.`);
   };
 
@@ -1106,6 +1153,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setMenuItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, inStock: !item.inStock } : item))
     );
+    dispatchServerAction('toggle_menu_stock', { id });
     const item = menuItems.find((i) => i.id === id);
     if (item) {
       showToast(`Status stok "${item.name}" diubah menjadi ${!item.inStock ? 'Tersedia' : 'Habis'}`);
@@ -1121,34 +1169,42 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
           : inv
       )
     );
+    dispatchServerAction('update_inventory_stock', { id, newStock });
     showToast(`Stok bahan baku diperbarui.`);
   };
 
   const addInventoryItem = (item: Omit<InventoryItem, 'id'>) => {
     const newId = `inv-${Date.now()}`;
-    setInventory((prev) => [...prev, { ...item, id: newId }]);
+    const newInv: InventoryItem = { ...item, id: newId, lastRestocked: new Date().toISOString().split('T')[0] };
+    setInventory((prev) => [...prev, newInv]);
+    dispatchServerAction('add_inventory_item', { item: newInv });
     showToast(`Bahan baku "${item.name}" berhasil ditambahkan.`);
   };
 
   const deleteInventoryItem = (id: string) => {
     setInventory((prev) => prev.filter((item) => item.id !== id));
+    dispatchServerAction('delete_inventory_item', { id });
     showToast(`Bahan baku dihapus.`);
   };
 
   // USER ACTIONS
   const addUser = (user: Omit<UserAccount, 'id'>) => {
     const newId = `usr-${Date.now()}`;
-    setUsers((prev) => [...prev, { ...user, id: newId }]);
+    const newUser: UserAccount = { ...user, id: newId };
+    setUsers((prev) => [...prev, newUser]);
+    dispatchServerAction('add_user', { user: newUser });
     showToast(`Pengguna baru "${user.name}" berhasil dibuat.`);
   };
 
   const updateUser = (id: string, updates: Partial<UserAccount>) => {
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...updates } : u)));
+    dispatchServerAction('update_user', { id, updates });
     showToast(`Data pengguna diperbarui.`);
   };
 
   const deleteUser = (id: string) => {
     setUsers((prev) => prev.filter((u) => u.id !== id));
+    dispatchServerAction('delete_user', { id });
     showToast(`Pengguna telah dihapus.`);
   };
 
@@ -1165,6 +1221,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsSoundEnabled(true);
     alertedDelayOrdersRef.current = { 'ORD-101': { warning15: true } };
     localStorage.clear();
+    dispatchServerAction('reset_data', {});
     showToast(`Data aplikasi di-reset ke data default NADIRA Café & Resto.`);
   };
 

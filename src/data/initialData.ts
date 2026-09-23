@@ -1,4 +1,4 @@
-import { MenuItem, InventoryItem, UserAccount, TableInfo, Order } from '../types';
+import type { MenuItem, InventoryItem, UserAccount, TableInfo, Order, OperationalExpense, CafeNotification } from '../types.ts';
 
 export const INITIAL_MENU_ITEMS: MenuItem[] = [
   // KOPI
@@ -669,3 +669,129 @@ export const INITIAL_PAID_ORDERS: Order[] = [
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 500).toISOString()
   }
 ];
+
+export const INITIAL_EXPENSES: OperationalExpense[] = [
+  // Pengeluaran Hari Ini
+  {
+    id: 'exp-1',
+    category: 'Gaji & Karyawan',
+    name: 'Gaji Operasional 4 Barista & Waitress',
+    amount: 600000,
+    date: new Date().toISOString().split('T')[0],
+    notes: 'Shift harian 4 staf'
+  },
+  {
+    id: 'exp-2',
+    category: 'Utilitas (Listrik/Air/Wifi/Gas)',
+    name: 'Listrik Mesin Espresso & Gas Dapur',
+    amount: 150000,
+    date: new Date().toISOString().split('T')[0],
+    notes: 'Biaya utilitas harian'
+  },
+  {
+    id: 'exp-3',
+    category: 'Bahan Penunjang & Kebersihan',
+    name: 'Paper Cup, Straw & Packaging Takeaway',
+    amount: 95000,
+    date: new Date().toISOString().split('T')[0],
+    notes: 'Packaging & hygiene supplies'
+  },
+  {
+    id: 'exp-4',
+    category: 'Sewa & Lokasi',
+    name: 'Alokasi Biaya Gedung/Ruko Harian',
+    amount: 250000,
+    date: new Date().toISOString().split('T')[0],
+    notes: 'Prorata sewa tempat'
+  },
+  {
+    id: 'exp-5',
+    category: 'Pemasaran & Lainnya',
+    name: 'Promosi Digital Instagram & Wi-Fi Tamu',
+    amount: 75000,
+    date: new Date().toISOString().split('T')[0],
+    notes: 'Marketing & koneksi internet'
+  },
+  // Pengeluaran 3-5 Hari Lalu (Mingguan)
+  {
+    id: 'exp-6',
+    category: 'Pemeliharaan & Alat',
+    name: 'Servis Rutin Grinder & Mesin Espresso La Marzocco',
+    amount: 450000,
+    date: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString().split('T')[0],
+    notes: 'Ganti seal gasket & kalibrasi burr'
+  },
+  {
+    id: 'exp-7',
+    category: 'Bahan Penunjang & Kebersihan',
+    name: 'Restock Sabun Food Grade & Tissue Meja Kasir',
+    amount: 120000,
+    date: new Date(Date.now() - 1000 * 60 * 60 * 120).toISOString().split('T')[0],
+    notes: 'Perlengkapan sanitasi kafe'
+  },
+  // Pengeluaran 12-20 Hari Lalu (Bulanan)
+  {
+    id: 'exp-8',
+    category: 'Pemasaran & Lainnya',
+    name: 'Cetak Buku Menu Hardcover & Standing Banner Promo',
+    amount: 350000,
+    date: new Date(Date.now() - 1000 * 60 * 60 * 360).toISOString().split('T')[0],
+    notes: 'Marketing cetak materi promosi'
+  },
+  {
+    id: 'exp-9',
+    category: 'Utilitas (Listrik/Air/Wifi/Gas)',
+    name: 'Tagihan Internet Biznet Dedicated Kafe 100 Mbps',
+    amount: 550000,
+    date: new Date(Date.now() - 1000 * 60 * 60 * 480).toISOString().split('T')[0],
+    notes: 'Tagihan wifi bulanan kafe'
+  }
+];
+
+export const INITIAL_NOTIFICATIONS: CafeNotification[] = [
+  {
+    id: 'notif-init-1',
+    type: 'item_ready',
+    title: '🍽️ Minuman Siap Saji',
+    message: '2x Es Kopi Susu Aren Nadira untuk Meja #1 siap disajikan!',
+    tableNumber: 1,
+    orderId: 'ORD-101',
+    orderNumber: '#NDR-101',
+    itemId: 'item-101-1',
+    itemName: 'Es Kopi Susu Aren Nadira',
+    quantity: 2,
+    station: 'bar',
+    createdAt: new Date(Date.now() - 1000 * 60 * 3).toISOString(),
+    read: false,
+    served: false,
+  },
+  {
+    id: 'notif-init-2',
+    type: 'order_delay_warning',
+    title: '⚠️ Pengingat: Mendekati 15 Menit',
+    message: 'Pesanan #NDR-101 (Meja #1) sudah 14 menit belum selesai diracik!',
+    tableNumber: 1,
+    orderId: 'ORD-101',
+    orderNumber: '#NDR-101',
+    createdAt: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
+    read: false,
+  },
+  {
+    id: 'notif-init-3',
+    type: 'item_ready',
+    title: '🍽️ Makanan Siap Saji',
+    message: '2x Nasi Goreng Kampoeng Wagyu untuk Meja #3 siap disajikan!',
+    tableNumber: 3,
+    orderId: 'ORD-102',
+    orderNumber: '#NDR-102',
+    itemId: 'item-102-1',
+    itemName: 'Nasi Goreng Kampoeng Wagyu',
+    quantity: 2,
+    station: 'kitchen',
+    createdAt: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
+    read: true,
+    served: true,
+  }
+];
+
+

@@ -67,7 +67,9 @@ export type NotificationType =
   | 'order_delay_critical' // > 20 minutes
   | 'call_waiter'
   | 'order_items_added' // Tambahan pesanan baru dari waitress
-  | 'new_order'; // Pesanan meja baru
+  | 'new_order' // Pesanan meja baru
+  | 'order_cancelled'
+  | 'payment_success';
 
 export interface CafeNotification {
   id: string;
