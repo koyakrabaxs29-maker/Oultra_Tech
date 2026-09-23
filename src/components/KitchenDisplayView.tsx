@@ -156,33 +156,28 @@ export const KitchenDisplayView: React.FC = () => {
       )}
 
       {/* KDS Header */}
-      <div className="bg-[#1C130B] rounded-2xl p-4 sm:p-5 text-[#FFF5EA] border border-[#3D2513] shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#8C5223] to-[#542F10] flex items-center justify-center text-white border border-[#A8713D]/40">
-            <ChefHat className="w-6 h-6" />
+      <div className="bg-[#1C130B] rounded-2xl p-5 text-[#FFF5EA] border border-[#3D2513] shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#8C5223] to-[#542F10] flex items-center justify-center text-white border border-[#A8713D]/40">
+            <ChefHat className="w-7 h-7" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display text-xl sm:text-2xl font-bold text-[#F7E6D4]">
-                Kitchen & Bar Display System (KDS)
-              </h1>
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
-                Live Dapur
-              </span>
-            </div>
-            <p className="text-xs text-[#C4AD99] mt-0.5">
-              Notifikasi instan tambahan pesanan, tanda siap saji per item, panggilan bel waitress, dan pengingat 15-20 menit.
+            <h1 className="font-display text-2xl font-bold text-[#F7E6D4] leading-tight">
+              Kitchen & Bar Display
+            </h1>
+            <p className="text-sm text-[#C4AD99] mt-0.5">
+              Live monitoring status pesanan.
             </p>
           </div>
         </div>
 
         {/* Station Filter Buttons */}
-        <div className="flex flex-wrap items-center gap-1.5 bg-[#2B1B0F] p-1.5 rounded-xl border border-[#4A2E19]">
+        <div className="flex flex-wrap items-center gap-2 bg-[#2B1B0F] p-1.5 rounded-xl border border-[#4A2E19]">
           <button
             onClick={() => setStationFilter('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
               stationFilter === 'all'
-                ? 'bg-[#7D4F27] text-white shadow-sm'
+                ? 'bg-[#7D4F27] text-white'
                 : 'text-[#C4AD99] hover:text-white'
             }`}
           >
@@ -190,51 +185,51 @@ export const KitchenDisplayView: React.FC = () => {
           </button>
           <button
             onClick={() => setStationFilter('additions')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
               stationFilter === 'additions'
-                ? 'bg-amber-500 text-black shadow-sm'
+                ? 'bg-amber-500 text-black'
                 : ordersWithAdditions.length > 0
-                ? 'text-amber-300 bg-amber-950/70 border border-amber-500/60 hover:bg-amber-900/60 animate-pulse'
+                ? 'text-amber-300 bg-amber-950/70 animate-pulse'
                 : 'text-[#C4AD99] hover:text-white'
             }`}
           >
-            <Flame className="w-3.5 h-3.5 text-amber-400" />
-            <span>Tambahan Pesanan ({ordersWithAdditions.length})</span>
+            <Flame className="w-4 h-4 text-amber-400" />
+            <span>+ ({ordersWithAdditions.length})</span>
           </button>
           <button
             onClick={() => setStationFilter('bar')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer ${
               stationFilter === 'bar'
-                ? 'bg-[#7D4F27] text-white shadow-sm'
+                ? 'bg-[#7D4F27] text-white'
                 : 'text-[#C4AD99] hover:text-white'
             }`}
           >
-            <Coffee className="w-3.5 h-3.5 text-[#D4A373]" />
-            <span>Bar (Minuman)</span>
+            <Coffee className="w-4 h-4 text-[#D4A373]" />
+            <span>Bar</span>
           </button>
           <button
             onClick={() => setStationFilter('kitchen')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer ${
               stationFilter === 'kitchen'
-                ? 'bg-[#7D4F27] text-white shadow-sm'
+                ? 'bg-[#7D4F27] text-white'
                 : 'text-[#C4AD99] hover:text-white'
             }`}
           >
-            <Utensils className="w-3.5 h-3.5 text-[#D4A373]" />
-            <span>Kitchen (Makanan)</span>
+            <Utensils className="w-4 h-4 text-[#D4A373]" />
+            <span>Kitchen</span>
           </button>
           <button
             onClick={() => setStationFilter('delayed')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
               stationFilter === 'delayed'
-                ? 'bg-amber-600 text-white shadow-sm'
+                ? 'bg-amber-600 text-white'
                 : delayedOrders.length > 0
-                ? 'text-amber-400 hover:text-amber-200 bg-amber-950/40 border border-amber-800/40'
+                ? 'text-amber-400 bg-amber-950/40'
                 : 'text-[#C4AD99] hover:text-white'
             }`}
           >
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-            <span>⚠️ 15-20m ({delayedOrders.length})</span>
+            <AlertTriangle className="w-4 h-4 text-amber-400" />
+            <span>⚠️ ({delayedOrders.length})</span>
           </button>
         </div>
       </div>

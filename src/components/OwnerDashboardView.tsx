@@ -1397,7 +1397,10 @@ export const OwnerDashboardView: React.FC = () => {
                 </div>
 
                 <div className="pt-2 border-t border-[#E3D3C4] flex items-center justify-between">
-                  <span className="text-[10px] font-semibold text-emerald-700">● Aktif</span>
+                  <span className={`text-[10px] font-semibold flex items-center gap-1.5 ${usr.active ? 'text-emerald-700' : 'text-red-600'}`}>
+                    <span className={`w-2 h-2 rounded-full ${usr.active ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                    {usr.active ? 'Aktif' : 'Tidak Aktif'}
+                  </span>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => handleOpenEditUser(usr)}

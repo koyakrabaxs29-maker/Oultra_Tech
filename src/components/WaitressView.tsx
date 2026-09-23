@@ -243,7 +243,7 @@ export const WaitressView: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-display text-xl sm:text-2xl font-bold text-[#2C1D11]">
-                Waitress Station & Pemesanan 30 Meja Kafe
+                Kitchen & Bar
               </h1>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold border border-amber-300">
                 30 Meja Aktif
@@ -387,7 +387,7 @@ export const WaitressView: React.FC = () => {
 
       {/* Table Grid Matrix (30 Tables) */}
       <div className="space-y-3">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3">
           {filteredTables.map((table) => {
             const tableOrder = activeOrders.find(
               (o) => o.tableNumber === table.number && o.paymentStatus === 'unpaid'
@@ -399,7 +399,14 @@ export const WaitressView: React.FC = () => {
               <div
                 key={table.number}
                 id={`table-card-${table.number}`}
-                onClick={() => setSelectedTable(table)}
+                onClick={() => {
+                  setSelectedTable(table);
+                  if (isOccupied) {
+                    setIsAddItemsModalOpen(true);
+                  } else {
+                    setIsNewOrderModalOpen(true);
+                  }
+                }}
                 className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between min-h-[135px] ${
                   isOccupied
                     ? 'bg-white border-[#D4A373] shadow-md hover:border-[#7D4F27]'
@@ -417,9 +424,7 @@ export const WaitressView: React.FC = () => {
                       }`}
                     />
                   </div>
-                  <span className="text-[11px] text-[#8C705A] block mt-0.5 font-medium">
-                    {table.capacity} Kursi
-                  </span>
+                  {/* Meja # is kept, capacity line removed */}
                 </div>
 
                 {isOccupied && tableOrder ? (
@@ -797,30 +802,26 @@ export const WaitressView: React.FC = () => {
                 <span className="text-[11px] font-bold text-[#7A614D] uppercase tracking-wider block">
                   Pilih Menu untuk Dikustomisasi:
                 </span>
-                <div className="max-h-48 overflow-y-auto divide-y divide-[#F0E4D8] border border-[#E3D3C4] rounded-xl p-2 bg-stone-50/50">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {filteredCatalog.map((item) => (
-                    <div key={item.id} className="py-2 px-1 flex items-center justify-between gap-3">
-                      <div className="flex-1">
-                        <span className="text-xs font-bold text-[#2C1D11] block">{item.name}</span>
-                        <div className="text-[11px] text-[#7D4F27] font-semibold flex items-center gap-2">
-                          <span>{formatRupiah(item.price)}</span>
-                          <span className="text-stone-400">•</span>
-                          <span className="text-stone-600">{item.category}</span>
-                          <span className="text-[10px] bg-amber-100 text-amber-900 px-1.5 py-0.2 rounded font-medium">
-                            Large +{formatRupiah(item.largePriceAddition || 6000)}
-                          </span>
-                        </div>
+                    <button
+                      key={item.id}
+                      onClick={() => handleStartCustomize(item)}
+                      disabled={!item.inStock}
+                      className={`p-3 rounded-xl border flex flex-col items-center text-center gap-2 transition-all ${
+                        item.inStock 
+                          ? 'bg-white border-[#E3D3C4] hover:border-[#7D4F27] hover:shadow-sm' 
+                          : 'bg-stone-100 border-stone-200 opacity-60 cursor-not-allowed'
+                      }`}
+                    >
+                      <div className="w-12 h-12 rounded-full bg-[#F5EFE9] flex items-center justify-center text-xl">
+                        {item.category === 'Kopi' ? '☕' : item.category === 'Non-Kopi' ? '🥤' : '🍽️'}
                       </div>
-
-                      <button
-                        onClick={() => handleStartCustomize(item)}
-                        disabled={!item.inStock}
-                        className="px-3 py-1.5 text-xs font-bold rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white disabled:bg-stone-300 transition-all flex items-center gap-1 cursor-pointer"
-                      >
-                        <span>+ Pilih</span>
-                        <SlidersHorizontal className="w-3 h-3" />
-                      </button>
-                    </div>
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-bold text-[#2C1D11] block leading-tight">{item.name}</span>
+                        <span className="text-[10px] text-[#7D4F27] font-semibold">{formatRupiah(item.price)}</span>
+                      </div>
+                    </button>
                   ))}
                 </div>
               </div>
