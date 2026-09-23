@@ -181,46 +181,51 @@ app.post('/api/action', (req, res) => {
 
   switch (action) {
     case 'create_order': {
-      const { tableNumber, customerName, items, waitressName } = payload;
-      const { subtotal, tax, serviceCharge, total } = calculateTotals(items);
-      const newOrderNumber = `#NDR-${Math.floor(100 + Math.random() * 900)}`;
-      const newId = `ORD-${Date.now().toString().slice(-6)}`;
+      let newOrder: Order;
+      if (payload.order) {
+        newOrder = payload.order;
+      } else {
+        const { tableNumber, customerName, items, waitressName } = payload;
+        const { subtotal, tax, serviceCharge, total } = calculateTotals(items);
+        const newOrderNumber = `#NDR-${Math.floor(100 + Math.random() * 900)}`;
+        const newId = `ORD-${Date.now().toString().slice(-6)}`;
 
-      const newOrder: Order = {
-        id: newId,
-        orderNumber: newOrderNumber,
-        tableNumber,
-        customerName: customerName?.trim() || `Pelanggan Meja ${tableNumber}`,
-        items: items.map((it: OrderItem) => ({ ...it, status: it.status || 'pending' })),
-        subtotal,
-        tax,
-        serviceCharge,
-        total,
-        status: 'pending',
-        paymentStatus: 'unpaid',
-        waitressName: waitressName || 'Waitress On-Duty',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+        newOrder = {
+          id: newId,
+          orderNumber: newOrderNumber,
+          tableNumber,
+          customerName: customerName?.trim() || `Pelanggan Meja ${tableNumber}`,
+          items: items.map((it: OrderItem) => ({ ...it, status: it.status || 'pending' })),
+          subtotal,
+          tax,
+          serviceCharge,
+          total,
+          status: 'pending',
+          paymentStatus: 'unpaid',
+          waitressName: waitressName || 'Waitress On-Duty',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      }
 
-      state.activeOrders.unshift(newOrder);
+      state.activeOrders = [newOrder, ...state.activeOrders.filter((o) => o.id !== newOrder.id)];
 
       // Update table
       state.tables = state.tables.map((t) =>
-        t.number === tableNumber
+        t.number === newOrder.tableNumber
           ? { ...t, status: 'occupied', currentOrderId: newOrder.id }
           : t
       );
 
       // Notification for Kitchen & Bar
-      const notif: CafeNotification = {
-        id: `notif-new-${Date.now()}-${newId}`,
+      const notif: CafeNotification = payload.notification || {
+        id: `notif-new-${Date.now()}-${newOrder.id}`,
         type: 'new_order',
-        title: `📝 Pesanan Baru: Meja #${tableNumber}`,
-        message: `Pesanan ${newOrderNumber} (${newOrder.customerName}) berisi ${items.length} menu siap diproses di Dapur/Bar.`,
-        tableNumber,
-        orderId: newId,
-        orderNumber: newOrderNumber,
+        title: `📝 Pesanan Baru: Meja #${newOrder.tableNumber}`,
+        message: `Pesanan ${newOrder.orderNumber} (${newOrder.customerName}) berisi ${newOrder.items.length} menu siap diproses di Dapur/Bar.`,
+        tableNumber: newOrder.tableNumber,
+        orderId: newOrder.id,
+        orderNumber: newOrder.orderNumber,
         createdAt: new Date().toISOString(),
         read: false,
       };
@@ -735,7 +740,7 @@ const isProd = process.env.NODE_ENV === 'production';
 const distPath = path.resolve(process.cwd(), 'dist');
 
 async function startServer() {
-  if (!isProd && !fs.existsSync(path.resolve(distPath, 'index.html'))) {
+  if (!isProd) {
     // Mount Vite dev server middleware in development
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
@@ -743,7 +748,7 @@ async function startServer() {
       appType: 'spa',
     });
     app.use(vite.middlewares);
-    console.log('[Server] Mounted Vite dev middleware');
+    console.log('[Server] Mounted Vite dev middleware in development mode');
   } else {
     // Serve production static build
     app.use(express.static(distPath));

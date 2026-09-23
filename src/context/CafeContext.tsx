@@ -234,8 +234,10 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const applyServerState = (serverState: any, version?: number) => {
     if (!serverState) return;
-    if (version !== undefined && version <= localVersionRef.current) return;
-    if (version !== undefined) localVersionRef.current = version;
+    if (version !== undefined) {
+      if (version < localVersionRef.current) return;
+      localVersionRef.current = version;
+    }
 
     if (Array.isArray(serverState.menuItems)) setMenuItems(serverState.menuItems);
     if (Array.isArray(serverState.activeOrders)) setActiveOrders(serverState.activeOrders);
@@ -273,13 +275,15 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let isMounted = true;
     let eventSource: EventSource | null = null;
 
-    const fetchState = async () => {
+    const fetchState = async (force = false) => {
       try {
         const res = await fetch('/api/state');
         if (res.ok) {
           const data = await res.json();
-          if (isMounted && data.state && data.version > localVersionRef.current) {
-            applyServerState(data.state, data.version);
+          if (isMounted && data.state) {
+            if (force || data.version === undefined || data.version >= localVersionRef.current) {
+              applyServerState(data.state, data.version);
+            }
           }
         }
       } catch {
@@ -288,7 +292,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     // Initial fetch from central server
-    fetchState();
+    fetchState(true);
 
     // SSE connection for instant multi-device event sync
     try {
@@ -309,27 +313,52 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
               soundAlerts.playNewOrderChime();
               showToast(`📝 Pesanan Baru Masuk: Meja #${event.payload?.order?.tableNumber || '?'} (${event.payload?.order?.orderNumber || ''})!`);
             }
-            fetchState();
+            if (event.payload?.order) {
+              const incoming = event.payload.order;
+              setActiveOrders((prev) => [incoming, ...prev.filter((o) => o.id !== incoming.id)]);
+              if (incoming.tableNumber) {
+                setTables((prev) =>
+                  prev.map((t) =>
+                    t.number === incoming.tableNumber
+                      ? { ...t, status: 'occupied', currentOrderId: incoming.id }
+                      : t
+                  )
+                );
+              }
+            }
+            fetchState(true);
           } else if (event.type === 'items_added') {
             if (!isFromMe) {
               soundAlerts.playAdditionalItemChime();
               showToast(`🔔 Tambahan Pesanan Meja #${event.payload?.order?.tableNumber || '?'} masuk!`);
             }
-            fetchState();
+            if (event.payload?.order) {
+              const updated = event.payload.order;
+              setActiveOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+            }
+            fetchState(true);
           } else if (event.type === 'item_status_updated') {
             if (!isFromMe && event.payload?.itemStatus === 'ready') {
-              soundAlerts.playWarningReminder();
+              soundAlerts.playReadyChime();
               showToast(`🍽️ Menu Meja #${event.payload?.order?.tableNumber || '?'} Siap Saji!`);
             }
-            fetchState();
+            if (event.payload?.order) {
+              const updated = event.payload.order;
+              setActiveOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+            }
+            fetchState(true);
           } else if (event.type === 'order_status_updated') {
             if (!isFromMe && event.payload?.status === 'ready') {
-              soundAlerts.playWarningReminder();
+              soundAlerts.playReadyChime();
               showToast(`🍽️ Semua Menu Meja #${event.payload?.order?.tableNumber || '?'} Siap Saji!`);
             }
-            fetchState();
+            if (event.payload?.order) {
+              const updated = event.payload.order;
+              setActiveOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+            }
+            fetchState(true);
           } else {
-            fetchState();
+            fetchState(true);
           }
         } catch {
           // Parse error ignore
@@ -343,10 +372,10 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // EventSource failed or unsupported
     }
 
-    // Polling fallback every 2.5s for seamless multi-device updates even if SSE reconnects
+    // Polling fallback every 2.0s for seamless multi-device updates even if SSE reconnects
     const pollInterval = setInterval(() => {
-      if (isMounted) fetchState();
-    }, 2500);
+      if (isMounted) fetchState(false);
+    }, 2000);
 
     return () => {
       isMounted = false;
@@ -533,10 +562,8 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Dispatch to server for real-time multi-device sync
     dispatchServerAction('create_order', {
-      tableNumber,
-      customerName,
-      items,
-      waitressName: newOrder.waitressName,
+      order: newOrder,
+      notification: newOrderNotif,
     });
 
     showToast(`Pesanan ${newOrderNumber} berhasil dibuat untuk Meja ${tableNumber}!`);
