@@ -5,20 +5,17 @@ import { WaitressView } from './components/WaitressView';
 import { KitchenDisplayView } from './components/KitchenDisplayView';
 import { CashierView } from './components/CashierView';
 import { OwnerDashboardView } from './components/OwnerDashboardView';
-import { ArchitectureGuideModal } from './components/ArchitectureGuideModal';
 import { NotificationCenterModal } from './components/NotificationCenterModal';
 import { CheckCircle2 } from 'lucide-react';
 
 const MainAppContent: React.FC = () => {
   const { activeRole, toastMessage } = useCafe();
-  const [isGuideModalOpen, setIsGuideModalOpen] = useState(false);
   const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FBF8F5] text-[#2C1D11]">
       {/* Top Navbar with Role Switcher & Brand */}
       <Navbar 
-        onOpenGuide={() => setIsGuideModalOpen(true)} 
         onOpenNotifications={() => setIsNotificationsModalOpen(true)}
       />
 
@@ -39,12 +36,6 @@ const MainAppContent: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Architecture & Engineering Guide Modal */}
-      <ArchitectureGuideModal
-        isOpen={isGuideModalOpen}
-        onClose={() => setIsGuideModalOpen(false)}
-      />
 
       {/* Notification Center & Kitchen Alert Modal */}
       <NotificationCenterModal

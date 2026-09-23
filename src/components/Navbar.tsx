@@ -7,7 +7,6 @@ import {
   ReceiptText, 
   ChefHat, 
   ShieldCheck, 
-  RotateCcw,
   Bell,
   Volume2,
   VolumeX,
@@ -15,7 +14,6 @@ import {
 } from 'lucide-react';
 
 interface NavbarProps {
-  onOpenGuide?: () => void;
   onOpenNotifications: () => void;
 }
 
@@ -28,7 +26,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNotifications }) => {
     unreadNotificationsCount,
     isSoundEnabled,
     setIsSoundEnabled,
-    resetToDefaultData,
     syncStatus,
     syncBrokerName,
     connectedDevicesCount,
@@ -191,19 +188,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNotifications }) => {
                   <span className="hidden sm:inline">&gt;15m</span>
                 </span>
               )}
-            </button>
-
-            <button
-              id="btn-reset-demo"
-              onClick={() => {
-                if (window.confirm('Reset semua data transaksi, stok, dan menu ke kondisi awal NADIRA Café?')) {
-                  resetToDefaultData();
-                }
-              }}
-              className="p-1.5 sm:p-2 text-xs rounded-lg text-[#B89F88] hover:text-[#FFF5EA] hover:bg-[#3D2817] transition-all cursor-pointer"
-              title="Reset Demo Data"
-            >
-              <RotateCcw className="w-4 h-4" />
             </button>
           </div>
         </div>
