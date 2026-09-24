@@ -1,24 +1,35 @@
 import Paho from 'paho-mqtt';
 
+export type SyncActionType =
+  | 'order_created'
+  | 'create_order'
+  | 'items_added'
+  | 'add_items_to_order'
+  | 'item_status_updated'
+  | 'update_order_item_status'
+  | 'order_status_updated'
+  | 'update_order_status'
+  | 'item_served'
+  | 'mark_item_served'
+  | 'order_completed'
+  | 'mark_order_completed'
+  | 'order_cancelled'
+  | 'cancel_order'
+  | 'payment_processed'
+  | 'process_payment'
+  | 'table_updated'
+  | 'menu_updated'
+  | 'inventory_updated'
+  | 'expense_updated'
+  | 'user_updated'
+  | 'data_reset'
+  | 'reset_data'
+  | 'request_state'
+  | 'provide_state'
+  | 'device_heartbeat';
+
 export interface SyncMessage {
-  type:
-    | 'order_created'
-    | 'items_added'
-    | 'item_status_updated'
-    | 'order_status_updated'
-    | 'item_served'
-    | 'order_completed'
-    | 'order_cancelled'
-    | 'payment_processed'
-    | 'table_updated'
-    | 'menu_updated'
-    | 'inventory_updated'
-    | 'expense_updated'
-    | 'user_updated'
-    | 'data_reset'
-    | 'request_state'
-    | 'provide_state'
-    | 'device_heartbeat';
+  type: SyncActionType;
   payload?: any;
   sourceClientId: string;
   sourceDeviceName?: string;

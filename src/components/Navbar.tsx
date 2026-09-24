@@ -207,7 +207,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNotifications }) => {
                 key={cfg.role}
                 id={`role-tab-${cfg.role}`}
                 onClick={() => setActiveRole(cfg.role)}
-                className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                className={`relative flex items-center gap-2 min-h-[44px] px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95 ${
                   isActive
                     ? 'bg-[#7D4F27] text-white shadow-md shadow-[#2C1D11]/50 border border-[#A8713D]'
                     : 'bg-[#2B1B0F] text-[#C4AC97] hover:bg-[#382314] hover:text-[#EFE2D4] border border-[#3D2817]'
