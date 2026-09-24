@@ -127,6 +127,7 @@ const STORAGE_KEYS = {
   NOTIFICATIONS: 'nadira_pos_notifications_v4',
   SOUND_ENABLED: 'nadira_pos_sound_v4',
   EXPENSES: 'nadira_pos_expenses_v4',
+  OFFLINE_QUEUE: 'nadira_pos_offline_queue_v4',
 };
 
 export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -240,42 +241,62 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(STORAGE_KEYS.SOUND_ENABLED, JSON.stringify(enabled));
   };
 
-  // Sync with localStorage
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.MENU, JSON.stringify(menuItems));
-  }, [menuItems]);
+  // State refs to prevent stale closure data loss
+  const activeOrdersRef = useRef<Order[]>(activeOrders);
+  const completedOrdersRef = useRef<Order[]>(completedOrders);
+  const deletedOrderIdsRef = useRef<string[]>(deletedOrderIds);
+  const tablesRef = useRef<TableInfo[]>(tables);
+  const menuItemsRef = useRef<MenuItem[]>(menuItems);
+  const inventoryRef = useRef<InventoryItem[]>(inventory);
+  const usersRef = useRef<UserAccount[]>(users);
+  const expensesRef = useRef<OperationalExpense[]>(expenses);
+  const notificationsRef = useRef<CafeNotification[]>(notifications);
 
+  // Sync state to refs and localStorage
   useEffect(() => {
+    activeOrdersRef.current = activeOrders;
     localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(activeOrders));
   }, [activeOrders]);
 
   useEffect(() => {
+    completedOrdersRef.current = completedOrders;
     localStorage.setItem(STORAGE_KEYS.PAID_ORDERS, JSON.stringify(completedOrders));
   }, [completedOrders]);
 
   useEffect(() => {
+    deletedOrderIdsRef.current = deletedOrderIds;
     localStorage.setItem(STORAGE_KEYS.DELETED_ORDER_IDS, JSON.stringify(deletedOrderIds));
   }, [deletedOrderIds]);
 
   useEffect(() => {
+    tablesRef.current = tables;
     localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(tables));
   }, [tables]);
 
   useEffect(() => {
+    menuItemsRef.current = menuItems;
+    localStorage.setItem(STORAGE_KEYS.MENU, JSON.stringify(menuItems));
+  }, [menuItems]);
+
+  useEffect(() => {
+    inventoryRef.current = inventory;
     localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
   }, [inventory]);
 
   useEffect(() => {
+    usersRef.current = users;
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
   }, [users]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
-  }, [notifications]);
-
-  useEffect(() => {
+    expensesRef.current = expenses;
     localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(expenses));
   }, [expenses]);
+
+  useEffect(() => {
+    notificationsRef.current = notifications;
+    localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
+  }, [notifications]);
 
   // Real-time Cloud Multi-Device Synchronization
   const [syncStatus, setSyncStatus] = useState<ConnectionStatus>('connecting');
@@ -284,78 +305,634 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const localVersionRef = useRef<number>(1);
   const isSyncInitializedRef = useRef<boolean>(false);
 
-  const applyServerState = (serverState: any, version?: number) => {
-    if (!serverState) return;
-    if (version !== undefined) {
-      if (version < localVersionRef.current) return;
-      localVersionRef.current = version;
+  // Offline action outbox queue
+  const enqueueOfflineAction = (action: string, payload: any) => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.OFFLINE_QUEUE);
+      const queue: Array<{ id: string; action: string; payload: any; timestamp: number }> = stored ? JSON.parse(stored) : [];
+      queue.push({
+        id: `offline-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        action,
+        payload,
+        timestamp: Date.now(),
+      });
+      localStorage.setItem(STORAGE_KEYS.OFFLINE_QUEUE, JSON.stringify(queue));
+    } catch (e) {
+      console.warn('Failed to enqueue offline action', e);
+    }
+  };
+
+  const flushOfflineQueue = async () => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.OFFLINE_QUEUE);
+      if (!stored) return;
+      const queue: Array<{ id: string; action: string; payload: any }> = JSON.parse(stored);
+      if (!queue.length) return;
+
+      const remainingQueue: typeof queue = [];
+      for (const item of queue) {
+        try {
+          const res = await fetch('/api/action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: item.action,
+              payload: item.payload,
+              clientId: cloudSync.getClientId(),
+            }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.version) {
+              localVersionRef.current = Math.max(localVersionRef.current, data.version);
+            }
+          } else {
+            remainingQueue.push(item);
+          }
+        } catch {
+          remainingQueue.push(item);
+        }
+      }
+
+      if (remainingQueue.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.OFFLINE_QUEUE, JSON.stringify(remainingQueue));
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.OFFLINE_QUEUE);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  // Safe non-destructive order reconciliation
+  const mergeActiveOrdersSafely = (
+    incoming: Order[],
+    current: Order[],
+    deletedIds: Set<string>,
+    serverCompletedIds: Set<string>
+  ): Order[] => {
+    const map = new Map<string, Order>();
+
+    // 1. Keep all current local active orders that are not deleted or completed
+    for (const order of current) {
+      if (
+        !deletedIds.has(order.id) &&
+        !serverCompletedIds.has(order.id) &&
+        order.status !== 'completed' &&
+        order.status !== 'cancelled' &&
+        order.paymentStatus !== 'paid'
+      ) {
+        map.set(order.id, order);
+      }
     }
 
-    if (Array.isArray(serverState.menuItems) && serverState.menuItems.length > 0) setMenuItems(serverState.menuItems);
-    if (Array.isArray(serverState.activeOrders)) setActiveOrders(serverState.activeOrders);
-    if (Array.isArray(serverState.completedOrders)) setCompletedOrders(serverState.completedOrders);
-    if (Array.isArray(serverState.deletedOrderIds)) setDeletedOrderIds(serverState.deletedOrderIds);
-    if (Array.isArray(serverState.tables) && serverState.tables.length > 0) setTables(serverState.tables);
-    if (Array.isArray(serverState.inventory) && serverState.inventory.length > 0) setInventory(serverState.inventory);
-    if (Array.isArray(serverState.users) && serverState.users.length > 0) setUsers(serverState.users);
-    if (Array.isArray(serverState.notifications)) setNotifications(serverState.notifications);
-    if (Array.isArray(serverState.expenses)) setExpenses(serverState.expenses);
+    // 2. Merge incoming orders
+    for (const inc of incoming) {
+      if (deletedIds.has(inc.id)) continue;
+      if (
+        serverCompletedIds.has(inc.id) ||
+        inc.status === 'completed' ||
+        inc.status === 'cancelled' ||
+        inc.paymentStatus === 'paid'
+      ) {
+        map.delete(inc.id);
+        continue;
+      }
+
+      const existing = map.get(inc.id);
+      if (!existing) {
+        map.set(inc.id, inc);
+      } else {
+        const incTime = new Date(inc.updatedAt || inc.createdAt || 0).getTime();
+        const existTime = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
+        if (incTime > existTime || (incTime === existTime && (inc.items?.length || 0) >= (existing.items?.length || 0))) {
+          map.set(inc.id, inc);
+        }
+      }
+    }
+
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  };
+
+  // Non-destructive applyServerState
+  const applyServerState = (serverState: any, version?: number) => {
+    if (!serverState) return;
+    if (version !== undefined && version > 0) {
+      localVersionRef.current = Math.max(localVersionRef.current, version);
+    }
+
+    // Process deleted orders registry
+    const currentDeleted = new Set(deletedOrderIdsRef.current);
+    if (Array.isArray(serverState.deletedOrderIds) && serverState.deletedOrderIds.length > 0) {
+      serverState.deletedOrderIds.forEach((id: string) => currentDeleted.add(id));
+      const nextDeleted = Array.from(currentDeleted);
+      deletedOrderIdsRef.current = nextDeleted;
+      setDeletedOrderIds(nextDeleted);
+      localStorage.setItem(STORAGE_KEYS.DELETED_ORDER_IDS, JSON.stringify(nextDeleted));
+    }
+
+    // Collect server completed/paid IDs
+    const serverCompletedIds = new Set<string>();
+    if (Array.isArray(serverState.completedOrders)) {
+      serverState.completedOrders.forEach((co: Order) => serverCompletedIds.add(co.id));
+    }
+
+    // Merge active orders non-destructively
+    if (Array.isArray(serverState.activeOrders)) {
+      const mergedActive = mergeActiveOrdersSafely(
+        serverState.activeOrders,
+        activeOrdersRef.current,
+        currentDeleted,
+        serverCompletedIds
+      );
+      activeOrdersRef.current = mergedActive;
+      setActiveOrders(mergedActive);
+      localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(mergedActive));
+
+      // Re-sync table occupancy based on active orders
+      setTables((prev) => {
+        const baseTables = (Array.isArray(serverState.tables) && serverState.tables.length === 30)
+          ? serverState.tables
+          : prev;
+        const updated = baseTables.map((tbl: TableInfo) => {
+          const matchingOrder = mergedActive.find((o) => o.tableNumber === tbl.number);
+          if (matchingOrder) {
+            return { ...tbl, status: 'occupied' as const, currentOrderId: matchingOrder.id };
+          } else if (tbl.status === 'occupied') {
+            return { ...tbl, status: 'available' as const, currentOrderId: undefined };
+          }
+          return tbl;
+        });
+        tablesRef.current = updated;
+        localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(updated));
+        return updated;
+      });
+    }
+
+    // Merge completed orders non-destructively
+    if (Array.isArray(serverState.completedOrders)) {
+      const completedMap = new Map<string, Order>();
+      for (const co of completedOrdersRef.current) {
+        if (!currentDeleted.has(co.id)) completedMap.set(co.id, co);
+      }
+      for (const inc of serverState.completedOrders) {
+        if (!currentDeleted.has(inc.id)) {
+          const existing = completedMap.get(inc.id);
+          if (!existing) {
+            completedMap.set(inc.id, inc);
+          } else {
+            const incTime = new Date(inc.updatedAt || inc.createdAt || 0).getTime();
+            const existTime = new Date(existing.updatedAt || existing.createdAt || 0).getTime();
+            if (incTime >= existTime) completedMap.set(inc.id, inc);
+          }
+        }
+      }
+      const mergedCompleted = Array.from(completedMap.values())
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 100);
+      completedOrdersRef.current = mergedCompleted;
+      setCompletedOrders(mergedCompleted);
+      localStorage.setItem(STORAGE_KEYS.PAID_ORDERS, JSON.stringify(mergedCompleted));
+    }
+
+    if (Array.isArray(serverState.menuItems) && serverState.menuItems.length > 0) {
+      menuItemsRef.current = serverState.menuItems;
+      setMenuItems(serverState.menuItems);
+      localStorage.setItem(STORAGE_KEYS.MENU, JSON.stringify(serverState.menuItems));
+    }
+
+    if (Array.isArray(serverState.inventory) && serverState.inventory.length > 0) {
+      inventoryRef.current = serverState.inventory;
+      setInventory(serverState.inventory);
+      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(serverState.inventory));
+    }
+
+    if (Array.isArray(serverState.users) && serverState.users.length > 0) {
+      usersRef.current = serverState.users;
+      setUsers(serverState.users);
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(serverState.users));
+    }
+
+    if (Array.isArray(serverState.notifications)) {
+      const notifMap = new Map<string, CafeNotification>();
+      for (const n of notificationsRef.current) notifMap.set(n.id, n);
+      for (const n of serverState.notifications) notifMap.set(n.id, n);
+      const mergedNotifs = Array.from(notifMap.values())
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 50);
+      notificationsRef.current = mergedNotifs;
+      setNotifications(mergedNotifs);
+      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(mergedNotifs));
+    }
+
+    if (Array.isArray(serverState.expenses)) {
+      const expMap = new Map<string, OperationalExpense>();
+      for (const e of expensesRef.current) expMap.set(e.id, e);
+      for (const e of serverState.expenses) expMap.set(e.id, e);
+      const mergedExp = Array.from(expMap.values())
+        .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+      expensesRef.current = mergedExp;
+      setExpenses(mergedExp);
+      localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(mergedExp));
+    }
+  };
+
+  // Universal sync message handler shared by both SSE and Cloud Broker
+  const handleSyncMessage = (msg: SyncMessage | any) => {
+    if (!msg) return;
+    if (msg.version && msg.version > localVersionRef.current) {
+      localVersionRef.current = msg.version;
+    }
+
+    if (msg.sourceClientId && msg.sourceClientId !== cloudSync.getClientId()) {
+      setOnlineSessions((prev) => {
+        const existing = prev[msg.sourceClientId];
+        const payloadUser = msg.type === 'device_heartbeat' ? msg.payload?.user : undefined;
+        const payloadRole = msg.type === 'device_heartbeat' ? msg.payload?.role : undefined;
+        return {
+          ...prev,
+          [msg.sourceClientId]: {
+            clientId: msg.sourceClientId,
+            role: payloadRole || msg.sourceRole || existing?.role || 'unknown',
+            user: payloadUser !== undefined ? payloadUser : (existing?.user || null),
+            lastSeen: Date.now(),
+          },
+        };
+      });
+    }
+
+    switch (msg.type) {
+      case 'create_order':
+      case 'order_created': {
+        const order = msg.payload?.order;
+        if (order && !deletedOrderIdsRef.current.includes(order.id)) {
+          setActiveOrders((prev) => {
+            const updated = [order, ...prev.filter((o) => o.id !== order.id)];
+            activeOrdersRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
+            return updated;
+          });
+          if (order.tableNumber) {
+            setTables((prev) => {
+              const updated = prev.map((t) =>
+                t.number === order.tableNumber
+                  ? { ...t, status: 'occupied' as const, currentOrderId: order.id }
+                  : t
+              );
+              tablesRef.current = updated;
+              localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(updated));
+              return updated;
+            });
+          }
+          if (msg.payload?.notification) {
+            setNotifications((prev) => {
+              const updated = [
+                msg.payload.notification,
+                ...prev.filter((n) => n.id !== msg.payload.notification.id),
+              ];
+              notificationsRef.current = updated;
+              localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
+              return updated;
+            });
+          }
+          soundAlerts.playNewOrderChime();
+          showToast(
+            `📝 Pesanan Baru Masuk: Meja #${order.tableNumber} (${order.orderNumber}) dari ${order.waitressName || 'Waitress'}!`
+          );
+        }
+        break;
+      }
+      case 'add_items_to_order':
+      case 'items_added': {
+        const { order, notification } = msg.payload || {};
+        if (order) {
+          setActiveOrders((prev) => {
+            const updated = prev.map((o) => (o.id === order.id ? order : o));
+            activeOrdersRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        if (notification) {
+          setNotifications((prev) => {
+            const updated = [notification, ...prev.filter((n) => n.id !== notification.id)];
+            notificationsRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        soundAlerts.playAdditionalItemChime();
+        showToast(`🔔 Tambahan Menu Masuk untuk Meja #${order?.tableNumber || '?'}!`);
+        break;
+      }
+      case 'update_order_item_status':
+      case 'item_status_updated': {
+        const { orderId, itemId, itemStatus, notification } = msg.payload || {};
+        setActiveOrders((prev) => {
+          const updated = prev.map((order) => {
+            if (order.id !== orderId) return order;
+            const updatedItems = order.items.map((it) =>
+              it.id === itemId ? { ...it, status: itemStatus } : it
+            );
+            const allReady = updatedItems.length > 0 && updatedItems.every((it) => it.status === 'ready');
+            const anyCooking = updatedItems.some((it) => it.status === 'cooking' || it.status === 'ready');
+            let newStatus = order.status;
+            if (allReady) newStatus = 'ready';
+            else if (anyCooking && order.status === 'pending') newStatus = 'cooking';
+            return {
+              ...order,
+              items: updatedItems,
+              status: newStatus,
+              updatedAt: new Date().toISOString(),
+            };
+          });
+          activeOrdersRef.current = updated;
+          localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
+          return updated;
+        });
+        if (notification) {
+          setNotifications((prev) => {
+            const updated = [notification, ...prev.filter((n) => n.id !== notification.id)];
+            notificationsRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        if (itemStatus === 'ready') {
+          soundAlerts.playReadyChime();
+          showToast(`🍽️ Menu Pesanan Siap Saji!`);
+        }
+        break;
+      }
+      case 'update_order_status':
+      case 'order_status_updated': {
+        const { orderId, status, notification } = msg.payload || {};
+        setActiveOrders((prev) => {
+          const updated = prev.map((order) => {
+            if (order.id !== orderId) return order;
+            return {
+              ...order,
+              status,
+              updatedAt: new Date().toISOString(),
+            };
+          });
+          activeOrdersRef.current = updated;
+          localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
+          return updated;
+        });
+        if (notification) {
+          setNotifications((prev) => {
+            const updated = [notification, ...prev.filter((n) => n.id !== notification.id)];
+            notificationsRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        if (status === 'ready') {
+          soundAlerts.playReadyChime();
+          showToast(`🍽️ Seluruh Menu Meja Siap Saji!`);
+        }
+        break;
+      }
+      case 'mark_item_served':
+      case 'item_served': {
+        const { orderId, itemId, forceServed } = msg.payload || {};
+        const now = new Date().toISOString();
+        setActiveOrders((prev) => {
+          const updated = prev.map((order) => {
+            if (order.id !== orderId) return order;
+            const updatedItems = order.items.map((it) => {
+              if (it.id !== itemId) return it;
+              const newServed = forceServed !== undefined ? forceServed : !it.served;
+              return { ...it, served: newServed, servedAt: newServed ? now : undefined };
+            });
+            const allServed = updatedItems.length > 0 && updatedItems.every((it) => it.served);
+            return {
+              ...order,
+              items: updatedItems,
+              status: allServed ? 'served' : order.status,
+              servedAt: allServed ? now : order.servedAt,
+              updatedAt: now,
+            };
+          });
+          activeOrdersRef.current = updated;
+          localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
+          return updated;
+        });
+        setNotifications((prev) => {
+          const updated = prev.map((n) =>
+            n.orderId === orderId && n.itemId === itemId ? { ...n, served: true, read: true } : n
+          );
+          notificationsRef.current = updated;
+          localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
+          return updated;
+        });
+        break;
+      }
+      case 'mark_order_completed': {
+        const { orderId } = msg.payload || {};
+        const now = new Date().toISOString();
+        setActiveOrders((prev) => {
+          const updated = prev.map((order) =>
+            order.id === orderId ? { ...order, status: 'completed' as const, completedAt: now } : order
+          );
+          activeOrdersRef.current = updated;
+          localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
+          return updated;
+        });
+        break;
+      }
+      case 'process_payment':
+      case 'payment_completed': {
+        const { orderId, paidOrder } = msg.payload || {};
+        setActiveOrders((prev) => {
+          const updated = prev.filter((o) => o.id !== orderId);
+          activeOrdersRef.current = updated;
+          localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
+          return updated;
+        });
+        if (paidOrder) {
+          setCompletedOrders((prev) => {
+            const updated = [paidOrder, ...prev.filter((o) => o.id !== paidOrder.id)];
+            completedOrdersRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.PAID_ORDERS, JSON.stringify(updated));
+            return updated;
+          });
+          setTables((prev) => {
+            const updated = prev.map((t) =>
+              t.number === paidOrder.tableNumber ? { ...t, status: 'available' as const, currentOrderId: undefined } : t
+            );
+            tablesRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        break;
+      }
+      case 'cancel_order':
+      case 'order_cancelled': {
+        const { orderId, cancelledOrder } = msg.payload || {};
+        setActiveOrders((prev) => {
+          const updated = prev.filter((o) => o.id !== orderId);
+          activeOrdersRef.current = updated;
+          localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
+          return updated;
+        });
+        if (cancelledOrder) {
+          setCompletedOrders((prev) => {
+            const updated = [cancelledOrder, ...prev.filter((o) => o.id !== cancelledOrder.id)];
+            completedOrdersRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.PAID_ORDERS, JSON.stringify(updated));
+            return updated;
+          });
+          setTables((prev) => {
+            const updated = prev.map((t) =>
+              t.number === cancelledOrder.tableNumber ? { ...t, status: 'available' as const, currentOrderId: undefined } : t
+            );
+            tablesRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        break;
+      }
+      case 'table_updated': {
+        const { tableNumber, status, orderId } = msg.payload || {};
+        setTables((prev) => {
+          const updated = prev.map((t) => (t.number === tableNumber ? { ...t, status, currentOrderId: orderId } : t));
+          tablesRef.current = updated;
+          localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(updated));
+          return updated;
+        });
+        break;
+      }
+      case 'delete_completed_order':
+      case 'completed_order_deleted': {
+        const { orderId } = msg.payload || {};
+        if (orderId) {
+          setDeletedOrderIds((prev) => {
+            if (prev.includes(orderId)) return prev;
+            const updated = [...prev, orderId];
+            deletedOrderIdsRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.DELETED_ORDER_IDS, JSON.stringify(updated));
+            return updated;
+          });
+          setCompletedOrders((prev) => {
+            const updated = prev.filter((o) => o.id !== orderId);
+            completedOrdersRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.PAID_ORDERS, JSON.stringify(updated));
+            return updated;
+          });
+          setActiveOrders((prev) => {
+            const updated = prev.filter((o) => o.id !== orderId);
+            activeOrdersRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        break;
+      }
+      case 'request_state': {
+        // ALWAYS use activeOrdersRef to avoid transmitting stale mount state!
+        if (activeOrdersRef.current.length > 0) {
+          cloudSync.publishAction(
+            'provide_state',
+            {
+              activeOrders: activeOrdersRef.current,
+              completedOrders: completedOrdersRef.current.slice(0, 30),
+              tables: tablesRef.current,
+              notifications: notificationsRef.current.slice(0, 20),
+              version: localVersionRef.current,
+            },
+            localVersionRef.current
+          );
+        }
+        break;
+      }
+      case 'provide_state': {
+        const st = msg.payload;
+        if (st) {
+          applyServerState(st, st.version);
+        }
+        break;
+      }
+      case 'reset_data': {
+        setMenuItems(INITIAL_MENU_ITEMS);
+        setActiveOrders(INITIAL_ORDERS);
+        setCompletedOrders(INITIAL_PAID_ORDERS);
+        setDeletedOrderIds([]);
+        setTables(INITIAL_TABLES);
+        setInventory(INITIAL_INVENTORY);
+        setUsers(INITIAL_USERS);
+        setNotifications(INITIAL_NOTIFICATIONS);
+        setExpenses(INITIAL_EXPENSES);
+        showToast('🔄 Data kafe telah direset!');
+        break;
+      }
+      default:
+        break;
+    }
   };
 
   const dispatchServerAction = (action: string, payload: any) => {
     localVersionRef.current = (localVersionRef.current || 0) + 1;
     const currentVersion = localVersionRef.current;
 
-    // 1. Broadcast instantly to cloud broker for all connected devices (< 50ms)
+    // 1. Broadcast immediately to cloud broker using live refs
     cloudSync.publishAction(action as any, payload, currentVersion);
 
-    // 2. Publish retained state snapshot to cloud broker with a short debounce
+    // 2. Debounced live state snapshot using refs (never stale closure)
     setTimeout(() => {
       cloudSync.publishRetainedState(
         {
-          activeOrders,
-          completedOrders,
-          deletedOrderIds,
-          tables,
-          menuItems,
-          inventory,
-          users,
-          expenses,
-          notifications,
+          activeOrders: activeOrdersRef.current,
+          completedOrders: completedOrdersRef.current,
+          deletedOrderIds: deletedOrderIdsRef.current,
+          tables: tablesRef.current,
+          menuItems: menuItemsRef.current,
+          inventory: inventoryRef.current,
+          users: usersRef.current,
+          expenses: expensesRef.current,
+          notifications: notificationsRef.current,
         },
         currentVersion
       );
     }, 150);
 
-    // 3. Fallback to local express server if available
-    try {
-      fetch('/api/action', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action,
-          payload,
-          clientId: cloudSync.getClientId(),
-        }),
+    // 3. Post to local server endpoint with offline fallback
+    fetch('/api/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action,
+        payload,
+        clientId: cloudSync.getClientId(),
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          enqueueOfflineAction(action, payload);
+          return null;
+        }
+        return res.json();
       })
-        .then((res) => {
-          if (!res.ok) return null;
-          return res.json();
-        })
-        .then((data) => {
-          if (data?.version) {
-            localVersionRef.current = Math.max(localVersionRef.current, data.version);
-          }
-        })
-        .catch(() => {});
-    } catch {
-      // ignore
-    }
+      .then((data) => {
+        if (data?.version) {
+          localVersionRef.current = Math.max(localVersionRef.current, data.version);
+        }
+      })
+      .catch(() => {
+        // Network unavailable or server temporarily unreachable - store offline safely
+        enqueueOfflineAction(action, payload);
+      });
   };
 
   const triggerManualSync = () => {
     showToast('🔄 Memperbarui koneksi sinkronisasi cloud...');
     cloudSync.publishAction('request_state' as any, {}, localVersionRef.current);
+    flushOfflineQueue();
     try {
       fetch('/api/state')
         .then((res) => (res.ok ? res.json() : null))
@@ -376,6 +953,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     cloudSync.setActiveUser(currentUser);
   }, [currentUser]);
 
+  // Clean inactive online sessions
   useEffect(() => {
     const timer = setInterval(() => {
       const now = Date.now();
@@ -394,6 +972,92 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(timer);
   }, []);
 
+  // Online / Offline window listeners for network disconnection resilience
+  useEffect(() => {
+    const handleOnline = () => {
+      showToast('📶 Terhubung kembali ke jaringan! Menyinkronkan pesanan...');
+      setSyncStatus('connecting');
+      flushOfflineQueue();
+      triggerManualSync();
+    };
+
+    const handleOffline = () => {
+      showToast('⚠️ Koneksi terputus! Mode Offline aktif. Pesanan tetap tersimpan aman di perangkat.');
+      setSyncStatus('disconnected');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // SSE (Server-Sent Events) connection for persistent local/network synchronization
+  useEffect(() => {
+    let eventSource: EventSource | null = null;
+    let reconnectTimer: any = null;
+
+    const connectSSE = () => {
+      try {
+        eventSource = new EventSource('/api/events');
+
+        eventSource.onopen = () => {
+          setSyncStatus('connected');
+          flushOfflineQueue();
+        };
+
+        eventSource.onmessage = (event) => {
+          try {
+            if (!event.data || event.data.startsWith(':')) return;
+            const data = JSON.parse(event.data);
+            if (data.type === 'connected' && data.state) {
+              applyServerState(data.state, data.version);
+            } else if (data.type && data.type !== 'connected') {
+              handleSyncMessage({
+                type: data.type,
+                payload: data.payload,
+                version: data.version,
+                sourceClientId: data.sourceClientId || 'server',
+                timestamp: new Date().toISOString(),
+              });
+            }
+          } catch (e) {
+            console.error('[SSE] Failed to process message', e);
+          }
+        };
+
+        eventSource.onerror = () => {
+          if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+          }
+          if (navigator.onLine) {
+            setSyncStatus('reconnecting');
+          } else {
+            setSyncStatus('disconnected');
+          }
+          if (reconnectTimer) clearTimeout(reconnectTimer);
+          reconnectTimer = setTimeout(connectSSE, 3000);
+        };
+      } catch (err) {
+        console.warn('[SSE] Connection error', err);
+        if (reconnectTimer) clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(connectSSE, 4000);
+      }
+    };
+
+    connectSSE();
+
+    return () => {
+      if (eventSource) eventSource.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+    };
+  }, []);
+
+  // Cloud Broker (MQTT) initialization
   useEffect(() => {
     if (isSyncInitializedRef.current) return;
     isSyncInitializedRef.current = true;
@@ -403,6 +1067,9 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSyncStatus(status);
         setSyncBrokerName(broker);
         setConnectedDevicesCount(peers);
+        if (status === 'connected') {
+          flushOfflineQueue();
+        }
       },
       onRetainedState: (retainedState, version) => {
         if (retainedState) {
@@ -410,242 +1077,13 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       },
       onMessage: (msg: SyncMessage) => {
-        if (!msg) return;
-        if (msg.version && msg.version > localVersionRef.current) {
-          localVersionRef.current = msg.version;
-        }
-
-        if (msg.sourceClientId) {
-          setOnlineSessions((prev) => {
-            const existing = prev[msg.sourceClientId];
-            const payloadUser = msg.type === 'device_heartbeat' ? msg.payload?.user : undefined;
-            const payloadRole = msg.type === 'device_heartbeat' ? msg.payload?.role : undefined;
-            
-            return {
-              ...prev,
-              [msg.sourceClientId]: {
-                clientId: msg.sourceClientId,
-                role: payloadRole || msg.sourceRole || existing?.role || 'unknown',
-                user: payloadUser !== undefined ? payloadUser : (existing?.user || null),
-                lastSeen: Date.now()
-              }
-            };
-          });
-        }
-
-        switch (msg.type) {
-          case 'create_order':
-          case 'order_created': {
-            const order = msg.payload?.order;
-            if (order) {
-              setActiveOrders((prev) => [order, ...prev.filter((o) => o.id !== order.id)]);
-              if (order.tableNumber) {
-                setTables((prev) =>
-                  prev.map((t) =>
-                    t.number === order.tableNumber
-                      ? { ...t, status: 'occupied', currentOrderId: order.id }
-                      : t
-                  )
-                );
-              }
-              if (msg.payload?.notification) {
-                setNotifications((prev) => [
-                  msg.payload.notification,
-                  ...prev.filter((n) => n.id !== msg.payload.notification.id),
-                ]);
-              }
-              soundAlerts.playNewOrderChime();
-              showToast(
-                `📝 Pesanan Baru Masuk: Meja #${order.tableNumber} (${order.orderNumber}) dari ${order.waitressName || 'Waitress'}!`
-              );
-            }
-            break;
-          }
-          case 'add_items_to_order':
-          case 'items_added': {
-            const { order, newItems, orderId, notification } = msg.payload || {};
-            if (order) {
-              setActiveOrders((prev) => prev.map((o) => (o.id === order.id ? order : o)));
-            }
-            if (notification) {
-              setNotifications((prev) => [notification, ...prev.filter((n) => n.id !== notification.id)]);
-            }
-            soundAlerts.playAdditionalItemChime();
-            showToast(`🔔 Tambahan Menu Masuk untuk Meja #${order?.tableNumber || '?'}!`);
-            break;
-          }
-          case 'update_order_item_status':
-          case 'item_status_updated': {
-            const { orderId, itemId, itemStatus, notification } = msg.payload || {};
-            setActiveOrders((prev) =>
-              prev.map((order) => {
-                if (order.id !== orderId) return order;
-                const updatedItems = order.items.map((it) =>
-                  it.id === itemId ? { ...it, status: itemStatus } : it
-                );
-                const allReady = updatedItems.length > 0 && updatedItems.every((it) => it.status === 'ready');
-                const anyCooking = updatedItems.some((it) => it.status === 'cooking' || it.status === 'ready');
-                let newStatus = order.status;
-                if (allReady) newStatus = 'ready';
-                else if (anyCooking && order.status === 'pending') newStatus = 'cooking';
-                return {
-                  ...order,
-                  items: updatedItems,
-                  status: newStatus,
-                  updatedAt: new Date().toISOString(),
-                };
-              })
-            );
-            if (notification) {
-              setNotifications((prev) => [notification, ...prev.filter((n) => n.id !== notification.id)]);
-            }
-            if (itemStatus === 'ready') {
-              soundAlerts.playReadyChime();
-              showToast(`🍽️ Menu Pesanan Siap Saji!`);
-            }
-            break;
-          }
-          case 'update_order_status':
-          case 'order_status_updated': {
-            const { orderId, status, notification } = msg.payload || {};
-            setActiveOrders((prev) =>
-              prev.map((order) => {
-                if (order.id !== orderId) return order;
-                return {
-                  ...order,
-                  status,
-                  updatedAt: new Date().toISOString(),
-                };
-              })
-            );
-            if (notification) {
-              setNotifications((prev) => [notification, ...prev.filter((n) => n.id !== notification.id)]);
-            }
-            if (status === 'ready') {
-              soundAlerts.playReadyChime();
-              showToast(`🍽️ Seluruh Menu Meja Siap Saji!`);
-            }
-            break;
-          }
-          case 'mark_item_served': {
-            const { orderId, itemId, forceServed } = msg.payload || {};
-            const now = new Date().toISOString();
-            setActiveOrders((prev) =>
-              prev.map((order) => {
-                if (order.id !== orderId) return order;
-                const updatedItems = order.items.map((it) => {
-                  if (it.id !== itemId) return it;
-                  const newServed = forceServed !== undefined ? forceServed : !it.served;
-                  return { ...it, served: newServed, servedAt: newServed ? now : undefined };
-                });
-                const allServed = updatedItems.length > 0 && updatedItems.every((it) => it.served);
-                return {
-                  ...order,
-                  items: updatedItems,
-                  status: allServed ? 'served' : order.status,
-                  servedAt: allServed ? now : order.servedAt,
-                  updatedAt: now,
-                };
-              })
-            );
-            setNotifications((prev) =>
-              prev.map((n) =>
-                n.orderId === orderId && n.itemId === itemId ? { ...n, served: true, read: true } : n
-              )
-            );
-            break;
-          }
-          case 'mark_order_completed': {
-            const { orderId } = msg.payload || {};
-            const now = new Date().toISOString();
-            setActiveOrders((prev) =>
-              prev.map((order) =>
-                order.id === orderId ? { ...order, status: 'completed', completedAt: now } : order
-              )
-            );
-            break;
-          }
-          case 'process_payment': {
-            const { orderId, paidOrder } = msg.payload || {};
-            setActiveOrders((prev) => prev.filter((o) => o.id !== orderId));
-            if (paidOrder) {
-              setCompletedOrders((prev) => [paidOrder, ...prev.filter((o) => o.id !== paidOrder.id)]);
-              setTables((prev) =>
-                prev.map((t) =>
-                  t.number === paidOrder.tableNumber ? { ...t, status: 'available', currentOrderId: undefined } : t
-                )
-              );
-            }
-            break;
-          }
-          case 'cancel_order': {
-            const { orderId, cancelledOrder } = msg.payload || {};
-            setActiveOrders((prev) => prev.filter((o) => o.id !== orderId));
-            if (cancelledOrder) {
-              setCompletedOrders((prev) => [cancelledOrder, ...prev.filter((o) => o.id !== cancelledOrder.id)]);
-              setTables((prev) =>
-                prev.map((t) =>
-                  t.number === cancelledOrder.tableNumber ? { ...t, status: 'available', currentOrderId: undefined } : t
-                )
-              );
-            }
-            break;
-          }
-          case 'table_updated': {
-            const { tableNumber, status, orderId } = msg.payload || {};
-            setTables((prev) =>
-              prev.map((t) => (t.number === tableNumber ? { ...t, status, currentOrderId: orderId } : t))
-            );
-            break;
-          }
-          case 'request_state': {
-            if (activeOrders.length > 0) {
-              cloudSync.publishAction(
-                'provide_state',
-                {
-                  activeOrders,
-                  completedOrders: completedOrders.slice(0, 30),
-                  tables,
-                  notifications: notifications.slice(0, 20),
-                  version: localVersionRef.current,
-                },
-                localVersionRef.current
-              );
-            }
-            break;
-          }
-          case 'provide_state': {
-            const st = msg.payload;
-            if (st && st.version >= localVersionRef.current) {
-              applyServerState(st, st.version);
-            }
-            break;
-          }
-          case 'reset_data': {
-            setMenuItems(INITIAL_MENU_ITEMS);
-            setActiveOrders(INITIAL_ORDERS);
-            setCompletedOrders(INITIAL_PAID_ORDERS);
-            setDeletedOrderIds([]);
-            setTables(INITIAL_TABLES);
-            setInventory(INITIAL_INVENTORY);
-            setUsers(INITIAL_USERS);
-            setNotifications(INITIAL_NOTIFICATIONS);
-            setExpenses(INITIAL_EXPENSES);
-            showToast('🔄 Data kafe telah direset!');
-            break;
-          }
-          default:
-            break;
-        }
+        handleSyncMessage(msg);
       },
     });
 
-    // Also attempt local dev server fetch if available
+    // Initial server state fetch
     fetch('/api/state')
-      .then((res) => {
-        if (!res.ok) return null;
-        return res.json();
-      })
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.state) applyServerState(data.state, data.version);
       })
@@ -1366,15 +1804,17 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteCompletedOrder = (orderId: string) => {
-    const target = completedOrders.find((o) => o.id === orderId) || activeOrders.find((o) => o.id === orderId);
+    const target = completedOrdersRef.current.find((o) => o.id === orderId) || activeOrdersRef.current.find((o) => o.id === orderId);
     // Remove from completed orders and active orders
     setCompletedOrders((prev) => {
       const updated = prev.filter((o) => o.id !== orderId);
+      completedOrdersRef.current = updated;
       localStorage.setItem(STORAGE_KEYS.PAID_ORDERS, JSON.stringify(updated));
       return updated;
     });
     setActiveOrders((prev) => {
       const updated = prev.filter((o) => o.id !== orderId);
+      activeOrdersRef.current = updated;
       localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
       return updated;
     });
@@ -1382,6 +1822,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setDeletedOrderIds((prev) => {
       if (prev.includes(orderId)) return prev;
       const nextDeleted = [...prev, orderId];
+      deletedOrderIdsRef.current = nextDeleted;
       localStorage.setItem(STORAGE_KEYS.DELETED_ORDER_IDS, JSON.stringify(nextDeleted));
       return nextDeleted;
     });

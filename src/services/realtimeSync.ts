@@ -309,7 +309,7 @@ export class RealtimeSyncService {
 
       const pahoMsg = new Paho.Message(JSON.stringify(snapshot));
       pahoMsg.destinationName = STATE_TOPIC;
-      pahoMsg.retained = true;
+      pahoMsg.retained = false;
       pahoMsg.qos = 1;
       this.client.send(pahoMsg);
     } catch (e) {
