@@ -17,6 +17,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { NadiraLogo } from './NadiraLogo';
 
 export const CashierView: React.FC = () => {
   const { 
@@ -678,9 +679,10 @@ export const CashierView: React.FC = () => {
               >
                 {/* Brand Header */}
                 <div className="text-center space-y-0.5 border-b border-dashed border-black pb-2">
+                  <NadiraLogo size={28} color="#000000" className="mx-auto mb-1.5" />
                   <div className="font-bold text-sm tracking-wider">NADIRA CAFÉ & RESTO</div>
                   <div className="text-[10px]">Specialty Coffee & Kitchen</div>
-                  <div className="text-[9px]">Jl. Kemang Raya No. 45, Jakarta Selatan</div>
+                  <div className="text-[9px]">Jalan Lubuk Semut, Kec. Karimun, Kepulauan Riau</div>
                   <div className="text-[9px]">Telp: (021) 782-9988 • IG: @nadiracafe</div>
                 </div>
 

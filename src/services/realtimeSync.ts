@@ -67,6 +67,7 @@ export class RealtimeSyncService {
   private heartbeatTimer: any = null;
   private activePeersMap = new Map<string, number>();
   private localRole = 'waitress';
+  private activeUser: any = null;
 
   constructor() {
     // Generate persistent or semi-persistent client id
@@ -93,6 +94,11 @@ export class RealtimeSyncService {
 
   public setRole(role: string) {
     this.localRole = role;
+    this.sendHeartbeat();
+  }
+
+  public setActiveUser(user: any) {
+    this.activeUser = user;
     this.sendHeartbeat();
   }
 
@@ -332,7 +338,10 @@ export class RealtimeSyncService {
   }
 
   private sendHeartbeat() {
-    this.publishPeerMessage('device_heartbeat', { role: this.localRole });
+    this.publishPeerMessage('device_heartbeat', { 
+      role: this.localRole,
+      user: this.activeUser
+    });
   }
 
   public getConnectedDevicesCount(): number {

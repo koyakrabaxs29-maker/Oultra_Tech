@@ -28,9 +28,19 @@ import { cloudSync, ConnectionStatus, SyncMessage } from '../services/realtimeSy
 
 export { INITIAL_EXPENSES, INITIAL_NOTIFICATIONS };
 
+export interface ActiveSession {
+  clientId: string;
+  role: string;
+  user: UserAccount | null;
+  lastSeen: number; // timestamp
+}
+
 interface CafeContextType {
   activeRole: UserRole;
   setActiveRole: (role: UserRole) => void;
+  currentUser: UserAccount | null;
+  setCurrentUser: (user: UserAccount | null) => void;
+  onlineSessions: Record<string, ActiveSession>;
 
   // Cloud Multi-Device Real-time Sync
   syncStatus: ConnectionStatus;
@@ -120,7 +130,20 @@ const STORAGE_KEYS = {
 };
 
 export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [activeRole, setActiveRole] = useState<UserRole>('waitress');
+  const [activeRole, setActiveRole] = useState<UserRole>(() => {
+    try {
+      const savedUserId = localStorage.getItem('nadira_logged_in_user_id');
+      if (savedUserId) {
+        const stored = localStorage.getItem('nadira_pos_users_v4');
+        const userList = stored ? JSON.parse(stored) : INITIAL_USERS;
+        const user = userList.find((u: any) => u.id === savedUserId && u.active);
+        if (user) return user.role;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return 'waitress';
+  });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Helper for localStorage
@@ -172,6 +195,27 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [users, setUsers] = useState<UserAccount[]>(() => 
     loadInitial(STORAGE_KEYS.USERS, INITIAL_USERS)
   );
+
+  const [currentUser, setCurrentUserState] = useState<UserAccount | null>(() => {
+    const savedUserId = localStorage.getItem('nadira_logged_in_user_id');
+    if (savedUserId) {
+      const storedUsers = loadInitial(STORAGE_KEYS.USERS, INITIAL_USERS);
+      return storedUsers.find((u: any) => u.id === savedUserId && u.active) || null;
+    }
+    return null;
+  });
+
+  const [onlineSessions, setOnlineSessions] = useState<Record<string, ActiveSession>>({});
+
+  const setCurrentUser = (user: UserAccount | null) => {
+    setCurrentUserState(user);
+    if (user) {
+      localStorage.setItem('nadira_logged_in_user_id', user.id);
+      setActiveRole(user.role);
+    } else {
+      localStorage.removeItem('nadira_logged_in_user_id');
+    }
+  };
 
   const [notifications, setNotifications] = useState<CafeNotification[]>(() => 
     loadInitial(STORAGE_KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS)
@@ -329,6 +373,28 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [activeRole]);
 
   useEffect(() => {
+    cloudSync.setActiveUser(currentUser);
+  }, [currentUser]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = Date.now();
+      setOnlineSessions((prev) => {
+        let changed = false;
+        const cleaned = { ...prev };
+        for (const [clientId, session] of Object.entries(cleaned)) {
+          if (now - session.lastSeen > 25000) {
+            delete cleaned[clientId];
+            changed = true;
+          }
+        }
+        return changed ? cleaned : prev;
+      });
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     if (isSyncInitializedRef.current) return;
     isSyncInitializedRef.current = true;
 
@@ -347,6 +413,24 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!msg) return;
         if (msg.version && msg.version > localVersionRef.current) {
           localVersionRef.current = msg.version;
+        }
+
+        if (msg.sourceClientId) {
+          setOnlineSessions((prev) => {
+            const existing = prev[msg.sourceClientId];
+            const payloadUser = msg.type === 'device_heartbeat' ? msg.payload?.user : undefined;
+            const payloadRole = msg.type === 'device_heartbeat' ? msg.payload?.role : undefined;
+            
+            return {
+              ...prev,
+              [msg.sourceClientId]: {
+                clientId: msg.sourceClientId,
+                role: payloadRole || msg.sourceRole || existing?.role || 'unknown',
+                user: payloadUser !== undefined ? payloadUser : (existing?.user || null),
+                lastSeen: Date.now()
+              }
+            };
+          });
         }
 
         switch (msg.type) {
@@ -1408,7 +1492,16 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUser = (id: string, updates: Partial<UserAccount>) => {
-    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...updates } : u)));
+    setUsers((prev) => {
+      const updated = prev.map((u) => (u.id === id ? { ...u, ...updates } : u));
+      if (currentUser && currentUser.id === id) {
+        const found = updated.find((u) => u.id === id);
+        if (found) {
+          setCurrentUserState(found);
+        }
+      }
+      return updated;
+    });
     dispatchServerAction('update_user', { id, updates });
     showToast(`Data pengguna diperbarui.`);
   };
@@ -1443,6 +1536,9 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         activeRole,
         setActiveRole,
+        currentUser,
+        setCurrentUser,
+        onlineSessions,
         menuItems,
         addMenuItem,
         updateMenuItem,

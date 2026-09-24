@@ -18,12 +18,19 @@ export type IceLevel = 'Normal Ice' | 'Less Ice' | 'No Ice' | 'Hot / Panas';
 
 export type SpicyLevel = 'Tidak Pedas' | 'Pedas Sedang' | 'Pedas Mantap' | 'Extra Pedas';
 
+export interface MenuAddOn {
+  id: string;
+  name: string;
+  price: number; // Harga tambahan untuk add-on ini (misal: Rp 6.000)
+}
+
 export interface MenuItem {
   id: string;
   name: string;
   category: MenuCategory;
   price: number; // Harga dasar Reguler
   largePriceAddition?: number; // Tambahan harga untuk Large (default: Rp 6.000)
+  hasLargePortion?: boolean; // Apakah memiliki pilihan porsi Large dengan harga kustom?
   costPrice?: number; // Harga Pokok Penjualan (HPP modal bahan per porsi)
   description: string;
   image: string;
@@ -31,7 +38,34 @@ export interface MenuItem {
   prepTimeMinutes: number;
   station: 'bar' | 'kitchen';
   tags: string[];
+  availableAddOns?: MenuAddOn[]; // Daftar add-ons / topping kustom beserta harganya
 }
+
+export const DEFAULT_CATEGORY_ADDONS: Record<MenuCategory, MenuAddOn[]> = {
+  'Kopi': [
+    { id: 'add-esp-1', name: 'Extra Espresso Shot', price: 6000 },
+    { id: 'add-whip-1', name: 'Whipped Cream', price: 5000 },
+    { id: 'add-oat-1', name: 'Oat Milk Swap', price: 6000 },
+    { id: 'add-syrup-1', name: 'Caramel Syrup Drizzle', price: 5000 },
+  ],
+  'Non-Kopi': [
+    { id: 'add-whip-2', name: 'Whipped Cream', price: 5000 },
+    { id: 'add-oat-2', name: 'Oat Milk Swap', price: 6000 },
+    { id: 'add-boba-1', name: 'Popping Boba / Jelly', price: 5000 },
+    { id: 'add-syrup-2', name: 'Vanilla Shot', price: 5000 },
+  ],
+  'Makanan Ringan': [
+    { id: 'add-cheese-1', name: 'Ekstra Keju Leleh', price: 7000 },
+    { id: 'add-sambal-1', name: 'Ekstra Sambal Spesial', price: 4000 },
+    { id: 'add-mayo-1', name: 'Ekstra Saus Mentai & Mayo', price: 5000 },
+  ],
+  'Makanan Berat': [
+    { id: 'add-egg-1', name: 'Telur Mata Sapi / Dadar', price: 6000 },
+    { id: 'add-cheese-2', name: 'Ekstra Keju Mozzarella', price: 7000 },
+    { id: 'add-sambal-2', name: 'Ekstra Sambal Nadira', price: 4000 },
+    { id: 'add-rice-1', name: 'Nasi Putih Tambahan', price: 5000 },
+  ],
+};
 
 export interface OrderCustomization {
   portionSize: PortionSize;

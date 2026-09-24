@@ -1,6 +1,7 @@
 import type { MenuItem, InventoryItem, UserAccount, TableInfo, Order, OperationalExpense, CafeNotification } from '../types.ts';
+import { DEFAULT_CATEGORY_ADDONS } from '../types.ts';
 
-export const INITIAL_MENU_ITEMS: MenuItem[] = [
+const RAW_INITIAL_MENU_ITEMS: MenuItem[] = [
   // KOPI
   {
     id: 'kopi-1',
@@ -230,6 +231,11 @@ export const INITIAL_MENU_ITEMS: MenuItem[] = [
     tags: ['Chef Recommendation', 'Authentic']
   }
 ];
+
+export const INITIAL_MENU_ITEMS: MenuItem[] = RAW_INITIAL_MENU_ITEMS.map((item) => ({
+  ...item,
+  availableAddOns: item.availableAddOns || DEFAULT_CATEGORY_ADDONS[item.category] || [],
+}));
 
 // DAFTAR 30 MEJA KAFE NADIRA (MEJA 01 - 30)
 export const INITIAL_TABLES: TableInfo[] = [

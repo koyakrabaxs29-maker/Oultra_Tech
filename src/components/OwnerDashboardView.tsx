@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useCafe } from '../context/CafeContext';
-import { MenuCategory, MenuItem, InventoryItem, UserAccount, UserRole, Order } from '../types';
+import { MenuCategory, MenuItem, InventoryItem, UserAccount, UserRole, Order, MenuAddOn, DEFAULT_CATEGORY_ADDONS } from '../types';
 import { formatRupiah, formatFullDateTime } from '../utils/formatters';
 import { ProfitLossReportView } from './ProfitLossReportView';
 import { EditTransactionModal } from './EditTransactionModal';
@@ -39,7 +39,12 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Clock,
-  Scale
+  Scale,
+  Lock,
+  Unlock,
+  Eye,
+  EyeOff,
+  LogIn
 } from 'lucide-react';
 
 // Preset kurasi foto kafe berkualitas tinggi untuk mempermudah Owner
@@ -89,11 +94,50 @@ export const OwnerDashboardView: React.FC = () => {
     users, 
     addUser, 
     updateUser, 
-    deleteUser 
+    deleteUser,
+    currentUser,
+    onlineSessions
   } = useCafe();
 
   const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'profit_loss' | 'menu' | 'inventory' | 'users'>('analytics');
   const [cashflowPeriod, setCashflowPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+
+  // OWNER ACCESS AUTHENTICATION STATE
+  const [isOwnerAuthenticated, setIsOwnerAuthenticated] = useState<boolean>(() => {
+    return sessionStorage.getItem('nadira_owner_authenticated') === 'true';
+  });
+  const [usernameInput, setUsernameInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!usernameInput.trim() || !passwordInput.trim()) {
+      setLoginError('Harap isi username dan password / PIN Anda.');
+      return;
+    }
+
+    const foundOwner = users.find(
+      (usr) => 
+        usr.role === 'owner' && 
+        usr.username.toLowerCase() === usernameInput.trim().toLowerCase() && 
+        usr.pin === passwordInput.trim()
+    );
+
+    if (foundOwner) {
+      if (!foundOwner.active) {
+        setLoginError('Akun Owner ini sedang dinonaktifkan.');
+        return;
+      }
+      setLoginError(null);
+      setIsOwnerAuthenticated(true);
+      sessionStorage.setItem('nadira_owner_authenticated', 'true');
+      sessionStorage.setItem('nadira_owner_id', foundOwner.id);
+    } else {
+      setLoginError('Username atau PIN/Password salah.');
+    }
+  };
 
   // TRANSACTION EDIT & DELETE STATE
   const [editingTransaction, setEditingTransaction] = useState<Order | null>(null);
@@ -109,13 +153,22 @@ export const OwnerDashboardView: React.FC = () => {
     category: 'Kopi' as MenuCategory,
     price: 25000,
     largePriceAddition: 6000,
+    hasLargePortion: true,
     description: '',
     image: 'https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=600&q=80',
     prepTimeMinutes: 5,
     station: 'bar' as 'bar' | 'kitchen',
     tags: 'Favorit, Signature',
     inStock: true,
+    availableAddOns: [] as MenuAddOn[],
   });
+
+  // ADD-ON SUB-STATE FOR MENU MODAL
+  const [newAddOnName, setNewAddOnName] = useState('');
+  const [newAddOnPrice, setNewAddOnPrice] = useState<number>(5000);
+  const [editingAddOnId, setEditingAddOnId] = useState<string | null>(null);
+  const [editingAddOnName, setEditingAddOnName] = useState('');
+  const [editingAddOnPrice, setEditingAddOnPrice] = useState<number>(5000);
 
   // PHOTO UPLOAD & SELECTION STATE
   const [photoInputMode, setPhotoInputMode] = useState<'upload' | 'preset' | 'url'>('upload');
@@ -329,18 +382,24 @@ export const OwnerDashboardView: React.FC = () => {
     setEditingMenuId(null);
     setUploadError(null);
     setPhotoInputMode('upload');
+    const initialAddons = DEFAULT_CATEGORY_ADDONS['Kopi'] ? [...DEFAULT_CATEGORY_ADDONS['Kopi']] : [];
     setMenuForm({
       name: '',
       category: 'Kopi',
       price: 25000,
       largePriceAddition: 6000,
+      hasLargePortion: true,
       description: '',
       image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=80',
       prepTimeMinutes: 5,
       station: 'bar',
       tags: 'Favorit',
       inStock: true,
+      availableAddOns: initialAddons,
     });
+    setNewAddOnName('');
+    setNewAddOnPrice(5000);
+    setEditingAddOnId(null);
     setIsMenuModalOpen(true);
   };
 
@@ -348,18 +407,26 @@ export const OwnerDashboardView: React.FC = () => {
     setEditingMenuId(item.id);
     setUploadError(null);
     setPhotoInputMode('upload');
+    const currentAddons = item.availableAddOns && item.availableAddOns.length > 0
+      ? [...item.availableAddOns]
+      : (DEFAULT_CATEGORY_ADDONS[item.category] ? [...DEFAULT_CATEGORY_ADDONS[item.category]] : []);
     setMenuForm({
       name: item.name,
       category: item.category,
       price: item.price,
       largePriceAddition: item.largePriceAddition || 6000,
+      hasLargePortion: item.hasLargePortion !== false,
       description: item.description,
       image: item.image,
       prepTimeMinutes: item.prepTimeMinutes,
       station: item.station,
       tags: item.tags.join(', '),
       inStock: item.inStock,
+      availableAddOns: currentAddons,
     });
+    setNewAddOnName('');
+    setNewAddOnPrice(5000);
+    setEditingAddOnId(null);
     setIsMenuModalOpen(true);
   };
 
@@ -371,26 +438,30 @@ export const OwnerDashboardView: React.FC = () => {
         name: menuForm.name,
         category: menuForm.category,
         price: Number(menuForm.price),
-        largePriceAddition: Number(menuForm.largePriceAddition || 6000),
+        largePriceAddition: menuForm.hasLargePortion ? Number(menuForm.largePriceAddition || 6000) : undefined,
+        hasLargePortion: menuForm.hasLargePortion,
         description: menuForm.description,
         image: menuForm.image,
         prepTimeMinutes: Number(menuForm.prepTimeMinutes),
         station: menuForm.station,
         tags: tagsArray,
         inStock: menuForm.inStock,
+        availableAddOns: menuForm.availableAddOns,
       });
     } else {
       addMenuItem({
         name: menuForm.name,
         category: menuForm.category,
         price: Number(menuForm.price),
-        largePriceAddition: Number(menuForm.largePriceAddition || 6000),
+        largePriceAddition: menuForm.hasLargePortion ? Number(menuForm.largePriceAddition || 6000) : undefined,
+        hasLargePortion: menuForm.hasLargePortion,
         description: menuForm.description,
         image: menuForm.image,
         prepTimeMinutes: Number(menuForm.prepTimeMinutes),
         station: menuForm.station,
         tags: tagsArray,
         inStock: menuForm.inStock,
+        availableAddOns: menuForm.availableAddOns,
       });
     }
     setIsMenuModalOpen(false);
@@ -456,6 +527,91 @@ export const OwnerDashboardView: React.FC = () => {
     setIsUserModalOpen(false);
   };
 
+  if (!isOwnerAuthenticated) {
+    return (
+      <div className="max-w-md mx-auto my-12 px-4 sm:px-6">
+        <div className="bg-white rounded-3xl border border-[#E3D3C4] shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+          {/* Header */}
+          <div className="bg-[#24170D] text-[#FFF5EA] px-6 py-8 text-center relative border-b border-[#3D2513]">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-[#A8713D] to-[#6E421B] flex items-center justify-center text-white border border-[#C58E55]/30 shadow-md mb-3">
+              <Lock className="w-6 h-6 text-[#F7E6D4]" />
+            </div>
+            <h2 className="font-display text-xl font-bold tracking-tight text-[#F7E6D4]">
+              Otentikasi Owner / CEO
+            </h2>
+            <p className="text-xs text-[#C4AD99] mt-1">
+              NADIRA Café & Resto • Panel Manajemen Terproteksi
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleLoginSubmit} className="p-6 sm:p-8 space-y-5">
+            {loginError && (
+              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold flex items-center gap-2 animate-pulse">
+                <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{loginError}</span>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-[#5A3E29] uppercase tracking-wider block">
+                Username Owner
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  value={usernameInput}
+                  onChange={(e) => setUsernameInput(e.target.value)}
+                  placeholder="Masukkan username owner..."
+                  className="w-full text-sm py-3 px-4 rounded-xl border border-[#E3D3C4] bg-[#FAF6F2] text-[#2C1D11] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#7D4F27] focus:border-[#7D4F27] transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-[#5A3E29] uppercase tracking-wider block">
+                Sandi / PIN Akses
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder="Masukkan PIN / Sandi..."
+                  maxLength={16}
+                  className="w-full text-sm py-3 pl-4 pr-11 rounded-xl border border-[#E3D3C4] bg-[#FAF6F2] text-[#2C1D11] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#7D4F27] focus:border-[#7D4F27] tracking-wider transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-stone-400 hover:text-stone-600 cursor-pointer animate-none"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3.5 px-4 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white text-sm font-extrabold shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+            >
+              <LogIn className="w-4 h-4" />
+              <span>Masuk Panel Owner</span>
+            </button>
+
+            <div className="pt-2 border-t border-[#F0E4D8] text-center">
+              <p className="text-[11px] text-[#8A715C] leading-relaxed">
+                Butuh bantuan? Silakan gunakan Username <code className="bg-[#FAF6F2] px-1 py-0.5 rounded font-bold border border-[#E3D3C4]">owner</code> & PIN <code className="bg-[#FAF6F2] px-1 py-0.5 rounded font-bold border border-[#E3D3C4]">1122</code> (Akses Bawaan Demo).
+              </p>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       
@@ -472,9 +628,25 @@ export const OwnerDashboardView: React.FC = () => {
             </h1>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 text-xs text-[#C4AD99]">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>Sistem Operasional Aktif</span>
+          <div className="flex items-center gap-2.5">
+            <div className="hidden sm:flex items-center gap-2 text-xs text-[#C4AD99] mr-1">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Sistem Operasional Aktif</span>
+            </div>
+            
+            <button
+              id="btn-owner-logout"
+              onClick={() => {
+                sessionStorage.removeItem('nadira_owner_authenticated');
+                sessionStorage.removeItem('nadira_owner_id');
+                setIsOwnerAuthenticated(false);
+              }}
+              className="px-3 py-1.5 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-200 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-sm"
+              title="Kunci / Keluar dari Sesi Owner"
+            >
+              <Lock className="w-3.5 h-3.5 text-rose-400" />
+              <span>Keluar Sesi</span>
+            </button>
           </div>
         </div>
 
@@ -1184,6 +1356,7 @@ export const OwnerDashboardView: React.FC = () => {
                   <th className="p-3">Foto & Nama Menu</th>
                   <th className="p-3">Kategori</th>
                   <th className="p-3">Stasiun Dapur</th>
+                  <th className="p-3">Porsi & Add-ons</th>
                   <th className="p-3 text-right">Harga Jual</th>
                   <th className="p-3 text-center">Status Stok</th>
                   <th className="p-3 text-right">Aksi</th>
@@ -1212,6 +1385,34 @@ export const OwnerDashboardView: React.FC = () => {
                       <span className="uppercase text-[10px] font-bold px-2 py-0.5 rounded bg-stone-100 text-stone-700">
                         {item.station}
                       </span>
+                    </td>
+                    <td className="p-3">
+                      <div className="space-y-1">
+                        {item.hasLargePortion !== false && (
+                          <div className="text-[10px] text-stone-600 font-medium">
+                            Large: +{formatRupiah(item.largePriceAddition || 6000)}
+                          </div>
+                        )}
+                        {item.availableAddOns && item.availableAddOns.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 items-center">
+                            <span className="px-1.5 py-0.5 bg-amber-100 text-[#7D4F27] border border-amber-200 font-bold text-[9px] rounded">
+                              {item.availableAddOns.length} Add-on
+                            </span>
+                            {item.availableAddOns.slice(0, 2).map((a) => (
+                              <span key={a.id} className="text-[9px] text-stone-600 bg-stone-100 px-1 py-0.5 rounded">
+                                {a.name} (+{formatRupiah(a.price)})
+                              </span>
+                            ))}
+                            {item.availableAddOns.length > 2 && (
+                              <span className="text-[9px] text-[#7D4F27] font-semibold">
+                                +{item.availableAddOns.length - 2} lagi
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-stone-400 italic">Standar Kategori</span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-3 text-right font-extrabold text-[#7D4F27] text-sm">
                       {formatRupiah(item.price)}
@@ -1376,54 +1577,128 @@ export const OwnerDashboardView: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {users.map((usr) => (
-              <div key={usr.id} className="p-4 rounded-2xl border border-[#E3D3C4] bg-[#FBF8F5] space-y-3 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl">{usr.avatar}</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                      usr.role === 'owner' ? 'bg-purple-100 text-purple-800' :
-                      usr.role === 'cashier' ? 'bg-blue-100 text-blue-800' :
-                      usr.role === 'chef' ? 'bg-orange-100 text-orange-800' :
-                      'bg-amber-100 text-amber-800'
-                    }`}>
-                      {usr.role}
-                    </span>
+            {users.map((usr) => {
+              const isSelf = currentUser?.id === usr.id;
+              const onlineSess = Object.values(onlineSessions).find(
+                (sess) => sess.user?.id === usr.id && (Date.now() - sess.lastSeen < 25000)
+              );
+              const isOnline = isSelf || !!onlineSess;
+
+              // Calculate operational metrics for this staff to help Owner monitor productivity
+              let performanceBadge = null;
+              if (usr.role === 'waitress') {
+                const wOrders = [...activeOrders, ...completedOrders].filter(
+                  (o) => o.waitressName?.toLowerCase() === usr.name.toLowerCase() ||
+                         o.waitressName?.toLowerCase().includes(usr.name.split(' ')[0].toLowerCase())
+                );
+                performanceBadge = (
+                  <div className="text-[11px] text-[#7A614D] font-bold bg-[#FAF6F2] border border-[#EADBCE] rounded-xl px-2.5 py-1.5 flex items-center gap-1.5">
+                    <span className="text-xs">🛎️</span>
+                    <span>{wOrders.length} Order Diinput</span>
+                  </div>
+                );
+              } else if (usr.role === 'chef') {
+                const preparedPortions = [...activeOrders, ...completedOrders].reduce((sum, o) => {
+                  return sum + o.items.filter(it => it.status === 'ready' || o.status === 'completed').reduce((s, it) => s + it.quantity, 0);
+                }, 0);
+                performanceBadge = (
+                  <div className="text-[11px] text-orange-700 font-bold bg-orange-50 border border-orange-100 rounded-xl px-2.5 py-1.5 flex items-center gap-1.5">
+                    <span className="text-xs">👨‍🍳</span>
+                    <span>{preparedPortions} Sajian Siap</span>
+                  </div>
+                );
+              } else if (usr.role === 'cashier') {
+                performanceBadge = (
+                  <div className="text-[11px] text-blue-700 font-bold bg-blue-50 border border-blue-100 rounded-xl px-2.5 py-1.5 flex items-center gap-1.5">
+                    <span className="text-xs">💳</span>
+                    <span>{completedOrders.length} Transaksi Sukses</span>
+                  </div>
+                );
+              } else if (usr.role === 'owner') {
+                const totalStafCount = users.filter(u => u.role !== 'owner').length;
+                performanceBadge = (
+                  <div className="text-[11px] text-purple-700 font-bold bg-purple-50 border border-purple-100 rounded-xl px-2.5 py-1.5 flex items-center gap-1.5">
+                    <span className="text-xs">👑</span>
+                    <span>Memantau {totalStafCount} Staf</span>
+                  </div>
+                );
+              }
+
+              return (
+                <div key={usr.id} className="p-4 rounded-2xl border border-[#E3D3C4] bg-white hover:border-[#C4AD99] hover:shadow-md transition-all duration-200 space-y-4 flex flex-col justify-between relative overflow-hidden">
+                  {/* Decorative background indicator */}
+                  <div className={`absolute top-0 right-0 w-24 h-24 -mr-12 -mt-12 rounded-full opacity-5 filter blur-xl ${isOnline ? 'bg-emerald-500' : 'bg-stone-500'}`} />
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl filter drop-shadow-sm">{usr.avatar}</span>
+                        {/* Real-time online/offline status pill */}
+                        <span className={`text-[10px] font-black tracking-wide px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                          isOnline 
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200/50' 
+                            : 'bg-stone-100 text-stone-500 border border-stone-200/50'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-stone-400'}`} />
+                          {isOnline ? (isSelf ? 'Online (Sesi Ini)' : 'Online (Peer)') : 'Offline'}
+                        </span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                        usr.role === 'owner' ? 'bg-purple-100 text-purple-800' :
+                        usr.role === 'cashier' ? 'bg-blue-100 text-blue-800' :
+                        usr.role === 'chef' ? 'bg-orange-100 text-orange-800' :
+                        'bg-amber-100 text-amber-800'
+                      }`}>
+                        {usr.role}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h4 className="font-bold text-sm text-[#2C1D11] flex items-center gap-1.5">
+                        {usr.name}
+                        {isSelf && <span className="text-[10px] font-bold text-stone-400 bg-stone-100 px-1.5 py-0.2 rounded-full">Anda</span>}
+                      </h4>
+                      <p className="text-xs text-[#7A614D]">@{usr.username} • PIN: <code className="bg-stone-100 px-1 py-0.2 rounded font-mono font-bold text-black">{usr.pin}</code></p>
+                      <p className="text-[11px] text-stone-500 mt-1 select-all">✉️ {usr.email}</p>
+                    </div>
                   </div>
 
-                  <h4 className="font-bold text-sm text-[#2C1D11] mt-2">{usr.name}</h4>
-                  <p className="text-xs text-[#7A614D]">@{usr.username} • PIN: {usr.pin}</p>
-                  <p className="text-[11px] text-stone-500 mt-1">{usr.email}</p>
-                </div>
+                  {/* Operational Performance & Online Info */}
+                  <div className="space-y-3">
+                    {performanceBadge}
 
-                <div className="pt-2 border-t border-[#E3D3C4] flex items-center justify-between">
-                  <span className={`text-[10px] font-semibold flex items-center gap-1.5 ${usr.active ? 'text-emerald-700' : 'text-red-600'}`}>
-                    <span className={`w-2 h-2 rounded-full ${usr.active ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                    {usr.active ? 'Aktif' : 'Tidak Aktif'}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => handleOpenEditUser(usr)}
-                      className="p-1 rounded text-stone-600 hover:text-[#7D4F27]"
-                    >
-                      <Edit className="w-3.5 h-3.5" />
-                    </button>
-                    {usr.role !== 'owner' && (
-                      <button
-                        onClick={() => {
-                          if (window.confirm(`Hapus akun ${usr.name}?`)) {
-                            deleteUser(usr.id);
-                          }
-                        }}
-                        className="p-1 rounded text-stone-400 hover:text-red-600"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    <div className="pt-2 border-t border-[#E3D3C4] flex items-center justify-between">
+                      <span className={`text-[10px] font-semibold flex items-center gap-1.5 ${usr.active ? 'text-emerald-700' : 'text-red-600'}`}>
+                        <span className={`w-2 h-2 rounded-full ${usr.active ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                        {usr.active ? 'Aktif' : 'Tidak Aktif'}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleOpenEditUser(usr)}
+                          className="p-1 rounded text-stone-600 hover:text-[#7D4F27] hover:bg-stone-100 transition-colors"
+                          title="Edit Staf"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        {usr.role !== 'owner' && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Hapus akun ${usr.name}?`)) {
+                                deleteUser(usr.id);
+                              }
+                            }}
+                            className="p-1 rounded text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            title="Hapus Staf"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -1477,16 +1752,219 @@ export const OwnerDashboardView: React.FC = () => {
                     className="w-full p-2.5 rounded-xl border border-[#E3D3C4] focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
                   />
                 </div>
+              </div>
 
-                <div>
-                  <label className="font-bold text-[#2C1D11] block mb-1">Tambah Harga Porsi Large (+Rp):</label>
+              {/* PORSI LARGE DENGAN HARGA KUSTOM (Ubah / Hapus) */}
+              <div className="bg-[#FAF6F2] p-3.5 rounded-xl border border-[#EADBCE] space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="font-bold text-[#2C1D11] block">Porsi Large (Harga Kustom)</label>
+                    <span className="text-[10px] text-stone-500 block">Aktifkan jika item memiliki variasi porsi besar dengan harga kustom tambahan</span>
+                  </div>
                   <input
-                    type="number"
-                    value={menuForm.largePriceAddition}
-                    onChange={(e) => setMenuForm({ ...menuForm, largePriceAddition: Number(e.target.value) })}
-                    placeholder="Contoh: 6000 atau 12000"
-                    className="w-full p-2.5 rounded-xl border border-[#E3D3C4] focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
+                    type="checkbox"
+                    checked={menuForm.hasLargePortion}
+                    onChange={(e) => setMenuForm({ ...menuForm, hasLargePortion: e.target.checked })}
+                    className="w-4.5 h-4.5 accent-[#7D4F27] cursor-pointer"
                   />
+                </div>
+
+                {menuForm.hasLargePortion && (
+                  <div className="pt-2.5 border-t border-[#EADBCE] space-y-1.5">
+                    <label className="font-bold text-[#2C1D11] block">Selisih Tambahan Harga Porsi Large (+Rp):</label>
+                    <input
+                      type="number"
+                      value={menuForm.largePriceAddition}
+                      onChange={(e) => setMenuForm({ ...menuForm, largePriceAddition: Number(e.target.value) })}
+                      placeholder="Contoh: 6000 atau 12000"
+                      className="w-full p-2.5 rounded-xl border border-[#E3D3C4] bg-white focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
+                    />
+                    <p className="text-[10px] text-[#7A614D] font-semibold">
+                      Harga Porsi Large otomatis: {formatRupiah(menuForm.price)} + {formatRupiah(menuForm.largePriceAddition || 0)} = <span className="text-[#7D4F27]">{formatRupiah(menuForm.price + (menuForm.largePriceAddition || 0))}</span>
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* KELOLA ADD-ONS & TOPPING TAMBAHAN (TAMBAH & UBAH HARGA) */}
+              <div className="bg-[#FAF6F2] p-3.5 rounded-xl border border-[#EADBCE] space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="font-bold text-[#2C1D11] flex items-center gap-1.5">
+                      <span>Pilihan Add-ons & Topping Tambahan</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#7D4F27] text-white font-bold">
+                        {menuForm.availableAddOns.length} Opsi
+                      </span>
+                    </label>
+                    <span className="text-[10px] text-stone-500 block">
+                      Atur nama dan harga tambahan topping/add-on yang bisa dipesan pelanggan
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const presets = DEFAULT_CATEGORY_ADDONS[menuForm.category] || [];
+                      setMenuForm((prev) => ({ ...prev, availableAddOns: [...presets] }));
+                    }}
+                    className="text-[10px] text-[#7D4F27] hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                    title="Muat opsi add-on rekomendasi kategori ini"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    <span>Rekomendasi Kategori</span>
+                  </button>
+                </div>
+
+                {/* List of Add-ons */}
+                {menuForm.availableAddOns.length === 0 ? (
+                  <div className="text-center py-3 px-2 bg-white rounded-lg border border-dashed border-[#D5C2B1] text-stone-500 text-[11px]">
+                    Belum ada add-on untuk menu ini. Tambahkan di bawah atau klik &quot;Rekomendasi Kategori&quot;.
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {menuForm.availableAddOns.map((addon) => {
+                      const isEditingThis = editingAddOnId === addon.id;
+                      if (isEditingThis) {
+                        return (
+                          <div key={addon.id} className="flex items-center gap-2 p-2 bg-amber-50 rounded-lg border border-amber-300">
+                            <input
+                              type="text"
+                              value={editingAddOnName}
+                              onChange={(e) => setEditingAddOnName(e.target.value)}
+                              placeholder="Nama Add-on"
+                              className="flex-1 p-1.5 text-xs bg-white rounded border border-amber-300 font-semibold focus:outline-none"
+                            />
+                            <div className="flex items-center gap-1">
+                              <span className="text-[11px] text-stone-500 font-bold">+Rp</span>
+                              <input
+                                type="number"
+                                value={editingAddOnPrice}
+                                onChange={(e) => setEditingAddOnPrice(Number(e.target.value))}
+                                placeholder="Harga"
+                                className="w-20 p-1.5 text-xs bg-white rounded border border-amber-300 font-bold text-[#7D4F27] focus:outline-none"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!editingAddOnName.trim()) return;
+                                setMenuForm((prev) => ({
+                                  ...prev,
+                                  availableAddOns: prev.availableAddOns.map((a) =>
+                                    a.id === addon.id
+                                      ? { ...a, name: editingAddOnName.trim(), price: Number(editingAddOnPrice) || 0 }
+                                      : a
+                                  ),
+                                }));
+                                setEditingAddOnId(null);
+                              }}
+                              className="p-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-bold cursor-pointer"
+                              title="Simpan Perubahan"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingAddOnId(null)}
+                              className="p-1.5 bg-stone-200 hover:bg-stone-300 text-stone-700 rounded text-xs cursor-pointer"
+                              title="Batal"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div
+                          key={addon.id}
+                          className="flex items-center justify-between p-2 bg-white rounded-lg border border-[#E3D3C4] hover:border-[#C9B39F] transition-all text-xs"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-[#7D4F27]"></span>
+                            <span className="font-bold text-stone-800">{addon.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 bg-amber-100 text-[#7D4F27] font-extrabold rounded text-[11px] border border-amber-200">
+                              +{formatRupiah(addon.price)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingAddOnId(addon.id);
+                                setEditingAddOnName(addon.name);
+                                setEditingAddOnPrice(addon.price);
+                              }}
+                              className="p-1 text-stone-500 hover:text-[#7D4F27] hover:bg-stone-100 rounded cursor-pointer"
+                              title="Ubah Add-on & Harga"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMenuForm((prev) => ({
+                                  ...prev,
+                                  availableAddOns: prev.availableAddOns.filter((a) => a.id !== addon.id),
+                                }));
+                              }}
+                              className="p-1 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded cursor-pointer"
+                              title="Hapus Add-on"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Form Tambah Add-on Baru */}
+                <div className="pt-2 border-t border-[#EADBCE]">
+                  <label className="font-bold text-[11px] text-[#2C1D11] block mb-1">
+                    Tambah Add-on / Topping Baru:
+                  </label>
+                  <div className="flex flex-col sm:flex-row items-center gap-2">
+                    <input
+                      type="text"
+                      value={newAddOnName}
+                      onChange={(e) => setNewAddOnName(e.target.value)}
+                      placeholder="Contoh: Keju Leleh, Extra Shot, Telur..."
+                      className="w-full sm:flex-1 p-2 bg-white rounded-lg border border-[#E3D3C4] text-xs focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
+                    />
+                    <div className="flex items-center gap-1 w-full sm:w-auto">
+                      <span className="text-[11px] text-stone-500 font-bold">+Rp</span>
+                      <input
+                        type="number"
+                        value={newAddOnPrice || ''}
+                        onChange={(e) => setNewAddOnPrice(Number(e.target.value))}
+                        placeholder="5000"
+                        className="w-24 p-2 bg-white rounded-lg border border-[#E3D3C4] text-xs font-bold text-[#7D4F27] focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!newAddOnName.trim()) return;
+                          const newAddon: MenuAddOn = {
+                            id: `addon-${Date.now()}-${Math.random().toString().slice(-4)}`,
+                            name: newAddOnName.trim(),
+                            price: Number(newAddOnPrice) || 0,
+                          };
+                          setMenuForm((prev) => ({
+                            ...prev,
+                            availableAddOns: [...prev.availableAddOns, newAddon],
+                          }));
+                          setNewAddOnName('');
+                          setNewAddOnPrice(5000);
+                        }}
+                        disabled={!newAddOnName.trim()}
+                        className="px-3 py-2 bg-[#7D4F27] hover:bg-[#633C1B] disabled:bg-stone-300 text-white rounded-lg font-bold text-xs flex items-center gap-1 shadow-xs cursor-pointer shrink-0"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Tambah Add-on</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 

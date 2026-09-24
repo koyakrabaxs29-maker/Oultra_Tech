@@ -7,7 +7,8 @@ import {
   PortionSize, 
   SugarLevel, 
   IceLevel, 
-  SpicyLevel 
+  SpicyLevel,
+  DEFAULT_CATEGORY_ADDONS
 } from '../types';
 import { formatRupiah, formatShortTime, getElapsedMinutes } from '../utils/formatters';
 import { 
@@ -148,14 +149,28 @@ export const WaitressView: React.FC = () => {
 
   const calculateCustomizedPrice = (item: MenuItem, portion: PortionSize, addOns: string[]) => {
     let price = item.price;
-    if (portion === 'Large') {
+    if (portion === 'Large' && item.hasLargePortion !== false) {
       price += item.largePriceAddition || (item.category === 'Makanan Berat' ? 12000 : 6000);
     }
+    const available = (item.availableAddOns && item.availableAddOns.length > 0)
+      ? item.availableAddOns
+      : (DEFAULT_CATEGORY_ADDONS[item.category] || []);
+
     addOns.forEach((addon) => {
-      if (addon.includes('Espresso') || addon.includes('Telur') || addon.includes('Oat')) price += 6000;
-      else if (addon.includes('Keju') || addon.includes('Truffle')) price += 7000;
-      else if (addon.includes('Whipped') || addon.includes('Sambal')) price += 5000;
-      else price += 5000;
+      const matched = available.find(
+        (a) => addon === a.name || addon.startsWith(a.name) || addon.includes(a.name)
+      );
+      if (matched) {
+        price += matched.price;
+      } else if (addon.includes('Espresso') || addon.includes('Telur') || addon.includes('Oat')) {
+        price += 6000;
+      } else if (addon.includes('Keju') || addon.includes('Truffle')) {
+        price += 7000;
+      } else if (addon.includes('Whipped') || addon.includes('Sambal')) {
+        price += 5000;
+      } else {
+        price += 5000;
+      }
     });
     return price;
   };
@@ -1374,42 +1389,44 @@ export const WaitressView: React.FC = () => {
             <div className="p-4 sm:p-5 overflow-y-auto space-y-4">
               
               {/* 1. UKURAN PORSI (REGULER vs LARGE) */}
-              <div>
-                <label className="text-xs sm:text-sm font-extrabold text-[#2C1D11] block mb-2">
-                  Pilih Ukuran Porsi:
-                </label>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setFormPortion('Reguler')}
-                    className={`min-h-[50px] p-3 rounded-2xl border text-xs sm:text-sm font-extrabold transition-all flex flex-col justify-center cursor-pointer ${
-                      formPortion === 'Reguler'
-                        ? 'bg-[#7D4F27] text-white border-[#7D4F27] shadow-sm'
-                        : 'bg-[#FAF6F2] text-[#2C1D11] border-[#E3D3C4] hover:bg-white'
-                    }`}
-                  >
-                    <span>Porsi Reguler</span>
-                    <span className={formPortion === 'Reguler' ? 'text-amber-200' : 'text-[#7D4F27]'}>
-                      {formatRupiah(customizingMenuItem.price)}
-                    </span>
-                  </button>
+              {customizingMenuItem.hasLargePortion !== false && (
+                <div>
+                  <label className="text-xs sm:text-sm font-extrabold text-[#2C1D11] block mb-2">
+                    Pilih Ukuran Porsi:
+                  </label>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setFormPortion('Reguler')}
+                      className={`min-h-[50px] p-3 rounded-2xl border text-xs sm:text-sm font-extrabold transition-all flex flex-col justify-center cursor-pointer ${
+                        formPortion === 'Reguler'
+                          ? 'bg-[#7D4F27] text-white border-[#7D4F27] shadow-sm'
+                          : 'bg-[#FAF6F2] text-[#2C1D11] border-[#E3D3C4] hover:bg-white'
+                      }`}
+                    >
+                      <span>Porsi Reguler</span>
+                      <span className={formPortion === 'Reguler' ? 'text-amber-200' : 'text-[#7D4F27]'}>
+                        {formatRupiah(customizingMenuItem.price)}
+                      </span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setFormPortion('Large')}
-                    className={`min-h-[50px] p-3 rounded-2xl border text-xs sm:text-sm font-extrabold transition-all flex flex-col justify-center cursor-pointer ${
-                      formPortion === 'Large'
-                        ? 'bg-[#7D4F27] text-white border-[#7D4F27] shadow-sm'
-                        : 'bg-[#FAF6F2] text-[#2C1D11] border-[#E3D3C4] hover:bg-white'
-                    }`}
-                  >
-                    <span>Porsi Large / Jumbo</span>
-                    <span className={formPortion === 'Large' ? 'text-amber-200' : 'text-[#7D4F27]'}>
-                      {formatRupiah(customizingMenuItem.price + (customizingMenuItem.largePriceAddition || (customizingMenuItem.category === 'Makanan Berat' ? 12000 : 6000)))}
-                    </span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormPortion('Large')}
+                      className={`min-h-[50px] p-3 rounded-2xl border text-xs sm:text-sm font-extrabold transition-all flex flex-col justify-center cursor-pointer ${
+                        formPortion === 'Large'
+                          ? 'bg-[#7D4F27] text-white border-[#7D4F27] shadow-sm'
+                          : 'bg-[#FAF6F2] text-[#2C1D11] border-[#E3D3C4] hover:bg-white'
+                      }`}
+                    >
+                      <span>Porsi Large / Jumbo</span>
+                      <span className={formPortion === 'Large' ? 'text-amber-200' : 'text-[#7D4F27]'}>
+                        {formatRupiah(customizingMenuItem.price + (customizingMenuItem.largePriceAddition || (customizingMenuItem.category === 'Makanan Berat' ? 12000 : 6000)))}
+                      </span>
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* 2. MINUMAN: LEVEL GULA & ES */}
               {(customizingMenuItem.category === 'Kopi' || customizingMenuItem.category === 'Non-Kopi') && (
@@ -1491,30 +1508,47 @@ export const WaitressView: React.FC = () => {
                   Topping / Add-ons Tambahan:
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {(customizingMenuItem.category === 'Kopi' || customizingMenuItem.category === 'Non-Kopi'
-                    ? ['Extra Espresso Shot (+6k)', 'Whipped Cream (+5k)', 'Oat Milk Swap (+6k)']
-                    : ['Telur Mata Sapi (+6k)', 'Ekstra Keju (+7k)', 'Ekstra Sambal (+4k)']
-                  ).map((addon) => {
-                    const isSelected = formAddOns.includes(addon);
-                    return (
-                      <button
-                        key={addon}
-                        type="button"
-                        onClick={() => {
-                          if (isSelected) setFormAddOns(formAddOns.filter((a) => a !== addon));
-                          else setFormAddOns([...formAddOns, addon]);
-                        }}
-                        className={`min-h-[44px] px-3 py-2 rounded-xl text-xs font-bold border text-left flex items-center justify-between transition-colors ${
-                          isSelected
-                            ? 'bg-amber-100 text-[#7D4F27] border-[#7D4F27]'
-                            : 'bg-[#FAF6F2] text-stone-700 border-[#E3D3C4]'
-                        }`}
-                      >
-                        <span>{addon}</span>
-                        <span>{isSelected ? '✓' : '+'}</span>
-                      </button>
-                    );
-                  })}
+                  {(() => {
+                    const available = (customizingMenuItem.availableAddOns && customizingMenuItem.availableAddOns.length > 0)
+                      ? customizingMenuItem.availableAddOns
+                      : (DEFAULT_CATEGORY_ADDONS[customizingMenuItem.category] || []);
+
+                    if (available.length === 0) {
+                      return (
+                        <div className="col-span-2 py-3 px-3 text-center bg-[#FAF6F2] rounded-xl text-stone-500 text-xs border border-[#E3D3C4]">
+                          Tidak ada opsi add-on tambahan untuk menu ini.
+                        </div>
+                      );
+                    }
+
+                    return available.map((addon) => {
+                      const addonLabel = `${addon.name} (+${formatRupiah(addon.price)})`;
+                      const isSelected = formAddOns.includes(addonLabel) || formAddOns.includes(addon.name);
+                      return (
+                        <button
+                          key={addon.id}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setFormAddOns(formAddOns.filter((a) => a !== addonLabel && a !== addon.name));
+                            } else {
+                              setFormAddOns([...formAddOns, addonLabel]);
+                            }
+                          }}
+                          className={`min-h-[44px] px-3 py-2 rounded-xl text-xs font-bold border text-left flex items-center justify-between transition-colors cursor-pointer ${
+                            isSelected
+                              ? 'bg-amber-100 text-[#7D4F27] border-[#7D4F27]'
+                              : 'bg-[#FAF6F2] text-stone-700 border-[#E3D3C4] hover:border-[#7D4F27]'
+                          }`}
+                        >
+                          <span className="truncate mr-1">{addon.name}</span>
+                          <span className="shrink-0 font-extrabold text-[11px]">
+                            {isSelected ? '✓ ' : '+ '}{formatRupiah(addon.price)}
+                          </span>
+                        </button>
+                      );
+                    });
+                  })()}
                 </div>
               </div>
 

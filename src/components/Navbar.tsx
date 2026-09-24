@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useCafe } from '../context/CafeContext';
 import { UserRole } from '../types';
 import { 
@@ -10,8 +10,13 @@ import {
   Bell,
   Volume2,
   VolumeX,
-  AlertTriangle
+  AlertTriangle,
+  Key,
+  LogOut,
+  Lock
 } from 'lucide-react';
+import { ChangePasswordModal } from './ChangePasswordModal';
+import { NadiraLogo } from './NadiraLogo';
 
 interface NavbarProps {
   onOpenNotifications: () => void;
@@ -21,6 +26,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNotifications }) => {
   const { 
     activeRole, 
     setActiveRole, 
+    currentUser,
+    setCurrentUser,
     activeOrders, 
     notifications,
     unreadNotificationsCount,
@@ -29,8 +36,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNotifications }) => {
     syncStatus,
     syncBrokerName,
     connectedDevicesCount,
-    triggerManualSync
+    triggerManualSync,
+    showToast
   } = useCafe();
+
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   const pendingCookingCount = activeOrders.filter(
     (o) => o.status === 'pending' || o.status === 'cooking'
@@ -91,8 +101,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNotifications }) => {
           
           {/* Logo & Brand */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-[#A8713D] to-[#6E421B] flex items-center justify-center shadow-inner border border-[#C58E55]/30">
-              <Coffee className="w-5 h-5 sm:w-6 sm:h-6 text-[#FFF5EA]" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#3F2B1B] flex items-center justify-center shadow-inner border border-[#D4A373]/30">
+              <NadiraLogo size={32} color="#FFF5EA" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -104,7 +114,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNotifications }) => {
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-[#B89F88] hidden sm:block">
-                Specialty Coffee & Modern Dining • Staff POS & Kitchen Display System
+                Jalan Lubuk Semut Kecamatan Karimun Kepulauan Riau
               </p>
             </div>
           </div>
@@ -189,6 +199,33 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNotifications }) => {
                 </span>
               )}
             </button>
+
+            {/* Profile Pill Widget */}
+            {currentUser && (
+              <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 rounded-xl bg-[#3F2B1B] border border-[#5A3E26] text-xs font-semibold text-[#F7E6D4] shadow-sm">
+                <span className="text-sm filter drop-shadow-sm">{currentUser.avatar}</span>
+                <span className="hidden md:inline text-white max-w-[100px] truncate font-bold">{currentUser.name.split(' ')[0]}</span>
+                <span className="text-[10px] font-bold text-[#D4A373] bg-[#2E1F13] px-1.5 py-0.5 rounded capitalize hidden sm:inline">{currentUser.role === 'chef' ? 'Chef' : currentUser.role}</span>
+                <div className="h-4 w-px bg-[#5A3E26]"></div>
+                <button 
+                  onClick={() => setIsChangePasswordOpen(true)}
+                  className="p-1 hover:text-[#FFA000] transition-colors cursor-pointer text-[#C4AC97]"
+                  title="Ganti PIN / Sandi"
+                >
+                  <Key className="w-3.5 h-3.5" />
+                </button>
+                <button 
+                  onClick={() => {
+                    setCurrentUser(null);
+                    showToast("Anda telah keluar dari sistem.");
+                  }}
+                  className="p-1 hover:text-rose-400 transition-colors cursor-pointer text-rose-300"
+                  title="Keluar Sesi"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -202,20 +239,33 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNotifications }) => {
 
           {roleConfigs.map((cfg) => {
             const isActive = activeRole === cfg.role;
+            const isOwner = currentUser?.role === 'owner';
+            const canAccess = isOwner || currentUser?.role === cfg.role;
+
             return (
               <button
                 key={cfg.role}
                 id={`role-tab-${cfg.role}`}
-                onClick={() => setActiveRole(cfg.role)}
+                onClick={() => {
+                  if (canAccess) {
+                    setActiveRole(cfg.role);
+                  } else {
+                    showToast(`Akses Dibatasi! Hanya Owner yang dapat berpindah ke halaman ${cfg.label}.`);
+                  }
+                }}
                 className={`relative flex items-center gap-2 min-h-[44px] px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95 ${
                   isActive
                     ? 'bg-[#7D4F27] text-white shadow-md shadow-[#2C1D11]/50 border border-[#A8713D]'
+                    : !canAccess
+                    ? 'bg-[#1F140C] text-[#5A4535] border-[#291A0F] cursor-not-allowed opacity-50'
                     : 'bg-[#2B1B0F] text-[#C4AC97] hover:bg-[#382314] hover:text-[#EFE2D4] border border-[#3D2817]'
                 }`}
+                title={!canAccess ? `Akses terkunci untuk akun Anda` : `Pindah ke halaman ${cfg.label}`}
               >
                 <span>{cfg.icon}</span>
                 <span>{cfg.label}</span>
-                {typeof cfg.badge === 'number' && cfg.badge > 0 && (
+                {!canAccess && <Lock className="w-3 h-3 text-[#705642]" />}
+                {canAccess && typeof cfg.badge === 'number' && cfg.badge > 0 && (
                   <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500 text-black animate-pulse">
                     {cfg.badge}
                   </span>
@@ -225,6 +275,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNotifications }) => {
           })}
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal 
+        isOpen={isChangePasswordOpen} 
+        onClose={() => setIsChangePasswordOpen(false)} 
+      />
     </header>
   );
 };

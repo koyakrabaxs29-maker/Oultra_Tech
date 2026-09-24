@@ -1,0 +1,34 @@
+import React from 'react';
+
+interface NadiraLogoProps {
+  className?: string;
+  size?: number;
+  color?: string;
+}
+
+// Exact vectorized paths matching the uploaded "Logo Nadira BAru.png":
+// Hexagonal outer ring with horizontal split, bold geometric "N" monogram, and ECG pulse line
+const LOGO_PATHS = "M 10.0,336.0 L 10.0,175.0 L 300.0,10.0 L 590.0,175.0 L 590.0,336.0 L 522.0,336.0 L 522.0,214.0 L 300.0,88.0 L 78.0,214.0 L 78.0,336.0 Z M 78.0,336.0 L 78.0,302.0 L 124.0,302.0 L 165.0,232.0 L 185.0,266.0 L 185.0,235.0 L 215.0,205.0 L 254.0,205.0 L 305.0,336.0 L 185.0,336.0 L 185.0,300.0 L 165.0,266.0 L 124.0,336.0 Z M 305.0,336.0 L 305.0,155.0 L 415.0,218.0 L 415.0,336.0 Z M 590.0,364.0 L 590.0,525.0 L 300.0,690.0 L 10.0,525.0 L 10.0,364.0 L 78.0,364.0 L 78.0,486.0 L 300.0,612.0 L 522.0,486.0 L 522.0,364.0 Z M 522.0,364.0 L 522.0,398.0 L 476.0,398.0 L 435.0,468.0 L 415.0,434.0 L 415.0,465.0 L 385.0,495.0 L 346.0,495.0 L 295.0,364.0 L 415.0,364.0 L 415.0,400.0 L 435.0,434.0 L 476.0,364.0 Z M 295.0,364.0 L 295.0,545.0 L 185.0,482.0 L 185.0,364.0 Z";
+
+export const NadiraLogo: React.FC<NadiraLogoProps> = ({
+  className = '',
+  size = 40,
+  color = 'currentColor'
+}) => {
+  return (
+    <svg
+      viewBox="0 0 600 700"
+      width={size}
+      height={size}
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: 'inline-block', verticalAlign: 'middle' }}
+    >
+      <path
+        fillRule="evenodd"
+        fill={color}
+        d={LOGO_PATHS}
+      />
+    </svg>
+  );
+};

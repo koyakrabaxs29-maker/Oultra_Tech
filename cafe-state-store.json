@@ -15,6 +15,29 @@
         "Signature",
         "Favorit",
         "Dingin"
+      ],
+      "hasLargePortion": true,
+      "availableAddOns": [
+        {
+          "id": "add-esp-1",
+          "name": "Extra Espresso Shot",
+          "price": 6000
+        },
+        {
+          "id": "add-whip-1",
+          "name": "Whipped Cream",
+          "price": 5000
+        },
+        {
+          "id": "add-oat-1",
+          "name": "Oat Milk Swap",
+          "price": 6000
+        },
+        {
+          "id": "add-syrup-1",
+          "name": "Caramel Syrup Drizzle",
+          "price": 5000
+        }
       ]
     },
     {
@@ -31,6 +54,28 @@
       "tags": [
         "Single Origin",
         "Hot / Ice"
+      ],
+      "availableAddOns": [
+        {
+          "id": "add-esp-1",
+          "name": "Extra Espresso Shot",
+          "price": 6000
+        },
+        {
+          "id": "add-whip-1",
+          "name": "Whipped Cream",
+          "price": 5000
+        },
+        {
+          "id": "add-oat-1",
+          "name": "Oat Milk Swap",
+          "price": 6000
+        },
+        {
+          "id": "add-syrup-1",
+          "name": "Caramel Syrup Drizzle",
+          "price": 5000
+        }
       ]
     },
     {
@@ -47,6 +92,28 @@
       "tags": [
         "Favorit",
         "Manis Gurih"
+      ],
+      "availableAddOns": [
+        {
+          "id": "add-esp-1",
+          "name": "Extra Espresso Shot",
+          "price": 6000
+        },
+        {
+          "id": "add-whip-1",
+          "name": "Whipped Cream",
+          "price": 5000
+        },
+        {
+          "id": "add-oat-1",
+          "name": "Oat Milk Swap",
+          "price": 6000
+        },
+        {
+          "id": "add-syrup-1",
+          "name": "Caramel Syrup Drizzle",
+          "price": 5000
+        }
       ]
     },
     {
@@ -62,6 +129,28 @@
       "station": "bar",
       "tags": [
         "Best Seller"
+      ],
+      "availableAddOns": [
+        {
+          "id": "add-esp-1",
+          "name": "Extra Espresso Shot",
+          "price": 6000
+        },
+        {
+          "id": "add-whip-1",
+          "name": "Whipped Cream",
+          "price": 5000
+        },
+        {
+          "id": "add-oat-1",
+          "name": "Oat Milk Swap",
+          "price": 6000
+        },
+        {
+          "id": "add-syrup-1",
+          "name": "Caramel Syrup Drizzle",
+          "price": 5000
+        }
       ]
     },
     {
@@ -78,6 +167,28 @@
       "tags": [
         "Klasik",
         "Zero Sugar"
+      ],
+      "availableAddOns": [
+        {
+          "id": "add-esp-1",
+          "name": "Extra Espresso Shot",
+          "price": 6000
+        },
+        {
+          "id": "add-whip-1",
+          "name": "Whipped Cream",
+          "price": 5000
+        },
+        {
+          "id": "add-oat-1",
+          "name": "Oat Milk Swap",
+          "price": 6000
+        },
+        {
+          "id": "add-syrup-1",
+          "name": "Caramel Syrup Drizzle",
+          "price": 5000
+        }
       ]
     },
     {
@@ -94,6 +205,28 @@
       "tags": [
         "Signature Non-Kopi",
         "Sehat"
+      ],
+      "availableAddOns": [
+        {
+          "id": "add-whip-2",
+          "name": "Whipped Cream",
+          "price": 5000
+        },
+        {
+          "id": "add-oat-2",
+          "name": "Oat Milk Swap",
+          "price": 6000
+        },
+        {
+          "id": "add-boba-1",
+          "name": "Popping Boba / Jelly",
+          "price": 5000
+        },
+        {
+          "id": "add-syrup-2",
+          "name": "Vanilla Shot",
+          "price": 5000
+        }
       ]
     },
     {
@@ -109,6 +242,28 @@
       "station": "bar",
       "tags": [
         "Rich & Creamy"
+      ],
+      "availableAddOns": [
+        {
+          "id": "add-whip-2",
+          "name": "Whipped Cream",
+          "price": 5000
+        },
+        {
+          "id": "add-oat-2",
+          "name": "Oat Milk Swap",
+          "price": 6000
+        },
+        {
+          "id": "add-boba-1",
+          "name": "Popping Boba / Jelly",
+          "price": 5000
+        },
+        {
+          "id": "add-syrup-2",
+          "name": "Vanilla Shot",
+          "price": 5000
+        }
       ]
     },
     {
@@ -125,6 +280,28 @@
       "tags": [
         "Segar",
         "Mocktail"
+      ],
+      "availableAddOns": [
+        {
+          "id": "add-whip-2",
+          "name": "Whipped Cream",
+          "price": 5000
+        },
+        {
+          "id": "add-oat-2",
+          "name": "Oat Milk Swap",
+          "price": 6000
+        },
+        {
+          "id": "add-boba-1",
+          "name": "Popping Boba / Jelly",
+          "price": 5000
+        },
+        {
+          "id": "add-syrup-2",
+          "name": "Vanilla Shot",
+          "price": 5000
+        }
       ]
     },
     {
@@ -141,6 +318,28 @@
       "tags": [
         "Artisan Tea",
         "Relaxing"
+      ],
+      "availableAddOns": [
+        {
+          "id": "add-whip-2",
+          "name": "Whipped Cream",
+          "price": 5000
+        },
+        {
+          "id": "add-oat-2",
+          "name": "Oat Milk Swap",
+          "price": 6000
+        },
+        {
+          "id": "add-boba-1",
+          "name": "Popping Boba / Jelly",
+          "price": 5000
+        },
+        {
+          "id": "add-syrup-2",
+          "name": "Vanilla Shot",
+          "price": 5000
+        }
       ]
     },
     {
@@ -157,6 +356,23 @@
       "tags": [
         "Favorit",
         "Snack Gurih"
+      ],
+      "availableAddOns": [
+        {
+          "id": "add-cheese-1",
+          "name": "Ekstra Keju Leleh",
+          "price": 7000
+        },
+        {
+          "id": "add-sambal-1",
+          "name": "Ekstra Sambal Spesial",
+          "price": 4000
+        },
+        {
+          "id": "add-mayo-1",
+          "name": "Ekstra Saus Mentai & Mayo",
+          "price": 5000
+        }
       ]
     },
     {
@@ -173,6 +389,23 @@
       "tags": [
         "Bakery",
         "Best with Coffee"
+      ],
+      "availableAddOns": [
+        {
+          "id": "add-cheese-1",
+          "name": "Ekstra Keju Leleh",
+          "price": 7000
+        },
+        {
+          "id": "add-sambal-1",
+          "name": "Ekstra Sambal Spesial",
+          "price": 4000
+        },
+        {
+          "id": "add-mayo-1",
+          "name": "Ekstra Saus Mentai & Mayo",
+          "price": 5000
+        }
       ]
     },
     {
@@ -189,6 +422,23 @@
       "tags": [
         "Gurih Manis",
         "Sharing"
+      ],
+      "availableAddOns": [
+        {
+          "id": "add-cheese-1",
+          "name": "Ekstra Keju Leleh",
+          "price": 7000
+        },
+        {
+          "id": "add-sambal-1",
+          "name": "Ekstra Sambal Spesial",
+          "price": 4000
+        },
+        {
+          "id": "add-mayo-1",
+          "name": "Ekstra Saus Mentai & Mayo",
+          "price": 5000
+        }
       ]
     },
     {
@@ -205,6 +455,23 @@
       "tags": [
         "Lokal",
         "Pedas Manis"
+      ],
+      "availableAddOns": [
+        {
+          "id": "add-cheese-1",
+          "name": "Ekstra Keju Leleh",
+          "price": 7000
+        },
+        {
+          "id": "add-sambal-1",
+          "name": "Ekstra Sambal Spesial",
+          "price": 4000
+        },
+        {
+          "id": "add-mayo-1",
+          "name": "Ekstra Saus Mentai & Mayo",
+          "price": 5000
+        }
       ]
     },
     {
@@ -221,6 +488,28 @@
       "tags": [
         "Signature Chef",
         "Kenyang"
+      ],
+      "availableAddOns": [
+        {
+          "id": "add-egg-1",
+          "name": "Telur Mata Sapi / Dadar",
+          "price": 6000
+        },
+        {
+          "id": "add-cheese-2",
+          "name": "Ekstra Keju Mozzarella",
+          "price": 7000
+        },
+        {
+          "id": "add-sambal-2",
+          "name": "Ekstra Sambal Nadira",
+          "price": 4000
+        },
+        {
+          "id": "add-rice-1",
+          "name": "Nasi Putih Tambahan",
+          "price": 5000
+        }
       ]
     },
     {
@@ -237,6 +526,28 @@
       "tags": [
         "Western",
         "Al Dente"
+      ],
+      "availableAddOns": [
+        {
+          "id": "add-egg-1",
+          "name": "Telur Mata Sapi / Dadar",
+          "price": 6000
+        },
+        {
+          "id": "add-cheese-2",
+          "name": "Ekstra Keju Mozzarella",
+          "price": 7000
+        },
+        {
+          "id": "add-sambal-2",
+          "name": "Ekstra Sambal Nadira",
+          "price": 4000
+        },
+        {
+          "id": "add-rice-1",
+          "name": "Nasi Putih Tambahan",
+          "price": 5000
+        }
       ]
     },
     {
@@ -253,6 +564,28 @@
       "tags": [
         "Japanese Style",
         "Favorit"
+      ],
+      "availableAddOns": [
+        {
+          "id": "add-egg-1",
+          "name": "Telur Mata Sapi / Dadar",
+          "price": 6000
+        },
+        {
+          "id": "add-cheese-2",
+          "name": "Ekstra Keju Mozzarella",
+          "price": 7000
+        },
+        {
+          "id": "add-sambal-2",
+          "name": "Ekstra Sambal Nadira",
+          "price": 4000
+        },
+        {
+          "id": "add-rice-1",
+          "name": "Nasi Putih Tambahan",
+          "price": 5000
+        }
       ]
     },
     {
@@ -269,10 +602,99 @@
       "tags": [
         "Chef Recommendation",
         "Authentic"
+      ],
+      "availableAddOns": [
+        {
+          "id": "add-egg-1",
+          "name": "Telur Mata Sapi / Dadar",
+          "price": 6000
+        },
+        {
+          "id": "add-cheese-2",
+          "name": "Ekstra Keju Mozzarella",
+          "price": 7000
+        },
+        {
+          "id": "add-sambal-2",
+          "name": "Ekstra Sambal Nadira",
+          "price": 4000
+        },
+        {
+          "id": "add-rice-1",
+          "name": "Nasi Putih Tambahan",
+          "price": 5000
+        }
       ]
     }
   ],
   "activeOrders": [
+    {
+      "id": "ORD-076489",
+      "orderNumber": "#NDR-444",
+      "tableNumber": 2,
+      "customerName": "Tamu Meja #2",
+      "items": [
+        {
+          "id": "item-1790226076488-8114",
+          "menuItemId": "kopi-2",
+          "name": "V60 Manual Brew Aceh Gayo (Reguler)",
+          "portionSize": "Reguler",
+          "price": 32000,
+          "quantity": 1,
+          "category": "Kopi",
+          "station": "bar",
+          "customization": {
+            "portionSize": "Reguler",
+            "sugarLevel": "Normal Sugar",
+            "iceLevel": "Normal Ice"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "item-1790226076489-4521",
+          "menuItemId": "kopi-5",
+          "name": "Americano Double Shot (Reguler)",
+          "portionSize": "Reguler",
+          "price": 22000,
+          "quantity": 2,
+          "category": "Kopi",
+          "station": "bar",
+          "customization": {
+            "portionSize": "Reguler",
+            "sugarLevel": "Less Sugar (50%)",
+            "iceLevel": "Normal Ice"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "item-1790226076489-6699",
+          "menuItemId": "berat-1",
+          "name": "Nasi Goreng Kampoeng Wagyu (Reguler)",
+          "portionSize": "Reguler",
+          "price": 54000,
+          "quantity": 2,
+          "category": "Makanan Berat",
+          "station": "kitchen",
+          "customization": {
+            "portionSize": "Reguler",
+            "spicyLevel": "Tidak Pedas",
+            "addOns": [
+              "Telur Mata Sapi (+6k)"
+            ]
+          },
+          "status": "pending"
+        }
+      ],
+      "subtotal": 184000,
+      "tax": 18400,
+      "serviceCharge": 9200,
+      "total": 211600,
+      "status": "pending",
+      "paymentStatus": "unpaid",
+      "waitressName": "Siti Rahma",
+      "createdAt": "2026-09-24T05:01:16.490Z",
+      "updatedAt": "2026-09-24T05:01:16.490Z"
+    },
     {
       "id": "ORD-287322",
       "orderNumber": "#NDR-910",
@@ -902,7 +1324,8 @@
     {
       "number": 2,
       "capacity": 4,
-      "status": "available"
+      "status": "occupied",
+      "currentOrderId": "ORD-076489"
     },
     {
       "number": 3,
@@ -1144,7 +1567,7 @@
   "users": [
     {
       "id": "usr-1",
-      "name": "Nadira Putri (Owner)",
+      "name": "Endi",
       "username": "owner",
       "role": "owner",
       "pin": "1122",
@@ -1155,7 +1578,7 @@
     },
     {
       "id": "usr-2",
-      "name": "Budi Santoso (Head Cashier)",
+      "name": "PUtri",
       "username": "kasir",
       "role": "cashier",
       "pin": "2233",
@@ -1166,7 +1589,7 @@
     },
     {
       "id": "usr-3",
-      "name": "Siti Rahma (Lead Waitress)",
+      "name": "Pak Ee",
       "username": "waitress",
       "role": "waitress",
       "pin": "3344",
@@ -1188,6 +1611,17 @@
     }
   ],
   "notifications": [
+    {
+      "id": "notif-new-order-1790226076491-ORD-076489",
+      "type": "new_order",
+      "title": "📝 Pesanan Baru: Meja #2",
+      "message": "Pesanan #NDR-444 (Tamu Meja #2) berisi 3 menu siap diproses di Dapur/Bar.",
+      "tableNumber": 2,
+      "orderId": "ORD-076489",
+      "orderNumber": "#NDR-444",
+      "createdAt": "2026-09-24T05:01:16.491Z",
+      "read": false
+    },
     {
       "id": "notif-new-1790131287322-ORD-287322",
       "type": "new_order",
@@ -1381,5 +1815,5 @@
       "notes": "Tagihan wifi bulanan kafe"
     }
   ],
-  "version": 7
+  "version": 15
 }
