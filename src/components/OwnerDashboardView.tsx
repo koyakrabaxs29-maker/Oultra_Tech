@@ -611,12 +611,6 @@ export const OwnerDashboardView: React.FC = () => {
               <LogIn className="w-4 h-4" />
               <span>Masuk Panel Owner</span>
             </button>
-
-            <div className="pt-2 border-t border-[#F0E4D8] text-center">
-              <p className="text-[11px] text-[#8A715C] leading-relaxed">
-                Butuh bantuan? Silakan gunakan Username <code className="bg-[#FAF6F2] px-1 py-0.5 rounded font-bold border border-[#E3D3C4]">owner</code> & PIN <code className="bg-[#FAF6F2] px-1 py-0.5 rounded font-bold border border-[#E3D3C4]">1122</code> (Akses Utama Sistem).
-              </p>
-            </div>
           </form>
         </div>
       </div>
