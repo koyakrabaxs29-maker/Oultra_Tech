@@ -244,17 +244,7 @@ export const INITIAL_TABLES: TableInfo[] = Array.from({ length: 30 }, (_, i) => 
   status: 'available'
 }));
 
-export const INITIAL_INVENTORY: InventoryItem[] = [
-  { id: 'inv-1', name: 'Biji Kopi Arabika Aceh Gayo Specialty', category: 'Kopi & Biji', stockQuantity: 8.5, unit: 'kg', minThreshold: 3.0, costPerUnit: 185000, lastRestocked: '2026-09-18' },
-  { id: 'inv-2', name: 'Susu Fresh Milk UHT Greenfields', category: 'Susu & Dairy', stockQuantity: 24, unit: 'liter', minThreshold: 10, costPerUnit: 22000, lastRestocked: '2026-09-19' },
-  { id: 'inv-3', name: 'Susu Oat Barista Edition (Oatside)', category: 'Susu & Dairy', stockQuantity: 12, unit: 'liter', minThreshold: 5, costPerUnit: 38000, lastRestocked: '2026-09-17' },
-  { id: 'inv-4', name: 'Gula Aren Cair Organik Nadira', category: 'Sirup & Pemanis', stockQuantity: 9.0, unit: 'liter', minThreshold: 4.0, costPerUnit: 45000, lastRestocked: '2026-09-18' },
-  { id: 'inv-5', name: 'Sirup Karamel Monin Gourmet', category: 'Sirup & Pemanis', stockQuantity: 3, unit: 'botol', minThreshold: 2, costPerUnit: 145000, lastRestocked: '2026-09-12' },
-  { id: 'inv-6', name: 'Kentang Shoestring Beku Premium', category: 'Bahan Makanan', stockQuantity: 15, unit: 'kg', minThreshold: 5, costPerUnit: 48000, lastRestocked: '2026-09-18' },
-  { id: 'inv-7', name: 'Daging Slice Wagyu MB5+', category: 'Bahan Makanan', stockQuantity: 4.2, unit: 'kg', minThreshold: 2.0, costPerUnit: 280000, lastRestocked: '2026-09-19' },
-  { id: 'inv-8', name: 'Minyak Truffle Putih Italia', category: 'Bahan Makanan', stockQuantity: 1.5, unit: 'liter', minThreshold: 1.0, costPerUnit: 310000, lastRestocked: '2026-09-10' },
-  { id: 'inv-9', name: 'Cup Dingin 16oz Sablon Nadira', category: 'Kemasan', stockQuantity: 480, unit: 'pcs', minThreshold: 150, costPerUnit: 850, lastRestocked: '2026-09-15' },
-];
+export const INITIAL_INVENTORY: InventoryItem[] = [];
 
 export const INITIAL_USERS: UserAccount[] = [
   { id: 'usr-1', name: 'Nadira Putri (Owner)', username: 'owner', role: 'owner', pin: '1122', email: 'owner@nadiracafe.id', phone: '+628119876543', active: true, avatar: '👑' },
@@ -268,128 +258,8 @@ export const INITIAL_ORDERS: Order[] = [];
 
 export const INITIAL_PAID_ORDERS: Order[] = [];
 
-export const INITIAL_EXPENSES: OperationalExpense[] = [
-  // Pengeluaran Hari Ini
-  {
-    id: 'exp-1',
-    category: 'Gaji & Karyawan',
-    name: 'Gaji Operasional 4 Barista & Waitress',
-    amount: 600000,
-    date: new Date().toISOString().split('T')[0],
-    notes: 'Shift harian 4 staf'
-  },
-  {
-    id: 'exp-2',
-    category: 'Utilitas (Listrik/Air/Wifi/Gas)',
-    name: 'Listrik Mesin Espresso & Gas Dapur',
-    amount: 150000,
-    date: new Date().toISOString().split('T')[0],
-    notes: 'Biaya utilitas harian'
-  },
-  {
-    id: 'exp-3',
-    category: 'Bahan Penunjang & Kebersihan',
-    name: 'Paper Cup, Straw & Packaging Takeaway',
-    amount: 95000,
-    date: new Date().toISOString().split('T')[0],
-    notes: 'Packaging & hygiene supplies'
-  },
-  {
-    id: 'exp-4',
-    category: 'Sewa & Lokasi',
-    name: 'Alokasi Biaya Gedung/Ruko Harian',
-    amount: 250000,
-    date: new Date().toISOString().split('T')[0],
-    notes: 'Prorata sewa tempat'
-  },
-  {
-    id: 'exp-5',
-    category: 'Pemasaran & Lainnya',
-    name: 'Promosi Digital Instagram & Wi-Fi Tamu',
-    amount: 75000,
-    date: new Date().toISOString().split('T')[0],
-    notes: 'Marketing & koneksi internet'
-  },
-  // Pengeluaran 3-5 Hari Lalu (Mingguan)
-  {
-    id: 'exp-6',
-    category: 'Pemeliharaan & Alat',
-    name: 'Servis Rutin Grinder & Mesin Espresso La Marzocco',
-    amount: 450000,
-    date: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString().split('T')[0],
-    notes: 'Ganti seal gasket & kalibrasi burr'
-  },
-  {
-    id: 'exp-7',
-    category: 'Bahan Penunjang & Kebersihan',
-    name: 'Restock Sabun Food Grade & Tissue Meja Kasir',
-    amount: 120000,
-    date: new Date(Date.now() - 1000 * 60 * 60 * 120).toISOString().split('T')[0],
-    notes: 'Perlengkapan sanitasi kafe'
-  },
-  // Pengeluaran 12-20 Hari Lalu (Bulanan)
-  {
-    id: 'exp-8',
-    category: 'Pemasaran & Lainnya',
-    name: 'Cetak Buku Menu Hardcover & Standing Banner Promo',
-    amount: 350000,
-    date: new Date(Date.now() - 1000 * 60 * 60 * 360).toISOString().split('T')[0],
-    notes: 'Marketing cetak materi promosi'
-  },
-  {
-    id: 'exp-9',
-    category: 'Utilitas (Listrik/Air/Wifi/Gas)',
-    name: 'Tagihan Internet Biznet Dedicated Kafe 100 Mbps',
-    amount: 550000,
-    date: new Date(Date.now() - 1000 * 60 * 60 * 480).toISOString().split('T')[0],
-    notes: 'Tagihan wifi bulanan kafe'
-  }
-];
+export const INITIAL_EXPENSES: OperationalExpense[] = [];
 
-export const INITIAL_NOTIFICATIONS: CafeNotification[] = [
-  {
-    id: 'notif-init-1',
-    type: 'item_ready',
-    title: '🍽️ Minuman Siap Saji',
-    message: '2x Es Kopi Susu Aren Nadira untuk Meja #1 siap disajikan!',
-    tableNumber: 1,
-    orderId: 'ORD-101',
-    orderNumber: '#NDR-101',
-    itemId: 'item-101-1',
-    itemName: 'Es Kopi Susu Aren Nadira',
-    quantity: 2,
-    station: 'bar',
-    createdAt: new Date(Date.now() - 1000 * 60 * 3).toISOString(),
-    read: false,
-    served: false,
-  },
-  {
-    id: 'notif-init-2',
-    type: 'order_delay_warning',
-    title: '⚠️ Pengingat: Mendekati 15 Menit',
-    message: 'Pesanan #NDR-101 (Meja #1) sudah 14 menit belum selesai diracik!',
-    tableNumber: 1,
-    orderId: 'ORD-101',
-    orderNumber: '#NDR-101',
-    createdAt: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
-    read: false,
-  },
-  {
-    id: 'notif-init-3',
-    type: 'item_ready',
-    title: '🍽️ Makanan Siap Saji',
-    message: '2x Nasi Goreng Kampoeng Wagyu untuk Meja #3 siap disajikan!',
-    tableNumber: 3,
-    orderId: 'ORD-102',
-    orderNumber: '#NDR-102',
-    itemId: 'item-102-1',
-    itemName: 'Nasi Goreng Kampoeng Wagyu',
-    quantity: 2,
-    station: 'kitchen',
-    createdAt: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
-    read: true,
-    served: true,
-  }
-];
+export const INITIAL_NOTIFICATIONS: CafeNotification[] = [];
 
 

@@ -388,9 +388,6 @@ export const WaitressView: React.FC = () => {
               <h1 className="font-display text-lg sm:text-2xl font-bold text-[#2C1D11]">
                 Kitchen & Bar Order
               </h1>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold border border-amber-300">
-                30 Meja Aktif
-              </span>
             </div>
             <p className="text-xs text-[#7A614D] line-clamp-1">
               Pemesanan meja, porsi Reguler/Large, level gula, es, dan pedas.

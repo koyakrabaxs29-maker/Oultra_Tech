@@ -54,12 +54,42 @@ function getInitialState(): CafeState {
   };
 }
 
+const isDemoOrder = (o: any) => {
+  if (!o) return false;
+  const id = o.id || '';
+  const num = o.orderNumber || '';
+  return /^(ORD-10[1-9]|ORD-init)/i.test(id) || /^#NDR-10[1-9]/i.test(num);
+};
+
+const isDemoExpense = (e: any) => {
+  if (!e) return false;
+  const id = e.id || '';
+  return /^exp-[1-9]$/i.test(id);
+};
+
+const isDemoInventory = (i: any) => {
+  if (!i) return false;
+  const id = i.id || '';
+  return /^inv-[1-9]$/i.test(id);
+};
+
 function loadState(): CafeState {
   try {
     if (fs.existsSync(STORE_PATH)) {
       const raw = fs.readFileSync(STORE_PATH, 'utf-8');
       const parsed = JSON.parse(raw);
       if (parsed && Array.isArray(parsed.activeOrders)) {
+        parsed.activeOrders = parsed.activeOrders.filter((o: Order) => !isDemoOrder(o));
+        parsed.completedOrders = (parsed.completedOrders || []).filter((o: Order) => !isDemoOrder(o));
+        parsed.notifications = (parsed.notifications || []).filter((n: CafeNotification) => !isDemoOrder({ id: n.orderId || n.id, orderNumber: n.orderNumber }));
+        parsed.expenses = (parsed.expenses || []).filter((e: OperationalExpense) => !isDemoExpense(e));
+        parsed.inventory = (parsed.inventory || []).filter((i: InventoryItem) => !isDemoInventory(i));
+        parsed.tables = (parsed.tables || []).map((t: TableInfo) => {
+          if (t.currentOrderId && isDemoOrder({ id: t.currentOrderId })) {
+            return { ...t, status: 'available' as const, currentOrderId: undefined };
+          }
+          return t;
+        });
         return parsed;
       }
     }
@@ -821,6 +851,61 @@ app.post('/api/action', (req, res) => {
     case 'clear_notifications': {
       state.notifications = [];
       eventType = 'notifications_updated';
+      break;
+    }
+
+    case 'clear_all_active_transactions': {
+      const nowIso = new Date().toISOString();
+      const newlyCompleted: Order[] = state.activeOrders.map((o) => ({
+        ...o,
+        status: 'paid',
+        paymentStatus: 'paid',
+        paymentMethod: o.paymentMethod || 'cash',
+        paymentDetails: o.paymentDetails || {
+          cashReceived: o.total,
+          changeReturned: 0,
+          paidAt: nowIso,
+        },
+        updatedAt: nowIso,
+      }));
+      state.completedOrders = [...newlyCompleted, ...state.completedOrders];
+      state.activeOrders = [];
+      state.tables = state.tables.map((t) => ({ ...t, status: 'available' as const, currentOrderId: undefined }));
+      eventType = 'active_transactions_cleared';
+      break;
+    }
+
+    case 'delete_all_orders': {
+      state.activeOrders = [];
+      state.completedOrders = [];
+      state.notifications = [];
+      state.deletedOrderIds = [];
+      state.tables = state.tables.map((t) => ({ ...t, status: 'available' as const, currentOrderId: undefined }));
+      eventType = 'all_orders_deleted';
+      break;
+    }
+
+    case 'clear_all_expenses': {
+      state.expenses = [];
+      eventType = 'expenses_updated';
+      break;
+    }
+
+    case 'clear_all_inventory': {
+      state.inventory = [];
+      eventType = 'inventory_updated';
+      break;
+    }
+
+    case 'clear_all_operational_data': {
+      state.activeOrders = [];
+      state.completedOrders = [];
+      state.notifications = [];
+      state.deletedOrderIds = [];
+      state.expenses = [];
+      state.inventory = [];
+      state.tables = state.tables.map((t) => ({ ...t, status: 'available' as const, currentOrderId: undefined }));
+      eventType = 'operational_data_cleared';
       break;
     }
 

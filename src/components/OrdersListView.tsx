@@ -20,7 +20,8 @@ import {
   Receipt,
   RotateCcw,
   Soup,
-  Timer
+  Timer,
+  Trash2
 } from 'lucide-react';
 
 interface OrdersListViewProps {
@@ -39,11 +40,14 @@ export const OrdersListView: React.FC<OrdersListViewProps> = ({
   const {
     activeOrders,
     completedOrders,
+    allOrders,
     markItemServed,
     markStationItemsServed,
     markAllOrderItemsServed,
     markOrderServed,
     markOrderCompleted,
+    clearAllActiveTransactionsToHistory,
+    deleteAllOrdersData,
     setActiveRole,
   } = useCafe();
 
@@ -217,6 +221,36 @@ export const OrdersListView: React.FC<OrdersListViewProps> = ({
             >
               <Plus className="w-4 h-4" />
               <span>Buat Order Baru</span>
+            </button>
+          )}
+
+          {activeOrders.length > 0 && (
+            <button
+              onClick={() => {
+                if (window.confirm('Arsipkan semua transaksi aktif ke riwayat dan kosongkan meja untuk memulai transaksi baru?')) {
+                  clearAllActiveTransactionsToHistory();
+                }
+              }}
+              className="px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-amber-50 text-stone-700 hover:text-amber-900 border border-stone-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Hapus semua transaksi aktif dan arsipkan ke riwayat"
+            >
+              <Receipt className="w-4 h-4 text-amber-700" />
+              <span>Arsipkan Semua Transaksi</span>
+            </button>
+          )}
+
+          {allOrders.length > 0 && (
+            <button
+              onClick={() => {
+                if (window.confirm('Hapus semua data pemesanan (aktif & riwayat/demo)? Seluruh meja akan dikosongkan dan daftar pesanan dibersihkan.')) {
+                  deleteAllOrdersData();
+                }
+              }}
+              className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Hapus semua data pemesanan aktif dan demo/riwayat"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+              <span>Hapus Semua Pesanan/Demo</span>
             </button>
           )}
         </div>

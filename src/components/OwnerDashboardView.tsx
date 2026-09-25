@@ -93,6 +93,7 @@ export const OwnerDashboardView: React.FC = () => {
     updateInventoryStock, 
     addInventoryItem, 
     deleteInventoryItem,
+    clearAllInventory,
     expenses,
     users, 
     addUser, 
@@ -638,33 +639,13 @@ export const OwnerDashboardView: React.FC = () => {
             </h1>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <div className="hidden sm:flex items-center gap-2 text-xs text-[#C4AD99] mr-1">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>Sistem Operasional Aktif</span>
-            </div>
-            
-            <button
-              id="btn-owner-logout"
-              onClick={() => {
-                sessionStorage.removeItem('nadira_owner_authenticated');
-                sessionStorage.removeItem('nadira_owner_id');
-                setIsOwnerAuthenticated(false);
-              }}
-              className="px-3 py-1.5 rounded-xl bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-200 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-sm"
-              title="Kunci / Keluar dari Sesi Owner"
-            >
-              <Lock className="w-3.5 h-3.5 text-rose-400" />
-              <span>Keluar Sesi</span>
-            </button>
-          </div>
+          <div></div>
         </div>
 
         {/* Tab Selector - Repositioned for high visibility & ease of touch/click */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 bg-[#1C120A] p-2 rounded-xl border border-[#3D2513]">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 bg-[#1C120A] p-2 rounded-xl border border-[#3D2513]">
           {[
             { key: 'analytics', label: 'Laporan & Omset', icon: <TrendingUp className="w-4 h-4" /> },
-            { key: 'orders', label: 'Data Pemesanan', icon: <UtensilsCrossed className="w-4 h-4" />, badge: activeOrders.length },
             { key: 'profit_loss', label: 'Laba Rugi (P&L)', icon: <Receipt className="w-4 h-4" /> },
             { key: 'menu', label: 'Menu & Harga', icon: <Coffee className="w-4 h-4" /> },
             { key: 'inventory', label: 'Stok Bahan Baku', icon: <Boxes className="w-4 h-4" />, badge: lowStockItems.length },
@@ -1481,13 +1462,28 @@ export const OwnerDashboardView: React.FC = () => {
                 Pantau sisa biji kopi, susu UHT/oats, sirup, daging, kentang dan kemasan dengan peringatan stok kritis.
               </p>
             </div>
-            <button
-              onClick={() => setIsInventoryModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white text-xs sm:text-sm font-bold shadow-sm transition-all cursor-pointer flex items-center gap-2"
-            >
-              <PackagePlus className="w-4 h-4" />
-              <span>Tambah Bahan Baku</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {inventory.length > 0 && (
+                <button
+                  onClick={() => {
+                    if (window.confirm('Kosongkan semua data stok bahan baku?')) {
+                      clearAllInventory();
+                    }
+                  }}
+                  className="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Kosongkan Semua Stok</span>
+                </button>
+              )}
+              <button
+                onClick={() => setIsInventoryModalOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white text-xs sm:text-sm font-bold shadow-sm transition-all cursor-pointer flex items-center gap-2"
+              >
+                <PackagePlus className="w-4 h-4" />
+                <span>Tambah Bahan Baku</span>
+              </button>
+            </div>
           </div>
 
           {/* Critical stock alert banner */}
@@ -1515,50 +1511,64 @@ export const OwnerDashboardView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F0E4D8]">
-                {inventory.map((inv) => {
-                  const isLow = inv.stockQuantity <= inv.minThreshold;
-                  return (
-                    <tr key={inv.id} className="hover:bg-stone-50">
-                      <td className="p-3 font-bold text-[#2C1D11]">{inv.name}</td>
-                      <td className="p-3 text-stone-600">{inv.category}</td>
-                      <td className="p-3 text-right font-extrabold text-[#7D4F27] text-sm">
-                        {inv.stockQuantity} {inv.unit}
-                      </td>
-                      <td className="p-3 text-right text-stone-500">{inv.minThreshold} {inv.unit}</td>
-                      <td className="p-3 text-right text-stone-600">{formatRupiah(inv.costPerUnit)}</td>
-                      <td className="p-3 text-center">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                          isLow ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
-                        }`}>
-                          {isLow ? 'Menipis' : 'Aman'}
-                        </span>
-                      </td>
-                      <td className="p-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => {
-                              setRestockItem(inv);
-                              setRestockAmount(5);
-                            }}
-                            className="px-2.5 py-1 rounded-lg bg-[#FAEDCD] hover:bg-[#F5DEB3] text-[#7D4F27] font-bold text-[11px] transition-colors"
-                          >
-                            + Restock
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (window.confirm(`Hapus bahan baku "${inv.name}"?`)) {
-                                deleteInventoryItem(inv.id);
-                              }
-                            }}
-                            className="p-1 rounded text-stone-400 hover:text-red-600"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {inventory.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-stone-500 bg-white">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Boxes className="w-8 h-8 text-stone-300" />
+                        <p className="font-bold text-sm text-[#2C1D11]">Belum Ada Data Stok Bahan Baku</p>
+                        <p className="text-xs text-[#7A614D] max-w-md">
+                          Seluruh data stok demo telah dibersihkan. Silakan klik tombol <strong>"Tambah Bahan Baku"</strong> di atas untuk mendaftarkan bahan baku riil kafe Anda.
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  inventory.map((inv) => {
+                    const isLow = inv.stockQuantity <= inv.minThreshold;
+                    return (
+                      <tr key={inv.id} className="hover:bg-stone-50">
+                        <td className="p-3 font-bold text-[#2C1D11]">{inv.name}</td>
+                        <td className="p-3 text-stone-600">{inv.category}</td>
+                        <td className="p-3 text-right font-extrabold text-[#7D4F27] text-sm">
+                          {inv.stockQuantity} {inv.unit}
+                        </td>
+                        <td className="p-3 text-right text-stone-500">{inv.minThreshold} {inv.unit}</td>
+                        <td className="p-3 text-right text-stone-600">{formatRupiah(inv.costPerUnit)}</td>
+                        <td className="p-3 text-center">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            isLow ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
+                          }`}>
+                            {isLow ? 'Menipis' : 'Aman'}
+                          </span>
+                        </td>
+                        <td className="p-3 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => {
+                                setRestockItem(inv);
+                                setRestockAmount(5);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-[#FAEDCD] hover:bg-[#F5DEB3] text-[#7D4F27] font-bold text-[11px] transition-colors"
+                            >
+                              + Restock
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Hapus bahan baku "${inv.name}"?`)) {
+                                  deleteInventoryItem(inv.id);
+                                }
+                              }}
+                              className="p-1 rounded text-stone-400 hover:text-red-600"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>

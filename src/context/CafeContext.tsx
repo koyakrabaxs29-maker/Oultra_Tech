@@ -115,6 +115,21 @@ interface CafeContextType {
 
   // Reset demo
   resetToDefaultData: () => void;
+
+  // Clear active transactions to history
+  clearAllActiveTransactionsToHistory: () => void;
+
+  // Hapus semua data pemesanan (aktif & demo/riwayat)
+  deleteAllOrdersData: () => void;
+
+  // Hapus semua pengeluaran & arus kas
+  clearAllExpenses: () => void;
+
+  // Hapus semua stok bahan baku
+  clearAllInventory: () => void;
+
+  // Bersihkan semua data untuk memulai operasional riil
+  resetAllDataForLiveOperations: () => void;
 }
 
 const CafeContext = createContext<CafeContextType | undefined>(undefined);
@@ -183,18 +198,37 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const isDemoOrder = (o: any) => {
+    if (!o) return false;
+    const id = o.id || '';
+    const num = o.orderNumber || '';
+    return /^(ORD-10[1-9]|ORD-init)/i.test(id) || /^#NDR-10[1-9]/i.test(num);
+  };
+
+  const isDemoExpense = (e: any) => {
+    if (!e) return false;
+    const id = e.id || '';
+    return /^exp-[1-9]$/i.test(id);
+  };
+
+  const isDemoInventory = (i: any) => {
+    if (!i) return false;
+    const id = i.id || '';
+    return /^inv-[1-9]$/i.test(id);
+  };
+
   const [activeOrders, setActiveOrders] = useState<Order[]>(() => {
     const deleted = loadInitial<string[]>(STORAGE_KEYS.DELETED_ORDER_IDS, []);
     const deletedSet = new Set(deleted);
     const loaded = loadInitial(STORAGE_KEYS.ORDERS, INITIAL_ORDERS);
-    return loaded.filter((o: Order) => !deletedSet.has(o.id) && isToday(o.createdAt || o.updatedAt));
+    return loaded.filter((o: Order) => !deletedSet.has(o.id) && !isDemoOrder(o) && isToday(o.createdAt || o.updatedAt));
   });
 
   const [completedOrders, setCompletedOrders] = useState<Order[]>(() => {
     const deleted = loadInitial<string[]>(STORAGE_KEYS.DELETED_ORDER_IDS, []);
     const deletedSet = new Set(deleted);
     const loaded = loadInitial(STORAGE_KEYS.PAID_ORDERS, INITIAL_PAID_ORDERS);
-    return loaded.filter((o: Order) => !deletedSet.has(o.id) && isToday(o.createdAt || o.updatedAt));
+    return loaded.filter((o: Order) => !deletedSet.has(o.id) && !isDemoOrder(o) && isToday(o.createdAt || o.updatedAt));
   });
 
   const [tables, setTables] = useState<TableInfo[]>(() => {
@@ -202,12 +236,18 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!Array.isArray(loaded) || loaded.length !== 30) {
       return INITIAL_TABLES;
     }
-    return loaded;
+    return loaded.map((tbl: TableInfo) => {
+      if (tbl.currentOrderId && isDemoOrder({ id: tbl.currentOrderId })) {
+        return { ...tbl, status: 'available' as const, currentOrderId: undefined };
+      }
+      return tbl;
+    });
   });
 
-  const [inventory, setInventory] = useState<InventoryItem[]>(() => 
-    loadInitial(STORAGE_KEYS.INVENTORY, INITIAL_INVENTORY)
-  );
+  const [inventory, setInventory] = useState<InventoryItem[]>(() => {
+    const loaded = loadInitial<InventoryItem[]>(STORAGE_KEYS.INVENTORY, INITIAL_INVENTORY);
+    return (Array.isArray(loaded) ? loaded : []).filter((i: InventoryItem) => !isDemoInventory(i));
+  });
 
   const [users, setUsers] = useState<UserAccount[]>(() => {
     const loaded = loadInitial<UserAccount[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
@@ -242,13 +282,17 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const [notifications, setNotifications] = useState<CafeNotification[]>(() => 
-    loadInitial(STORAGE_KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS)
-  );
+  const [notifications, setNotifications] = useState<CafeNotification[]>(() => {
+    const loaded = loadInitial<CafeNotification[]>(STORAGE_KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
+    return (Array.isArray(loaded) ? loaded : []).filter(
+      (n: CafeNotification) => !isDemoOrder({ id: n.orderId || n.id, orderNumber: n.orderNumber })
+    );
+  });
 
-  const [expenses, setExpenses] = useState<OperationalExpense[]>(() => 
-    loadInitial(STORAGE_KEYS.EXPENSES, INITIAL_EXPENSES)
-  );
+  const [expenses, setExpenses] = useState<OperationalExpense[]>(() => {
+    const loaded = loadInitial<OperationalExpense[]>(STORAGE_KEYS.EXPENSES, INITIAL_EXPENSES);
+    return (Array.isArray(loaded) ? loaded : []).filter((e: OperationalExpense) => !isDemoExpense(e));
+  });
 
   const [isSoundEnabled, setIsSoundEnabledState] = useState<boolean>(() => {
     const saved = loadInitial<boolean | null>(STORAGE_KEYS.SOUND_ENABLED, null);
@@ -275,6 +319,53 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const usersRef = useRef<UserAccount[]>(users);
   const expensesRef = useRef<OperationalExpense[]>(expenses);
   const notificationsRef = useRef<CafeNotification[]>(notifications);
+
+  // Mount-time purge of any residual demo orders from localStorage
+  useEffect(() => {
+    try {
+      const storedOrders = loadInitial<Order[]>(STORAGE_KEYS.ORDERS, []);
+      const cleanOrders = storedOrders.filter((o) => !isDemoOrder(o));
+      if (storedOrders.length !== cleanOrders.length) {
+        localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(cleanOrders));
+        setActiveOrders(cleanOrders);
+        activeOrdersRef.current = cleanOrders;
+      }
+
+      const storedPaid = loadInitial<Order[]>(STORAGE_KEYS.PAID_ORDERS, []);
+      const cleanPaid = storedPaid.filter((o) => !isDemoOrder(o));
+      if (storedPaid.length !== cleanPaid.length) {
+        localStorage.setItem(STORAGE_KEYS.PAID_ORDERS, JSON.stringify(cleanPaid));
+        setCompletedOrders(cleanPaid);
+        completedOrdersRef.current = cleanPaid;
+      }
+
+      const storedNotifs = loadInitial<CafeNotification[]>(STORAGE_KEYS.NOTIFICATIONS, []);
+      const cleanNotifs = storedNotifs.filter((n) => !isDemoOrder({ id: n.orderId || n.id, orderNumber: n.orderNumber }));
+      if (storedNotifs.length !== cleanNotifs.length) {
+        localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(cleanNotifs));
+        setNotifications(cleanNotifs);
+        notificationsRef.current = cleanNotifs;
+      }
+
+      const storedExpenses = loadInitial<OperationalExpense[]>(STORAGE_KEYS.EXPENSES, []);
+      const cleanExpenses = storedExpenses.filter((e) => !isDemoExpense(e));
+      if (storedExpenses.length !== cleanExpenses.length) {
+        localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(cleanExpenses));
+        setExpenses(cleanExpenses);
+        expensesRef.current = cleanExpenses;
+      }
+
+      const storedInventory = loadInitial<InventoryItem[]>(STORAGE_KEYS.INVENTORY, []);
+      const cleanInventory = storedInventory.filter((i) => !isDemoInventory(i));
+      if (storedInventory.length !== cleanInventory.length) {
+        localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(cleanInventory));
+        setInventory(cleanInventory);
+        inventoryRef.current = cleanInventory;
+      }
+    } catch (e) {
+      console.error('Error purging demo orders on mount:', e);
+    }
+  }, []);
 
   // Sync state to refs and localStorage
   useEffect(() => {
@@ -397,11 +488,12 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   ): Order[] => {
     const map = new Map<string, Order>();
 
-    // 1. Keep all current local active orders that are not deleted or completed
+    // 1. Keep all current local active orders that are not deleted or completed or demo
     for (const order of current) {
       if (
         !deletedIds.has(order.id) &&
         !serverCompletedIds.has(order.id) &&
+        !isDemoOrder(order) &&
         order.status !== 'completed' &&
         order.status !== 'cancelled' &&
         order.paymentStatus !== 'paid'
@@ -412,7 +504,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // 2. Merge incoming orders
     for (const inc of incoming) {
-      if (deletedIds.has(inc.id)) continue;
+      if (deletedIds.has(inc.id) || isDemoOrder(inc)) continue;
       if (
         serverCompletedIds.has(inc.id) ||
         inc.status === 'completed' ||
@@ -499,10 +591,10 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (Array.isArray(serverState.completedOrders)) {
       const completedMap = new Map<string, Order>();
       for (const co of completedOrdersRef.current) {
-        if (!currentDeleted.has(co.id)) completedMap.set(co.id, co);
+        if (!currentDeleted.has(co.id) && !isDemoOrder(co)) completedMap.set(co.id, co);
       }
       for (const inc of serverState.completedOrders) {
-        if (!currentDeleted.has(inc.id)) {
+        if (!currentDeleted.has(inc.id) && !isDemoOrder(inc)) {
           const existing = completedMap.get(inc.id);
           if (!existing) {
             completedMap.set(inc.id, inc);
@@ -527,10 +619,11 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem(STORAGE_KEYS.MENU, JSON.stringify(serverState.menuItems));
     }
 
-    if (Array.isArray(serverState.inventory) && serverState.inventory.length > 0) {
-      inventoryRef.current = serverState.inventory;
-      setInventory(serverState.inventory);
-      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(serverState.inventory));
+    if (Array.isArray(serverState.inventory)) {
+      const cleanInv = serverState.inventory.filter((i: InventoryItem) => !isDemoInventory(i));
+      inventoryRef.current = cleanInv;
+      setInventory(cleanInv);
+      localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(cleanInv));
     }
 
     if (Array.isArray(serverState.users) && serverState.users.length > 0) {
@@ -541,8 +634,16 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (Array.isArray(serverState.notifications)) {
       const notifMap = new Map<string, CafeNotification>();
-      for (const n of notificationsRef.current) notifMap.set(n.id, n);
-      for (const n of serverState.notifications) notifMap.set(n.id, n);
+      for (const n of notificationsRef.current) {
+        if (!isDemoOrder({ id: n.orderId || n.id, orderNumber: n.orderNumber })) {
+          notifMap.set(n.id, n);
+        }
+      }
+      for (const n of serverState.notifications) {
+        if (!isDemoOrder({ id: n.orderId || n.id, orderNumber: n.orderNumber })) {
+          notifMap.set(n.id, n);
+        }
+      }
       const mergedNotifs = Array.from(notifMap.values())
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, 50);
@@ -552,14 +653,10 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (Array.isArray(serverState.expenses)) {
-      const expMap = new Map<string, OperationalExpense>();
-      for (const e of expensesRef.current) expMap.set(e.id, e);
-      for (const e of serverState.expenses) expMap.set(e.id, e);
-      const mergedExp = Array.from(expMap.values())
-        .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
-      expensesRef.current = mergedExp;
-      setExpenses(mergedExp);
-      localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(mergedExp));
+      const cleanExp = serverState.expenses.filter((e: OperationalExpense) => !isDemoExpense(e));
+      expensesRef.current = cleanExp;
+      setExpenses(cleanExp);
+      localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(cleanExp));
     }
   };
 
@@ -996,6 +1093,73 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setNotifications(INITIAL_NOTIFICATIONS);
         setExpenses(INITIAL_EXPENSES);
         showToast('🔄 Data kafe telah direset!');
+        break;
+      }
+      case 'delete_all_orders':
+      case 'all_orders_deleted': {
+        setActiveOrders([]);
+        activeOrdersRef.current = [];
+        localStorage.removeItem(STORAGE_KEYS.ORDERS);
+        setCompletedOrders([]);
+        completedOrdersRef.current = [];
+        localStorage.removeItem(STORAGE_KEYS.PAID_ORDERS);
+        setNotifications([]);
+        notificationsRef.current = [];
+        localStorage.removeItem(STORAGE_KEYS.NOTIFICATIONS);
+        setTables((prev) => {
+          const updated = prev.map((t) => ({ ...t, status: 'available' as const, currentOrderId: undefined }));
+          tablesRef.current = updated;
+          localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(updated));
+          return updated;
+        });
+        showToast('🗑️ Seluruh data pemesanan telah dibersihkan.');
+        break;
+      }
+      case 'clear_all_expenses': {
+        setExpenses([]);
+        expensesRef.current = [];
+        localStorage.removeItem(STORAGE_KEYS.EXPENSES);
+        break;
+      }
+      case 'clear_all_inventory': {
+        setInventory([]);
+        inventoryRef.current = [];
+        localStorage.removeItem(STORAGE_KEYS.INVENTORY);
+        break;
+      }
+      case 'clear_all_operational_data':
+      case 'operational_data_cleared': {
+        setActiveOrders([]);
+        activeOrdersRef.current = [];
+        localStorage.removeItem(STORAGE_KEYS.ORDERS);
+
+        setCompletedOrders([]);
+        completedOrdersRef.current = [];
+        localStorage.removeItem(STORAGE_KEYS.PAID_ORDERS);
+
+        setDeletedOrderIds([]);
+        deletedOrderIdsRef.current = [];
+        localStorage.removeItem(STORAGE_KEYS.DELETED_ORDER_IDS);
+
+        setNotifications([]);
+        notificationsRef.current = [];
+        localStorage.removeItem(STORAGE_KEYS.NOTIFICATIONS);
+
+        setExpenses([]);
+        expensesRef.current = [];
+        localStorage.removeItem(STORAGE_KEYS.EXPENSES);
+
+        setInventory([]);
+        inventoryRef.current = [];
+        localStorage.removeItem(STORAGE_KEYS.INVENTORY);
+
+        setTables((prev) => {
+          const updated = prev.map((t) => ({ ...t, status: 'available' as const, currentOrderId: undefined }));
+          tablesRef.current = updated;
+          localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(updated));
+          return updated;
+        });
+        showToast('✨ Seluruh data transaksi, arus kas, dan stok bahan telah dibersihkan untuk operasional riil.');
         break;
       }
       default:
@@ -2142,6 +2306,127 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     showToast(`Pembayaran ${target.orderNumber} selesai via ${method.toUpperCase()}! Struk dicetak.`);
   };
 
+  const clearAllActiveTransactionsToHistory = () => {
+    if (activeOrders.length === 0) {
+      showToast('Tidak ada transaksi aktif saat ini.');
+      return;
+    }
+    const nowIso = new Date().toISOString();
+    const newlyCompleted: Order[] = activeOrders.map((o) => ({
+      ...o,
+      status: 'paid',
+      paymentStatus: 'paid',
+      paymentMethod: o.paymentMethod || 'cash',
+      paymentDetails: o.paymentDetails || {
+        cashReceived: o.total,
+        changeReturned: 0,
+        paidAt: nowIso,
+      },
+      updatedAt: nowIso,
+    }));
+
+    setCompletedOrders((prev) => {
+      const updated = [...newlyCompleted, ...prev];
+      completedOrdersRef.current = updated;
+      localStorage.setItem(STORAGE_KEYS.PAID_ORDERS, JSON.stringify(updated));
+      return updated;
+    });
+
+    setActiveOrders([]);
+    activeOrdersRef.current = [];
+    localStorage.removeItem(STORAGE_KEYS.ORDERS);
+
+    setTables((prev) => {
+      const updated = prev.map((t) => ({ ...t, status: 'available' as const, currentOrderId: undefined }));
+      tablesRef.current = updated;
+      localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(updated));
+      return updated;
+    });
+
+    dispatchServerAction('clear_all_active_transactions', {});
+    showToast('Semua transaksi aktif telah diarsipkan ke riwayat transaksi. Meja kini kosong dan siap untuk transaksi baru!');
+  };
+
+  const deleteAllOrdersData = () => {
+    setActiveOrders([]);
+    activeOrdersRef.current = [];
+    localStorage.removeItem(STORAGE_KEYS.ORDERS);
+
+    setCompletedOrders([]);
+    completedOrdersRef.current = [];
+    localStorage.removeItem(STORAGE_KEYS.PAID_ORDERS);
+
+    setDeletedOrderIds([]);
+    deletedOrderIdsRef.current = [];
+    localStorage.removeItem(STORAGE_KEYS.DELETED_ORDER_IDS);
+
+    setNotifications([]);
+    notificationsRef.current = [];
+    localStorage.removeItem(STORAGE_KEYS.NOTIFICATIONS);
+
+    setTables((prev) => {
+      const updated = prev.map((t) => ({ ...t, status: 'available' as const, currentOrderId: undefined }));
+      tablesRef.current = updated;
+      localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(updated));
+      return updated;
+    });
+
+    dispatchServerAction('delete_all_orders', {});
+    showToast('Seluruh data pemesanan aktif, riwayat, dan demo berhasil dihapus bersih.');
+  };
+
+  const clearAllExpenses = () => {
+    setExpenses([]);
+    expensesRef.current = [];
+    localStorage.removeItem(STORAGE_KEYS.EXPENSES);
+    dispatchServerAction('clear_all_expenses', {});
+    showToast('Seluruh data pengeluaran operasional & uang keluar telah dikosongkan.');
+  };
+
+  const clearAllInventory = () => {
+    setInventory([]);
+    inventoryRef.current = [];
+    localStorage.removeItem(STORAGE_KEYS.INVENTORY);
+    dispatchServerAction('clear_all_inventory', {});
+    showToast('Seluruh stok bahan baku telah dikosongkan.');
+  };
+
+  const resetAllDataForLiveOperations = () => {
+    setActiveOrders([]);
+    activeOrdersRef.current = [];
+    localStorage.removeItem(STORAGE_KEYS.ORDERS);
+
+    setCompletedOrders([]);
+    completedOrdersRef.current = [];
+    localStorage.removeItem(STORAGE_KEYS.PAID_ORDERS);
+
+    setDeletedOrderIds([]);
+    deletedOrderIdsRef.current = [];
+    localStorage.removeItem(STORAGE_KEYS.DELETED_ORDER_IDS);
+
+    setNotifications([]);
+    notificationsRef.current = [];
+    localStorage.removeItem(STORAGE_KEYS.NOTIFICATIONS);
+
+    setExpenses([]);
+    expensesRef.current = [];
+    localStorage.removeItem(STORAGE_KEYS.EXPENSES);
+
+    setInventory([]);
+    inventoryRef.current = [];
+    localStorage.removeItem(STORAGE_KEYS.INVENTORY);
+
+    setTables((prev) => {
+      const updated = prev.map((t) => ({ ...t, status: 'available' as const, currentOrderId: undefined }));
+      tablesRef.current = updated;
+      localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(updated));
+      return updated;
+    });
+
+    dispatchServerAction('clear_all_operational_data', {});
+    showToast('✨ Aplikasi siap operasional riil! Seluruh data demo, arus kas, dan stok bahan telah bersih.');
+  };
+
   // COMPLETED ORDER / TRANSACTION HISTORY ACTIONS
   const updateCompletedOrder = (orderId: string, updates: Partial<Order>) => {
     setCompletedOrders((prev) =>
@@ -2350,7 +2635,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setNotifications(INITIAL_NOTIFICATIONS);
     setExpenses(INITIAL_EXPENSES);
     setIsSoundEnabled(true);
-    alertedDelayOrdersRef.current = { 'ORD-101': { warning15: true } };
+    alertedDelayOrdersRef.current = {};
     localStorage.clear();
     dispatchServerAction('reset_data', {});
     showToast(`Data aplikasi di-reset ke data default NADIRA Café & Resto.`);
@@ -2416,6 +2701,11 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toastMessage,
         showToast,
         resetToDefaultData,
+        clearAllActiveTransactionsToHistory,
+        deleteAllOrdersData,
+        clearAllExpenses,
+        clearAllInventory,
+        resetAllDataForLiveOperations,
         syncStatus,
         syncBrokerName,
         connectedDevicesCount,

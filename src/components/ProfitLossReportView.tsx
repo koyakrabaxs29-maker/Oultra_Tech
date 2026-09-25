@@ -48,7 +48,7 @@ const CATEGORY_ICONS: Record<ExpenseCategory, React.ReactNode> = {
 type PeriodOption = 'today' | '7days' | '30days' | 'all';
 
 export const ProfitLossReportView: React.FC = () => {
-  const { completedOrders, menuItems, expenses, addExpense, updateExpense, deleteExpense } = useCafe();
+  const { completedOrders, menuItems, expenses, addExpense, updateExpense, deleteExpense, clearAllExpenses } = useCafe();
 
   const [period, setPeriod] = useState<PeriodOption>('today');
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -629,13 +629,29 @@ export const ProfitLossReportView: React.FC = () => {
                 </h3>
                 <span className="text-[11px] text-[#7A614D]">Kelola biaya operasional</span>
               </div>
-              <button
-                onClick={handleOpenAddExpense}
-                className="p-1.5 rounded-lg bg-[#7D4F27] text-white hover:bg-[#633C1B] transition-colors cursor-pointer"
-                title="Tambah Pengeluaran"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1.5">
+                {expenses.length > 0 && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Kosongkan semua data pengeluaran operasional?')) {
+                        clearAllExpenses();
+                      }
+                    }}
+                    className="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1"
+                    title="Kosongkan semua pengeluaran"
+                  >
+                    <Trash2 className="w-3 h-3 text-rose-600" />
+                    <span>Kosongkan</span>
+                  </button>
+                )}
+                <button
+                  onClick={handleOpenAddExpense}
+                  className="p-1.5 rounded-lg bg-[#7D4F27] text-white hover:bg-[#633C1B] transition-colors cursor-pointer"
+                  title="Tambah Pengeluaran"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             <div className="divide-y divide-[#F0E4D8] border border-[#E3D3C4] rounded-xl overflow-y-auto max-h-[360px] scrollbar-thin">

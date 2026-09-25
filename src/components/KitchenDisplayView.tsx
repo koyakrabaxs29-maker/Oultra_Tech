@@ -212,13 +212,6 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({ defaultS
                 {activeRole === 'barista' ? '☕ Barista (Minuman)' : activeRole === 'chef' ? '👨‍🍳 Chef (Makanan)' : 'Mode Gabungan'}
               </span>
             </div>
-            <p className="text-sm text-[#C4AD99] mt-0.5">
-              {activeRole === 'barista'
-                ? 'Stasiun Bar & Minuman • Antrean Racik Kopi & Minuman Segar'
-                : activeRole === 'chef'
-                ? 'Stasiun Dapur & Makanan • Antrean Masak Makanan Ringan & Berat'
-                : 'Live monitoring pesanan antrean Dapur dan Bar.'}
-            </p>
           </div>
         </div>
 

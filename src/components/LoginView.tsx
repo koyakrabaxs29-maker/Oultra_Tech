@@ -416,22 +416,7 @@ export const LoginView: React.FC = () => {
 
           </div>
 
-          {/* Quick Info & Default Credentials section */}
-          <div className="pt-4 border-t border-[#F0E4D8]">
-            <div className="bg-[#FAF6F2] border border-[#E3D3C4] rounded-2xl p-3.5 space-y-2">
-              <span className="text-[10px] font-black text-[#7D4F27] uppercase tracking-wider block">
-                🔑 Kredensial Akses Staf:
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5 text-[11px] text-[#5A3E29] font-medium">
-                <div>👑 Owner: <code className="bg-stone-200/60 px-1 py-0.5 rounded font-black text-black">owner</code> (1122)</div>
-                <div>💳 Kasir: <code className="bg-stone-200/60 px-1 py-0.5 rounded font-black text-black">kasir</code> (2233)</div>
-                <div>🛎️ Waitress: <code className="bg-stone-200/60 px-1 py-0.5 rounded font-black text-black">waitress</code> (3344)</div>
-                <div>☕ Barista: <code className="bg-stone-200/60 px-1 py-0.5 rounded font-black text-black">barista</code> (5566)</div>
-                <div>👨‍🍳 Chef: <code className="bg-stone-200/60 px-1 py-0.5 rounded font-black text-black">chef</code> (4455)</div>
-              </div>
-            </div>
-          </div>
-
+          {/* Quick Info & Default Credentials section removed for security */}
         </div>
       </div>
 
