@@ -126,6 +126,7 @@ function broadcast(event: {
   payload?: any;
   version: number;
   sourceClientId?: string;
+  state?: any;
 }) {
   const data = `data: ${JSON.stringify(event)}\n\n`;
   for (const client of sseClients) {
@@ -713,16 +714,19 @@ app.post('/api/action', (req, res) => {
       const { id } = payload;
       state.menuItems = state.menuItems.map((m) => (m.id === id ? { ...m, inStock: !m.inStock } : m));
       eventType = 'menu_updated';
+      eventPayload = { id, menuItems: state.menuItems };
       break;
     }
 
     case 'add_menu_item': {
+      const item = payload.item || payload;
       const newItem: MenuItem = {
-        ...payload.item,
-        id: `menu-${Date.now()}`,
+        ...item,
+        id: item.id || `menu-${Date.now()}`,
       };
-      state.menuItems.push(newItem);
+      state.menuItems = [newItem, ...state.menuItems.filter((m) => m.id !== newItem.id)];
       eventType = 'menu_updated';
+      eventPayload = { item: newItem, menuItems: state.menuItems };
       break;
     }
 
@@ -730,6 +734,7 @@ app.post('/api/action', (req, res) => {
       const { id, updates } = payload;
       state.menuItems = state.menuItems.map((m) => (m.id === id ? { ...m, ...updates } : m));
       eventType = 'menu_updated';
+      eventPayload = { id, updates, menuItems: state.menuItems };
       break;
     }
 
@@ -737,26 +742,32 @@ app.post('/api/action', (req, res) => {
       const { id } = payload;
       state.menuItems = state.menuItems.filter((m) => m.id !== id);
       eventType = 'menu_updated';
+      eventPayload = { id, menuItems: state.menuItems };
       break;
     }
 
     case 'update_inventory_stock': {
       const { id, newStock } = payload;
       state.inventory = state.inventory.map((inv) =>
-        inv.id === id ? { ...inv, currentStock: newStock, lastUpdated: new Date().toISOString() } : inv
+        inv.id === id
+          ? { ...inv, stockQuantity: Math.max(0, newStock), lastRestocked: new Date().toISOString().split('T')[0] }
+          : inv
       );
       eventType = 'inventory_updated';
+      eventPayload = { id, newStock, inventory: state.inventory };
       break;
     }
 
     case 'add_inventory_item': {
+      const item = payload.item || payload;
       const newInv: InventoryItem = {
-        ...payload.item,
-        id: `inv-${Date.now()}`,
-        lastUpdated: new Date().toISOString(),
+        ...item,
+        id: item.id || `inv-${Date.now()}`,
+        lastRestocked: item.lastRestocked || new Date().toISOString().split('T')[0],
       };
-      state.inventory.push(newInv);
+      state.inventory = [newInv, ...state.inventory.filter((i) => i.id !== newInv.id)];
       eventType = 'inventory_updated';
+      eventPayload = { item: newInv, inventory: state.inventory };
       break;
     }
 
@@ -764,16 +775,19 @@ app.post('/api/action', (req, res) => {
       const { id } = payload;
       state.inventory = state.inventory.filter((inv) => inv.id !== id);
       eventType = 'inventory_updated';
+      eventPayload = { id, inventory: state.inventory };
       break;
     }
 
     case 'add_user': {
+      const user = payload.user || payload;
       const newUser: UserAccount = {
-        ...payload.user,
-        id: `usr-${Date.now()}`,
+        ...user,
+        id: user.id || `usr-${Date.now()}`,
       };
-      state.users.push(newUser);
+      state.users = [...state.users.filter((u) => u.id !== newUser.id), newUser];
       eventType = 'users_updated';
+      eventPayload = { user: newUser, users: state.users };
       break;
     }
 
@@ -781,6 +795,7 @@ app.post('/api/action', (req, res) => {
       const { id, updates } = payload;
       state.users = state.users.map((u) => (u.id === id ? { ...u, ...updates } : u));
       eventType = 'users_updated';
+      eventPayload = { id, updates, users: state.users };
       break;
     }
 
@@ -788,16 +803,19 @@ app.post('/api/action', (req, res) => {
       const { id } = payload;
       state.users = state.users.filter((u) => u.id !== id);
       eventType = 'users_updated';
+      eventPayload = { id, users: state.users };
       break;
     }
 
     case 'add_expense': {
+      const expense = payload.expense || payload;
       const newExp: OperationalExpense = {
-        ...payload.expense,
-        id: `exp-${Date.now()}`,
+        ...expense,
+        id: expense.id || `exp-${Date.now()}`,
       };
-      state.expenses.unshift(newExp);
+      state.expenses = [newExp, ...state.expenses.filter((e) => e.id !== newExp.id)];
       eventType = 'expenses_updated';
+      eventPayload = { expense: newExp, expenses: state.expenses };
       break;
     }
 
@@ -805,6 +823,7 @@ app.post('/api/action', (req, res) => {
       const { id, updates } = payload;
       state.expenses = state.expenses.map((e) => (e.id === id ? { ...e, ...updates } : e));
       eventType = 'expenses_updated';
+      eventPayload = { id, updates, expenses: state.expenses };
       break;
     }
 
@@ -812,6 +831,7 @@ app.post('/api/action', (req, res) => {
       const { id } = payload;
       state.expenses = state.expenses.filter((e) => e.id !== id);
       eventType = 'expenses_updated';
+      eventPayload = { id, expenses: state.expenses };
       break;
     }
 
@@ -931,10 +951,11 @@ app.post('/api/action', (req, res) => {
   state.version = (state.version || 0) + 1;
   scheduleSave(state);
 
-  // Broadcast to all clients
+  // Broadcast to all clients with full state snapshot
   broadcast({
     type: eventType,
     payload: eventPayload,
+    state,
     version: state.version,
     sourceClientId: clientId,
   });

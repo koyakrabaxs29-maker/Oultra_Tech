@@ -1162,6 +1162,275 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         showToast('✨ Seluruh data transaksi, arus kas, dan stok bahan telah dibersihkan untuk operasional riil.');
         break;
       }
+
+      // MENU SYNCHRONIZATION ACROSS DEVICES
+      case 'menu_updated': {
+        if (Array.isArray(msg.payload?.menuItems)) {
+          setMenuItems(msg.payload.menuItems);
+          menuItemsRef.current = msg.payload.menuItems;
+          localStorage.setItem(STORAGE_KEYS.MENU, JSON.stringify(msg.payload.menuItems));
+        } else {
+          // Fallback fetch latest state
+          fetch('/api/state')
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+              if (data?.state?.menuItems) {
+                setMenuItems(data.state.menuItems);
+                menuItemsRef.current = data.state.menuItems;
+                localStorage.setItem(STORAGE_KEYS.MENU, JSON.stringify(data.state.menuItems));
+              }
+            })
+            .catch(() => {});
+        }
+        break;
+      }
+      case 'add_menu_item': {
+        if (Array.isArray(msg.payload?.menuItems)) {
+          setMenuItems(msg.payload.menuItems);
+          menuItemsRef.current = msg.payload.menuItems;
+          localStorage.setItem(STORAGE_KEYS.MENU, JSON.stringify(msg.payload.menuItems));
+        } else if (msg.payload?.item) {
+          setMenuItems((prev) => {
+            const updated = [msg.payload.item, ...prev.filter((m) => m.id !== msg.payload.item.id)];
+            menuItemsRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.MENU, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        break;
+      }
+      case 'update_menu_item': {
+        if (Array.isArray(msg.payload?.menuItems)) {
+          setMenuItems(msg.payload.menuItems);
+          menuItemsRef.current = msg.payload.menuItems;
+          localStorage.setItem(STORAGE_KEYS.MENU, JSON.stringify(msg.payload.menuItems));
+        } else if (msg.payload?.id && msg.payload?.updates) {
+          setMenuItems((prev) => {
+            const updated = prev.map((m) => (m.id === msg.payload.id ? { ...m, ...msg.payload.updates } : m));
+            menuItemsRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.MENU, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        break;
+      }
+      case 'delete_menu_item': {
+        if (Array.isArray(msg.payload?.menuItems)) {
+          setMenuItems(msg.payload.menuItems);
+          menuItemsRef.current = msg.payload.menuItems;
+          localStorage.setItem(STORAGE_KEYS.MENU, JSON.stringify(msg.payload.menuItems));
+        } else if (msg.payload?.id) {
+          setMenuItems((prev) => {
+            const updated = prev.filter((m) => m.id !== msg.payload.id);
+            menuItemsRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.MENU, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        break;
+      }
+      case 'toggle_menu_stock': {
+        if (Array.isArray(msg.payload?.menuItems)) {
+          setMenuItems(msg.payload.menuItems);
+          menuItemsRef.current = msg.payload.menuItems;
+          localStorage.setItem(STORAGE_KEYS.MENU, JSON.stringify(msg.payload.menuItems));
+        } else if (msg.payload?.id) {
+          setMenuItems((prev) => {
+            const updated = prev.map((m) => (m.id === msg.payload.id ? { ...m, inStock: !m.inStock } : m));
+            menuItemsRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.MENU, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        break;
+      }
+
+      // INVENTORY SYNCHRONIZATION ACROSS DEVICES
+      case 'inventory_updated': {
+        if (Array.isArray(msg.payload?.inventory)) {
+          const clean = msg.payload.inventory.filter((i: InventoryItem) => !isDemoInventory(i));
+          setInventory(clean);
+          inventoryRef.current = clean;
+          localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(clean));
+        }
+        break;
+      }
+      case 'add_inventory_item': {
+        if (Array.isArray(msg.payload?.inventory)) {
+          const clean = msg.payload.inventory.filter((i: InventoryItem) => !isDemoInventory(i));
+          setInventory(clean);
+          inventoryRef.current = clean;
+          localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(clean));
+        } else if (msg.payload?.item && !isDemoInventory(msg.payload.item)) {
+          setInventory((prev) => {
+            const updated = [...prev.filter((i) => i.id !== msg.payload.item.id), msg.payload.item];
+            inventoryRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        break;
+      }
+      case 'update_inventory_stock': {
+        if (Array.isArray(msg.payload?.inventory)) {
+          const clean = msg.payload.inventory.filter((i: InventoryItem) => !isDemoInventory(i));
+          setInventory(clean);
+          inventoryRef.current = clean;
+          localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(clean));
+        } else if (msg.payload?.id) {
+          setInventory((prev) => {
+            const updated = prev.map((i) =>
+              i.id === msg.payload.id ? { ...i, stockQuantity: msg.payload.newStock } : i
+            );
+            inventoryRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        break;
+      }
+      case 'delete_inventory_item': {
+        if (Array.isArray(msg.payload?.inventory)) {
+          const clean = msg.payload.inventory.filter((i: InventoryItem) => !isDemoInventory(i));
+          setInventory(clean);
+          inventoryRef.current = clean;
+          localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(clean));
+        } else if (msg.payload?.id) {
+          setInventory((prev) => {
+            const updated = prev.filter((i) => i.id !== msg.payload.id);
+            inventoryRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        break;
+      }
+
+      // EXPENSES SYNCHRONIZATION ACROSS DEVICES
+      case 'expenses_updated':
+      case 'expense_updated': {
+        if (Array.isArray(msg.payload?.expenses)) {
+          const clean = msg.payload.expenses.filter((e: OperationalExpense) => !isDemoExpense(e));
+          setExpenses(clean);
+          expensesRef.current = clean;
+          localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(clean));
+        }
+        break;
+      }
+      case 'add_expense': {
+        if (Array.isArray(msg.payload?.expenses)) {
+          const clean = msg.payload.expenses.filter((e: OperationalExpense) => !isDemoExpense(e));
+          setExpenses(clean);
+          expensesRef.current = clean;
+          localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(clean));
+        } else if (msg.payload?.expense && !isDemoExpense(msg.payload.expense)) {
+          setExpenses((prev) => {
+            const updated = [msg.payload.expense, ...prev.filter((e) => e.id !== msg.payload.expense.id)];
+            expensesRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        break;
+      }
+      case 'update_expense': {
+        if (Array.isArray(msg.payload?.expenses)) {
+          const clean = msg.payload.expenses.filter((e: OperationalExpense) => !isDemoExpense(e));
+          setExpenses(clean);
+          expensesRef.current = clean;
+          localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(clean));
+        } else if (msg.payload?.id) {
+          setExpenses((prev) => {
+            const updated = prev.map((e) => (e.id === msg.payload.id ? { ...e, ...msg.payload.updates } : e));
+            expensesRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        break;
+      }
+      case 'delete_expense': {
+        if (Array.isArray(msg.payload?.expenses)) {
+          const clean = msg.payload.expenses.filter((e: OperationalExpense) => !isDemoExpense(e));
+          setExpenses(clean);
+          expensesRef.current = clean;
+          localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(clean));
+        } else if (msg.payload?.id) {
+          setExpenses((prev) => {
+            const updated = prev.filter((e) => e.id !== msg.payload.id);
+            expensesRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        break;
+      }
+
+      // USERS SYNCHRONIZATION ACROSS DEVICES
+      case 'users_updated':
+      case 'user_updated': {
+        if (Array.isArray(msg.payload?.users)) {
+          setUsers(msg.payload.users);
+          usersRef.current = msg.payload.users;
+          localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(msg.payload.users));
+        }
+        break;
+      }
+      case 'add_user': {
+        if (Array.isArray(msg.payload?.users)) {
+          setUsers(msg.payload.users);
+          usersRef.current = msg.payload.users;
+          localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(msg.payload.users));
+        } else if (msg.payload?.user) {
+          setUsers((prev) => {
+            const updated = [...prev.filter((u) => u.id !== msg.payload.user.id), msg.payload.user];
+            usersRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        break;
+      }
+      case 'update_user': {
+        if (Array.isArray(msg.payload?.users)) {
+          setUsers(msg.payload.users);
+          usersRef.current = msg.payload.users;
+          localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(msg.payload.users));
+        } else if (msg.payload?.id) {
+          setUsers((prev) => {
+            const updated = prev.map((u) => (u.id === msg.payload.id ? { ...u, ...msg.payload.updates } : u));
+            usersRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        break;
+      }
+      case 'delete_user': {
+        if (Array.isArray(msg.payload?.users)) {
+          setUsers(msg.payload.users);
+          usersRef.current = msg.payload.users;
+          localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(msg.payload.users));
+        } else if (msg.payload?.id) {
+          setUsers((prev) => {
+            const updated = prev.filter((u) => u.id !== msg.payload.id);
+            usersRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        break;
+      }
+
+      case 'state_updated':
+      case 'state_synced': {
+        if (msg.state) {
+          applyServerState(msg.state, msg.version);
+        } else if (msg.payload?.state) {
+          applyServerState(msg.payload.state, msg.version);
+        }
+        break;
+      }
       default:
         break;
     }
@@ -1221,14 +1490,17 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const triggerManualSync = () => {
-    showToast('🔄 Memperbarui koneksi sinkronisasi cloud...');
+    showToast('🔄 Memperbarui data seluruh menu & pesanan dari server...');
     cloudSync.publishAction('request_state' as any, {}, localVersionRef.current);
     flushOfflineQueue();
     try {
       fetch('/api/state')
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (data?.state) applyServerState(data.state, data.version);
+          if (data?.state) {
+            applyServerState(data.state, data.version);
+            showToast('✅ Seluruh data menu & status terkini telah disinkronkan!');
+          }
         })
         .catch(() => {});
     } catch {
@@ -1304,9 +1576,10 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
           try {
             if (!event.data || event.data.startsWith(':')) return;
             const data = JSON.parse(event.data);
-            if (data.type === 'connected' && data.state) {
+            if (data.state) {
               applyServerState(data.state, data.version);
-            } else if (data.type && data.type !== 'connected') {
+            }
+            if (data.type && data.type !== 'connected') {
               handleSyncMessage({
                 type: data.type,
                 payload: data.payload,
@@ -1379,6 +1652,45 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (data?.state) applyServerState(data.state, data.version);
       })
       .catch(() => {});
+
+    // Screen wakeup / Tab focus listener (ensures tablets/phones sync immediately when screen turns on)
+    const handleWakeupSync = () => {
+      if (document.visibilityState === 'visible') {
+        fetch('/api/state')
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data?.state) applyServerState(data.state, data.version);
+          })
+          .catch(() => {});
+      }
+    };
+    document.addEventListener('visibilitychange', handleWakeupSync);
+    window.addEventListener('focus', handleWakeupSync);
+
+    // Periodic ultra-reliable sync check (every 3.5s): pulls latest state if version differs
+    const healthPollTimer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      fetch('/api/health')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.ok && typeof data.version === 'number' && data.version > localVersionRef.current) {
+            return fetch('/api/state')
+              .then((res) => (res.ok ? res.json() : null))
+              .then((stateData) => {
+                if (stateData?.state) {
+                  applyServerState(stateData.state, stateData.version);
+                }
+              });
+          }
+        })
+        .catch(() => {});
+    }, 3500);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleWakeupSync);
+      window.removeEventListener('focus', handleWakeupSync);
+      clearInterval(healthPollTimer);
+    };
   }, []);
 
 
