@@ -6,6 +6,7 @@ import { ProfitLossReportView } from './ProfitLossReportView';
 import { EditTransactionModal } from './EditTransactionModal';
 import { DeleteTransactionModal } from './DeleteTransactionModal';
 import { OrdersListView } from './OrdersListView';
+import { ChangePasswordModal } from './ChangePasswordModal';
 import { 
   ShieldCheck, 
   TrendingUp, 
@@ -44,7 +45,9 @@ import {
   Unlock,
   Eye,
   EyeOff,
-  LogIn
+  LogIn,
+  Key,
+  KeyRound
 } from 'lucide-react';
 
 // Preset kurasi foto kafe berkualitas tinggi untuk mempermudah Owner
@@ -249,6 +252,11 @@ export const OwnerDashboardView: React.FC = () => {
   // USER CRUD STATE
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [showModalPin, setShowModalPin] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [changePasswordTarget, setChangePasswordTarget] = useState<UserAccount | null>(null);
+  const [revealedPins, setRevealedPins] = useState<Record<string, boolean>>({});
+  const [showAllPins, setShowAllPins] = useState(false);
   const [userForm, setUserForm] = useState({
     name: '',
     username: '',
@@ -490,6 +498,7 @@ export const OwnerDashboardView: React.FC = () => {
   // USER ACTIONS
   const handleOpenAddUser = () => {
     setEditingUserId(null);
+    setShowModalPin(false);
     setUserForm({
       name: '',
       username: '',
@@ -505,6 +514,7 @@ export const OwnerDashboardView: React.FC = () => {
 
   const handleOpenEditUser = (usr: UserAccount) => {
     setEditingUserId(usr.id);
+    setShowModalPin(false);
     setUserForm({
       name: usr.name,
       username: usr.username,
@@ -603,7 +613,7 @@ export const OwnerDashboardView: React.FC = () => {
 
             <div className="pt-2 border-t border-[#F0E4D8] text-center">
               <p className="text-[11px] text-[#8A715C] leading-relaxed">
-                Butuh bantuan? Silakan gunakan Username <code className="bg-[#FAF6F2] px-1 py-0.5 rounded font-bold border border-[#E3D3C4]">owner</code> & PIN <code className="bg-[#FAF6F2] px-1 py-0.5 rounded font-bold border border-[#E3D3C4]">1122</code> (Akses Bawaan Demo).
+                Butuh bantuan? Silakan gunakan Username <code className="bg-[#FAF6F2] px-1 py-0.5 rounded font-bold border border-[#E3D3C4]">owner</code> & PIN <code className="bg-[#FAF6F2] px-1 py-0.5 rounded font-bold border border-[#E3D3C4]">1122</code> (Akses Utama Sistem).
               </p>
             </div>
           </form>
@@ -1567,13 +1577,29 @@ export const OwnerDashboardView: React.FC = () => {
                 Kelola akun kasir, waitress, chef, dan owner dengan PIN otentikasi login cepat di tablet POS.
               </p>
             </div>
-            <button
-              onClick={handleOpenAddUser}
-              className="px-4 py-2.5 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white text-xs sm:text-sm font-bold shadow-sm transition-all cursor-pointer flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Tambah Staf Baru</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAllPins(!showAllPins)}
+                className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs ${
+                  showAllPins
+                    ? 'bg-amber-100 text-amber-900 border-amber-300'
+                    : 'bg-[#FAF6F2] hover:bg-[#F3ECE4] text-[#7D4F27] border-[#E3D3C4]'
+                }`}
+                title={showAllPins ? "Sembunyikan semua PIN staf" : "Tampilkan semua PIN staf"}
+              >
+                {showAllPins ? <EyeOff className="w-3.5 h-3.5 text-amber-700" /> : <Eye className="w-3.5 h-3.5 text-[#7D4F27]" />}
+                <span>{showAllPins ? 'Tutup Semua PIN' : 'Lihat Semua PIN'}</span>
+              </button>
+
+              <button
+                onClick={handleOpenAddUser}
+                className="px-4 py-2.5 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white text-xs sm:text-sm font-bold shadow-sm transition-all cursor-pointer flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Tambah Staf Baru</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1597,14 +1623,24 @@ export const OwnerDashboardView: React.FC = () => {
                     <span>{wOrders.length} Order Diinput</span>
                   </div>
                 );
+              } else if (usr.role === 'barista') {
+                const preparedDrinks = [...activeOrders, ...completedOrders].reduce((sum, o) => {
+                  return sum + o.items.filter(it => (it.station === 'bar' || it.category === 'Kopi' || it.category === 'Non-Kopi') && (it.status === 'ready' || o.status === 'completed')).reduce((s, it) => s + it.quantity, 0);
+                }, 0);
+                performanceBadge = (
+                  <div className="text-[11px] text-amber-900 font-bold bg-amber-50 border border-amber-200 rounded-xl px-2.5 py-1.5 flex items-center gap-1.5">
+                    <span className="text-xs">☕</span>
+                    <span>{preparedDrinks} Minuman Bar</span>
+                  </div>
+                );
               } else if (usr.role === 'chef') {
-                const preparedPortions = [...activeOrders, ...completedOrders].reduce((sum, o) => {
-                  return sum + o.items.filter(it => it.status === 'ready' || o.status === 'completed').reduce((s, it) => s + it.quantity, 0);
+                const preparedFood = [...activeOrders, ...completedOrders].reduce((sum, o) => {
+                  return sum + o.items.filter(it => (it.station === 'kitchen' || it.category === 'Makanan Ringan' || it.category === 'Makanan Berat') && (it.status === 'ready' || o.status === 'completed')).reduce((s, it) => s + it.quantity, 0);
                 }, 0);
                 performanceBadge = (
                   <div className="text-[11px] text-orange-700 font-bold bg-orange-50 border border-orange-100 rounded-xl px-2.5 py-1.5 flex items-center gap-1.5">
-                    <span className="text-xs">👨‍🍳</span>
-                    <span>{preparedPortions} Sajian Siap</span>
+                    <span className="text-xs">🍳</span>
+                    <span>{preparedFood} Makanan Dapur</span>
                   </div>
                 );
               } else if (usr.role === 'cashier') {
@@ -1646,10 +1682,11 @@ export const OwnerDashboardView: React.FC = () => {
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
                         usr.role === 'owner' ? 'bg-purple-100 text-purple-800' :
                         usr.role === 'cashier' ? 'bg-blue-100 text-blue-800' :
+                        usr.role === 'barista' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
                         usr.role === 'chef' ? 'bg-orange-100 text-orange-800' :
-                        'bg-amber-100 text-amber-800'
+                        'bg-emerald-100 text-emerald-800'
                       }`}>
-                        {usr.role}
+                        {usr.role === 'barista' ? '☕ Barista' : usr.role === 'chef' ? '👨‍🍳 Chef' : usr.role}
                       </span>
                     </div>
 
@@ -1658,7 +1695,22 @@ export const OwnerDashboardView: React.FC = () => {
                         {usr.name}
                         {isSelf && <span className="text-[10px] font-bold text-stone-400 bg-stone-100 px-1.5 py-0.2 rounded-full">Anda</span>}
                       </h4>
-                      <p className="text-xs text-[#7A614D]">@{usr.username} • PIN: <code className="bg-stone-100 px-1 py-0.2 rounded font-mono font-bold text-black">{usr.pin}</code></p>
+                      <p className="text-xs text-[#7A614D] flex items-center gap-1.5 flex-wrap mt-0.5">
+                        <span>@{usr.username}</span>
+                        <span>•</span>
+                        <span>PIN:</span>
+                        <code className="bg-stone-100 px-1.5 py-0.2 rounded font-mono font-bold text-black border border-stone-200">
+                          {(showAllPins || revealedPins[usr.id]) ? usr.pin : '••••'}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => setRevealedPins(prev => ({ ...prev, [usr.id]: !(showAllPins || prev[usr.id]) }))}
+                          className="p-0.5 rounded text-stone-400 hover:text-stone-700 hover:bg-stone-100 cursor-pointer"
+                          title={(showAllPins || revealedPins[usr.id]) ? "Sembunyikan PIN" : "Lihat PIN"}
+                        >
+                          {(showAllPins || revealedPins[usr.id]) ? <EyeOff className="w-3.5 h-3.5 text-amber-700" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </p>
                       <p className="text-[11px] text-stone-500 mt-1 select-all">✉️ {usr.email}</p>
                     </div>
                   </div>
@@ -1674,8 +1726,18 @@ export const OwnerDashboardView: React.FC = () => {
                       </span>
                       <div className="flex items-center gap-1">
                         <button
+                          onClick={() => {
+                            setChangePasswordTarget(usr);
+                            setIsChangePasswordOpen(true);
+                          }}
+                          className="p-1 rounded text-amber-700 hover:text-amber-900 hover:bg-amber-100 transition-colors cursor-pointer"
+                          title="Ganti PIN / Sandi Staf"
+                        >
+                          <KeyRound className="w-3.5 h-3.5" />
+                        </button>
+                        <button
                           onClick={() => handleOpenEditUser(usr)}
-                          className="p-1 rounded text-stone-600 hover:text-[#7D4F27] hover:bg-stone-100 transition-colors"
+                          className="p-1 rounded text-stone-600 hover:text-[#7D4F27] hover:bg-stone-100 transition-colors cursor-pointer"
                           title="Edit Staf"
                         >
                           <Edit className="w-3.5 h-3.5" />
@@ -1687,7 +1749,7 @@ export const OwnerDashboardView: React.FC = () => {
                                 deleteUser(usr.id);
                               }
                             }}
-                            className="p-1 rounded text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            className="p-1 rounded text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                             title="Hapus Staf"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -2423,24 +2485,46 @@ export const OwnerDashboardView: React.FC = () => {
                     onChange={(e) => setUserForm({ ...userForm, role: e.target.value as any })}
                     className="w-full p-2 rounded-lg border border-[#E3D3C4]"
                   >
-                    <option value="cashier">Kasir</option>
-                    <option value="waitress">Waitress</option>
-                    <option value="chef">Chef / Barista</option>
-                    <option value="owner">Owner / Manager</option>
+                    <option value="cashier">Kasir (POS & Billing)</option>
+                    <option value="waitress">Waitress (Floor & Order Meja)</option>
+                    <option value="barista">Barista (Bar & Minuman)</option>
+                    <option value="chef">Chef (Dapur & Makanan)</option>
+                    <option value="owner">Owner / Manager (Laporan & Menu)</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="font-bold text-[#2C1D11] block mb-1">PIN Akses Tablet (4 digit):</label>
-                  <input
-                    type="password"
-                    maxLength={6}
-                    value={userForm.pin}
-                    onChange={(e) => setUserForm({ ...userForm, pin: e.target.value })}
-                    className="w-full p-2 rounded-lg border border-[#E3D3C4]"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-bold text-[#2C1D11] text-xs">PIN Akses Tablet (4 digit):</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowModalPin(!showModalPin)}
+                      className="text-[10px] font-bold text-[#7D4F27] hover:text-[#5A3515] flex items-center gap-1 cursor-pointer"
+                    >
+                      {showModalPin ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      <span>{showModalPin ? 'Tutup' : 'Lihat'}</span>
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showModalPin ? 'text' : 'password'}
+                      maxLength={6}
+                      value={userForm.pin}
+                      onChange={(e) => setUserForm({ ...userForm, pin: e.target.value })}
+                      placeholder="1234"
+                      className="w-full p-2 pr-9 rounded-lg border border-[#E3D3C4] font-mono text-sm tracking-wider"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowModalPin(!showModalPin)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
+                      title={showModalPin ? "Sembunyikan PIN" : "Lihat PIN"}
+                    >
+                      {showModalPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="font-bold text-[#2C1D11] block mb-1">No. HP / WhatsApp:</label>
@@ -2488,6 +2572,16 @@ export const OwnerDashboardView: React.FC = () => {
         order={deletingTransaction}
         onClose={() => setDeletingTransaction(null)}
         onConfirm={(id) => deleteCompletedOrder(id)}
+      />
+
+      {/* CHANGE PASSWORD MODAL */}
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => {
+          setIsChangePasswordOpen(false);
+          setChangePasswordTarget(null);
+        }}
+        targetUser={changePasswordTarget}
       />
 
     </div>

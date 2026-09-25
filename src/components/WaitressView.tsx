@@ -60,9 +60,11 @@ export const WaitressView: React.FC = () => {
     addItemsToOrder, 
     cancelOrder,
     markItemServed,
+    markStationItemsServed,
     markAllOrderItemsServed,
     markOrderServed,
-    markOrderCompleted
+    markOrderCompleted,
+    addTable
   } = useCafe();
 
   const [viewMode, setViewMode] = useState<'tables' | 'orders'>('tables');
@@ -74,6 +76,12 @@ export const WaitressView: React.FC = () => {
   const [isAddItemsModalOpen, setIsAddItemsModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+
+  // Add Table / Overflow modal state
+  const [isAddTableModalOpen, setIsAddTableModalOpen] = useState(false);
+  const [newTableNum, setNewTableNum] = useState<number>(31);
+  const [newTableCap, setNewTableCap] = useState<number>(4);
+  const [newTableSec, setNewTableSec] = useState<string>('Meja Cadangan / Overflow');
 
   // Order creation/addition state
   const [customerNameInput, setCustomerNameInput] = useState('');
@@ -346,6 +354,23 @@ export const WaitressView: React.FC = () => {
     setSelectedTable(null);
   };
 
+  const handleOpenAddTableModal = () => {
+    const nextNum = tables.length > 0 ? Math.max(...tables.map((t) => t.number)) + 1 : 31;
+    setNewTableNum(nextNum);
+    setNewTableCap(4);
+    setNewTableSec('Meja Cadangan / Overflow');
+    setIsAddTableModalOpen(true);
+  };
+
+  const handleSaveNewTable = () => {
+    addTable({
+      number: Number(newTableNum),
+      capacity: Number(newTableCap),
+      section: newTableSec.trim() || 'Meja Cadangan / Overflow',
+    });
+    setIsAddTableModalOpen(false);
+  };
+
   const totalDraftPrice = pickedDrafts.reduce((sum, d) => sum + d.unitPrice * d.qty, 0);
   const totalDraftQty = pickedDrafts.reduce((sum, d) => sum + d.qty, 0);
 
@@ -497,23 +522,35 @@ export const WaitressView: React.FC = () => {
               ))}
             </div>
 
-            <div className="relative sm:w-64">
-              <Search className="w-4 h-4 text-[#8C705A] absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={tableSearchQuery}
-                onChange={(e) => setTableSearchQuery(e.target.value)}
-                placeholder="Cari meja (1 - 30)..."
-                className="w-full pl-9 pr-7 py-2 text-xs rounded-xl border border-[#E3D3C4] bg-[#FAF6F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
-              />
-              {tableSearchQuery && (
-                <button
-                  onClick={() => setTableSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-64">
+                <Search className="w-4 h-4 text-[#8C705A] absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={tableSearchQuery}
+                  onChange={(e) => setTableSearchQuery(e.target.value)}
+                  placeholder="Cari meja..."
+                  className="w-full pl-9 pr-7 py-2 text-xs rounded-xl border border-[#E3D3C4] bg-[#FAF6F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
+                />
+                {tableSearchQuery && (
+                  <button
+                    onClick={() => setTableSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleOpenAddTableModal}
+                className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-all active:scale-95"
+                title="Tambah meja darurat/cadangan saat kafe penuh"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Tambah Meja</span>
+              </button>
             </div>
           </div>
 
@@ -574,15 +611,37 @@ export const WaitressView: React.FC = () => {
                           {formatRupiah(tableOrder.total)}
                         </div>
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {tableOrder.items.some((it) => it.status === 'ready' && !it.served) ? (
-                            <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 border border-emerald-300 rounded px-1.5 py-0.5 inline-flex items-center gap-0.5 animate-pulse">
-                              🍽️ Siap Saji!
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-semibold text-amber-800 bg-amber-50 rounded px-1.5 py-0.5 inline-block truncate max-w-full">
-                              {tableOrder.items.length} item
-                            </span>
-                          )}
+                          {(() => {
+                            const barReady = tableOrder.items.some((it) => (it.station === 'bar' || it.category === 'Kopi' || it.category === 'Non-Kopi') && it.status === 'ready' && !it.served);
+                            const kitchenReady = tableOrder.items.some((it) => (it.station === 'kitchen' || it.category === 'Makanan Ringan' || it.category === 'Makanan Berat') && it.status === 'ready' && !it.served);
+
+                            if (barReady && kitchenReady) {
+                              return (
+                                <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 border border-emerald-300 rounded px-1.5 py-0.5 inline-flex items-center gap-0.5 animate-pulse">
+                                  ✨ Lengkap Siap!
+                                </span>
+                              );
+                            }
+                            if (barReady) {
+                              return (
+                                <span className="text-[10px] font-black text-amber-900 bg-amber-100 border border-amber-300 rounded px-1.5 py-0.5 inline-flex items-center gap-0.5 animate-pulse">
+                                  ☕ Minuman Siap!
+                                </span>
+                              );
+                            }
+                            if (kitchenReady) {
+                              return (
+                                <span className="text-[10px] font-black text-orange-900 bg-orange-100 border border-orange-300 rounded px-1.5 py-0.5 inline-flex items-center gap-0.5 animate-pulse">
+                                  🍳 Makanan Siap!
+                                </span>
+                              );
+                            }
+                            return (
+                              <span className="text-[10px] font-semibold text-amber-800 bg-amber-50 rounded px-1.5 py-0.5 inline-block truncate max-w-full">
+                                {tableOrder.items.length} item
+                              </span>
+                            );
+                          })()}
                         </div>
                       </div>
                     ) : (
@@ -628,7 +687,16 @@ export const WaitressView: React.FC = () => {
               </div>
 
               {/* If Table has active order */}
-              {activeOrderForTable ? (
+              {activeOrderForTable ? (() => {
+                const barItems = activeOrderForTable.items.filter((it) => it.station === 'bar' || it.category === 'Kopi' || it.category === 'Non-Kopi');
+                const kitchenItems = activeOrderForTable.items.filter((it) => it.station === 'kitchen' || it.category === 'Makanan Ringan' || it.category === 'Makanan Berat');
+
+                const unservedBarReady = barItems.filter((it) => it.status === 'ready' && !it.served);
+                const unservedKitchenReady = kitchenItems.filter((it) => it.status === 'ready' && !it.served);
+                const unservedKitchenPending = kitchenItems.filter((it) => !it.served && it.status !== 'ready');
+                const hasReadyItems = unservedBarReady.length > 0 || unservedKitchenReady.length > 0;
+
+                return (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-[#FBF8F5] p-3 rounded-xl border border-[#E3D3C4]">
                     <div>
@@ -653,17 +721,49 @@ export const WaitressView: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Fast Drink Ready Alert Banner */}
+                  {unservedBarReady.length > 0 && unservedKitchenPending.length > 0 && (
+                    <div className="bg-amber-50 border border-amber-300 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 animate-in fade-in">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-900 flex items-center justify-center font-bold shrink-0">
+                          ☕
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-amber-950 flex items-center gap-1.5 flex-wrap">
+                            <span>Minuman Bar Selesai Lebih Awal! ({unservedBarReady.length} Minuman)</span>
+                            <span className="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-black">RACIKAN BARISTA SIAP</span>
+                          </div>
+                          <p className="text-[11px] text-amber-800 mt-0.5">
+                            Minuman lebih cepat dibuat dibandingkan memasak makanan. Antar minuman ke Meja #{selectedTable.number} sekarang selagi segar tanpa harus menunggu masakan dapur.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => markStationItemsServed(activeOrderForTable.id, 'bar')}
+                        className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 shrink-0 self-end sm:self-center"
+                      >
+                        <Coffee className="w-3.5 h-3.5" />
+                        <span>Antar Minuman Duluan</span>
+                      </button>
+                    </div>
+                  )}
+
                   {/* Items List */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-bold text-[#5A3E29] uppercase tracking-wider">
-                        Daftar Pesanan ({activeOrderForTable.items.length} Menu)
+                      <h4 className="text-xs font-bold text-[#5A3E29] uppercase tracking-wider flex items-center gap-2">
+                        <span>Daftar Pesanan ({activeOrderForTable.items.length} Menu)</span>
+                        {unservedBarReady.length > 0 && (
+                          <span className="text-[10px] font-bold text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full">
+                            ☕ {unservedBarReady.length} Minuman Siap Saji
+                          </span>
+                        )}
+                        {unservedKitchenReady.length > 0 && (
+                          <span className="text-[10px] font-bold text-orange-900 bg-orange-100 border border-orange-300 px-2 py-0.5 rounded-full">
+                            🍳 {unservedKitchenReady.length} Makanan Siap Saji
+                          </span>
+                        )}
                       </h4>
-                      {activeOrderForTable.items.some((it) => it.status === 'ready' && !it.served) && (
-                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full animate-pulse">
-                          🍽️ Ada menu siap saji!
-                        </span>
-                      )}
                     </div>
                     <div className="space-y-2">
                       {activeOrderForTable.items.map((it) => {
@@ -778,15 +878,54 @@ export const WaitressView: React.FC = () => {
                       <span>{activeOrderForTable.status === 'completed' ? '✓ Orderan Selesai' : 'Orderan Selesai'}</span>
                     </button>
 
-                    {activeOrderForTable.items.some((it) => it.status === 'ready' && !it.served) && (
+                    {/* Separate action buttons for serving Bar vs Kitchen */}
+                    {unservedBarReady.length > 0 ? (
+                      <button
+                        onClick={() => markStationItemsServed(activeOrderForTable.id, 'bar')}
+                        className="px-3.5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                        title="Antar semua racikan minuman yang sudah siap ke meja tamu"
+                      >
+                        <Coffee className="w-4 h-4" />
+                        <span>☕ Antar Minuman Saja ({unservedBarReady.length})</span>
+                      </button>
+                    ) : activeOrderForTable.items.some(it => (it.station === 'bar' || it.category === 'Kopi' || it.category === 'Non-Kopi') && it.status === 'ready') ? (
+                      <span className="px-3 py-2 rounded-xl bg-emerald-100 text-emerald-900 text-xs font-extrabold border border-emerald-300 flex items-center gap-1.5 select-none cursor-not-allowed">
+                        <CheckCheck className="w-4 h-4 text-emerald-700" />
+                        <span>✓✓ Minuman Selesai Diantar</span>
+                      </span>
+                    ) : null}
+
+                    {unservedKitchenReady.length > 0 ? (
+                      <button
+                        onClick={() => markStationItemsServed(activeOrderForTable.id, 'kitchen')}
+                        className="px-3.5 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-extrabold shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                        title="Antar semua masakan dapur yang sudah matang ke meja tamu"
+                      >
+                        <UtensilsCrossed className="w-4 h-4" />
+                        <span>🍳 Antar Makanan Saja ({unservedKitchenReady.length})</span>
+                      </button>
+                    ) : activeOrderForTable.items.some(it => (it.station === 'kitchen' || it.category === 'Makanan Ringan' || it.category === 'Makanan Berat') && it.status === 'ready') ? (
+                      <span className="px-3 py-2 rounded-xl bg-emerald-100 text-emerald-900 text-xs font-extrabold border border-emerald-300 flex items-center gap-1.5 select-none cursor-not-allowed">
+                        <CheckCheck className="w-4 h-4 text-emerald-700" />
+                        <span>✓✓ Makanan Selesai Diantar</span>
+                      </span>
+                    ) : null}
+
+                    {hasReadyItems ? (
                       <button
                         onClick={() => markAllOrderItemsServed(activeOrderForTable.id)}
-                        className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                        className="px-3.5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-extrabold shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                        title="Antar seluruh menu yang sudah siap saji sekaligus"
                       >
                         <CheckCircle2 className="w-4 h-4" />
                         <span>Antar Semua Siap Saji</span>
                       </button>
-                    )}
+                    ) : activeOrderForTable.items.length > 0 && activeOrderForTable.items.every(it => it.status === 'ready' || it.served) ? (
+                      <span className="px-3.5 py-2 rounded-xl bg-emerald-200 text-emerald-950 text-xs font-extrabold border border-emerald-400 flex items-center gap-1.5 select-none cursor-not-allowed">
+                        <CheckCheck className="w-4 h-4 text-emerald-800" />
+                        <span>✓✓ Semua Proses Selesai & Terantar</span>
+                      </span>
+                    ) : null}
 
                     <button
                       id="btn-waitress-add-items"
@@ -813,7 +952,8 @@ export const WaitressView: React.FC = () => {
                     </button>
                   </div>
                 </div>
-              ) : (
+              );
+            })() : (
                 <div className="text-center py-6 space-y-3">
                   <p className="text-xs sm:text-sm text-[#7A614D]">
                     Meja #{selectedTable.number} ({selectedTable.section}) kosong dan siap ditempati tamu.
@@ -1785,6 +1925,99 @@ export const WaitressView: React.FC = () => {
                 className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm disabled:bg-stone-300 transition-all cursor-pointer"
               >
                 Ya, Batalkan Pesanan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Add Backup/Overflow Table */}
+      {isAddTableModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-[#E3D3C4] p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#E3D3C4] pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-amber-800 font-bold">
+                  🪑
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-[#2C1D11]">
+                    Tambah Meja Cadangan / Overflow
+                  </h3>
+                  <p className="text-[11px] text-[#7A614D]">
+                    Antisipasi penuhnya tamu dengan membuka meja darurat baru.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAddTableModalOpen(false)}
+                className="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-[#2C1D11] block mb-1">
+                  Nomor Meja Cadangan:
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={newTableNum}
+                  onChange={(e) => setNewTableNum(Number(e.target.value))}
+                  className="w-full text-xs p-2.5 rounded-xl border border-[#E3D3C4] bg-[#FAF6F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
+                />
+                <p className="text-[10px] text-stone-500 mt-1">
+                  Nomor meja baru akan langsung aktif dan bisa dipesan oleh waitress atau kasir.
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#2C1D11] block mb-1">
+                  Kapasitas Kursi (Orang):
+                </label>
+                <select
+                  value={newTableCap}
+                  onChange={(e) => setNewTableCap(Number(e.target.value))}
+                  className="w-full text-xs p-2.5 rounded-xl border border-[#E3D3C4] bg-[#FAF6F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
+                >
+                  <option value={2}>2 Orang (Couple / Kecil)</option>
+                  <option value={4}>4 Orang (Standar)</option>
+                  <option value={6}>6 Orang (Keluarga)</option>
+                  <option value={8}>8 Orang (Grup Besar)</option>
+                  <option value={10}>10 Orang (VIP / Gathering)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#2C1D11] block mb-1">
+                  Keterangan / Area (Section):
+                </label>
+                <input
+                  type="text"
+                  value={newTableSec}
+                  onChange={(e) => setNewTableSec(e.target.value)}
+                  placeholder="Contoh: Outdoor Tambahan, VIP Cadangan, Indoor Samping Bar"
+                  className="w-full text-xs p-2.5 rounded-xl border border-[#E3D3C4] bg-[#FAF6F2] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E3D3C4]">
+              <button
+                onClick={() => setIsAddTableModalOpen(false)}
+                className="px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-xl cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSaveNewTable}
+                className="px-4 py-2 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white text-xs font-extrabold shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Simpan & Aktifkan Meja</span>
               </button>
             </div>
           </div>

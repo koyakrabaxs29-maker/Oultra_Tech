@@ -1,4 +1,4 @@
-export type UserRole = 'owner' | 'cashier' | 'waitress' | 'chef';
+export type UserRole = 'owner' | 'cashier' | 'waitress' | 'chef' | 'barista';
 
 export type MenuCategory = 'Kopi' | 'Non-Kopi' | 'Makanan Ringan' | 'Makanan Berat';
 
@@ -96,6 +96,8 @@ export interface OrderItem {
 
 export type NotificationType = 
   | 'item_ready' 
+  | 'bar_ready' // Minuman bar selesai siap saji oleh barista
+  | 'kitchen_ready' // Makanan dapur selesai siap saji oleh chef
   | 'order_ready' 
   | 'order_delay_warning' // 15 - 20 minutes
   | 'order_delay_critical' // > 20 minutes
@@ -117,6 +119,8 @@ export interface CafeNotification {
   itemName?: string;
   quantity?: number;
   station?: 'bar' | 'kitchen';
+  targetRole?: UserRole | 'all';
+  itemsSummary?: string;
   createdAt: string; // ISO string
   read: boolean;
   served?: boolean;
@@ -143,7 +147,11 @@ export interface Order {
   };
   waitressName?: string;
   cancelReason?: string;
-  servedAt?: string; // ISO string when food/drink served
+  barReadyAt?: string; // ISO string when barista finished drinks
+  kitchenReadyAt?: string; // ISO string when chef finished dishes
+  barServedAt?: string; // ISO string when drinks were served by waitress
+  kitchenServedAt?: string; // ISO string when food was served by waitress
+  servedAt?: string; // ISO string when all food/drink served
   completedAt?: string; // ISO string when order completed
   hasNewAdditions?: boolean; // true when waitress added new items, awaiting chef acknowledgment
   lastItemAddedAt?: string; // ISO string of latest additions

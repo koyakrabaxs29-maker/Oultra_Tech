@@ -11,6 +11,7 @@ import {
   Coffee, 
   Utensils, 
   Check, 
+  CheckCheck,
   Volume2, 
   AlertTriangle,
   AlertOctagon,
@@ -18,22 +19,49 @@ import {
   RotateCcw
 } from 'lucide-react';
 
-export const KitchenDisplayView: React.FC = () => {
+export interface KitchenDisplayViewProps {
+  defaultStation?: 'kitchen' | 'bar' | 'all';
+}
+
+export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({ defaultStation }) => {
   const { 
     activeOrders, 
+    activeRole,
+    currentUser,
     updateOrderStatus, 
     updateOrderItemStatus,
+    markStationItemsReady,
     showToast,
     addNotification,
     acknowledgeOrderAdditions
   } = useCafe();
 
-  const [stationFilter, setStationFilter] = useState<'all' | 'additions' | 'bar' | 'kitchen' | 'delayed'>('all');
+  const initialStation = defaultStation || (activeRole === 'barista' ? 'bar' : activeRole === 'chef' ? 'kitchen' : 'all');
+  const [stationFilter, setStationFilter] = useState<'all' | 'additions' | 'bar' | 'kitchen' | 'delayed'>(initialStation);
+
+  // Synchronize when activeRole or defaultStation changes
+  React.useEffect(() => {
+    if (defaultStation) {
+      setStationFilter(defaultStation);
+    } else if (activeRole === 'barista') {
+      setStationFilter('bar');
+    } else if (activeRole === 'chef') {
+      setStationFilter('kitchen');
+    }
+  }, [defaultStation, activeRole]);
 
   // Filter orders that are active in kitchen (pending, cooking, ready)
   const kitchenTickets = activeOrders.filter(
     (o) => o.status === 'pending' || o.status === 'cooking' || o.status === 'ready'
   );
+
+  const barTicketsCount = kitchenTickets.filter((o) =>
+    o.items.some((it) => it.station === 'bar' || it.category === 'Kopi' || it.category === 'Non-Kopi')
+  ).length;
+
+  const kitchenOnlyTicketsCount = kitchenTickets.filter((o) =>
+    o.items.some((it) => it.station === 'kitchen' || it.category === 'Makanan Ringan' || it.category === 'Makanan Berat')
+  ).length;
 
   // Orders that have additional items recently requested by waitress
   const ordersWithAdditions = kitchenTickets.filter(
@@ -158,15 +186,38 @@ export const KitchenDisplayView: React.FC = () => {
       {/* KDS Header */}
       <div className="bg-[#1C130B] rounded-2xl p-5 text-[#FFF5EA] border border-[#3D2513] shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#8C5223] to-[#542F10] flex items-center justify-center text-white border border-[#A8713D]/40">
-            <ChefHat className="w-7 h-7" />
+          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#8C5223] to-[#542F10] flex items-center justify-center text-white border border-[#A8713D]/40 shadow-inner">
+            {activeRole === 'barista' || stationFilter === 'bar' ? (
+              <Coffee className="w-7 h-7 text-amber-300" />
+            ) : (
+              <ChefHat className="w-7 h-7 text-amber-300" />
+            )}
           </div>
           <div>
-            <h1 className="font-display text-2xl font-bold text-[#F7E6D4] leading-tight">
-              Kitchen & Bar Display
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display text-2xl font-bold text-[#F7E6D4] leading-tight">
+                {activeRole === 'barista'
+                  ? 'Bar Display System (BDS)'
+                  : activeRole === 'chef'
+                  ? 'Kitchen Display System (KDS)'
+                  : 'Kitchen & Bar Display'}
+              </h1>
+              <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                activeRole === 'barista'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                  : activeRole === 'chef'
+                  ? 'bg-orange-500/20 text-orange-300 border border-orange-500/40'
+                  : 'bg-stone-500/20 text-stone-300 border border-stone-500/40'
+              }`}>
+                {activeRole === 'barista' ? '☕ Barista (Minuman)' : activeRole === 'chef' ? '👨‍🍳 Chef (Makanan)' : 'Mode Gabungan'}
+              </span>
+            </div>
             <p className="text-sm text-[#C4AD99] mt-0.5">
-              Live monitoring status pesanan.
+              {activeRole === 'barista'
+                ? 'Stasiun Bar & Minuman • Antrean Racik Kopi & Minuman Segar'
+                : activeRole === 'chef'
+                ? 'Stasiun Dapur & Makanan • Antrean Masak Makanan Ringan & Berat'
+                : 'Live monitoring pesanan antrean Dapur dan Bar.'}
             </p>
           </div>
         </div>
@@ -175,61 +226,63 @@ export const KitchenDisplayView: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2 bg-[#2B1B0F] p-1.5 rounded-xl border border-[#4A2E19]">
           <button
             onClick={() => setStationFilter('all')}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+            className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
               stationFilter === 'all'
-                ? 'bg-[#7D4F27] text-white'
+                ? 'bg-[#7D4F27] text-white font-bold shadow-sm'
                 : 'text-[#C4AD99] hover:text-white'
             }`}
           >
             Semua ({kitchenTickets.length})
           </button>
           <button
+            onClick={() => setStationFilter('bar')}
+            className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              stationFilter === 'bar'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'text-[#C4AD99] hover:text-white'
+            }`}
+          >
+            <Coffee className="w-4 h-4 text-amber-300" />
+            <span>Bar Minuman ({barTicketsCount})</span>
+          </button>
+          <button
+            onClick={() => setStationFilter('kitchen')}
+            className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              stationFilter === 'kitchen'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'text-[#C4AD99] hover:text-white'
+            }`}
+          >
+            <Utensils className="w-4 h-4 text-orange-300" />
+            <span>Dapur Makanan ({kitchenOnlyTicketsCount})</span>
+          </button>
+          <button
             onClick={() => setStationFilter('additions')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
               stationFilter === 'additions'
-                ? 'bg-amber-500 text-black'
+                ? 'bg-amber-500 text-black shadow-sm'
                 : ordersWithAdditions.length > 0
                 ? 'text-amber-300 bg-amber-950/70 animate-pulse'
                 : 'text-[#C4AD99] hover:text-white'
             }`}
+            title="Tiket dengan menu tambahan dari Waitress"
           >
             <Flame className="w-4 h-4 text-amber-400" />
-            <span>+ ({ordersWithAdditions.length})</span>
-          </button>
-          <button
-            onClick={() => setStationFilter('bar')}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer ${
-              stationFilter === 'bar'
-                ? 'bg-[#7D4F27] text-white'
-                : 'text-[#C4AD99] hover:text-white'
-            }`}
-          >
-            <Coffee className="w-4 h-4 text-[#D4A373]" />
-            <span>Bar</span>
-          </button>
-          <button
-            onClick={() => setStationFilter('kitchen')}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer ${
-              stationFilter === 'kitchen'
-                ? 'bg-[#7D4F27] text-white'
-                : 'text-[#C4AD99] hover:text-white'
-            }`}
-          >
-            <Utensils className="w-4 h-4 text-[#D4A373]" />
-            <span>Kitchen</span>
+            <span>+Tambahan ({ordersWithAdditions.length})</span>
           </button>
           <button
             onClick={() => setStationFilter('delayed')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
               stationFilter === 'delayed'
-                ? 'bg-amber-600 text-white'
+                ? 'bg-red-700 text-white shadow-sm'
                 : delayedOrders.length > 0
-                ? 'text-amber-400 bg-amber-950/40'
+                ? 'text-red-400 bg-red-950/40'
                 : 'text-[#C4AD99] hover:text-white'
             }`}
+            title="Tiket pesanan di atas 15 menit"
           >
             <AlertTriangle className="w-4 h-4 text-amber-400" />
-            <span>⚠️ ({delayedOrders.length})</span>
+            <span>⚠️ Terlambat ({delayedOrders.length})</span>
           </button>
         </div>
       </div>
@@ -276,6 +329,18 @@ export const KitchenDisplayView: React.FC = () => {
             const readyItemsCount = order.items.filter((it) => it.status === 'ready').length;
             const totalItemsCount = order.items.length;
             const progressPercent = Math.round((readyItemsCount / totalItemsCount) * 100);
+
+            const barItems = order.items.filter((it) => it.station === 'bar' || it.category === 'Kopi' || it.category === 'Non-Kopi');
+            const kitchenItems = order.items.filter((it) => it.station === 'kitchen' || it.category === 'Makanan Ringan' || it.category === 'Makanan Berat');
+
+            const hasBarItems = barItems.length > 0;
+            const hasKitchenItems = kitchenItems.length > 0;
+
+            const isBarAllReady = hasBarItems && barItems.every((it) => it.status === 'ready');
+            const isBarCooking = hasBarItems && barItems.some((it) => it.status === 'cooking' || it.status === 'ready') && !isBarAllReady;
+
+            const isKitchenAllReady = hasKitchenItems && kitchenItems.every((it) => it.status === 'ready');
+            const isKitchenCooking = hasKitchenItems && kitchenItems.some((it) => it.status === 'cooking' || it.status === 'ready') && !isKitchenAllReady;
 
             return (
               <div
@@ -409,6 +474,54 @@ export const KitchenDisplayView: React.FC = () => {
                     />
                   </div>
                 </div>
+
+                {/* Separated Station Readiness Badges (Bar vs Dapur) */}
+                <div className="px-3.5 py-1.5 bg-[#FAF3EC] border-b border-[#EADBCE] flex flex-wrap items-center justify-between gap-1.5 text-xs">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {hasBarItems && (
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold ${
+                        isBarAllReady
+                          ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                          : isBarCooking
+                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                          : 'bg-stone-100 text-stone-700 border border-stone-300'
+                      }`}>
+                        <Coffee className="w-3 h-3 text-amber-700" />
+                        <span>Bar: {isBarAllReady ? 'Siap Saji ✨' : isBarCooking ? 'Sedang Diracik' : 'Antrean'}</span>
+                      </span>
+                    )}
+
+                    {hasKitchenItems && (
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold ${
+                        isKitchenAllReady
+                          ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                          : isKitchenCooking
+                          ? 'bg-orange-100 text-orange-900 border border-orange-300'
+                          : 'bg-stone-100 text-stone-700 border border-stone-300'
+                      }`}>
+                        <Utensils className="w-3 h-3 text-orange-700" />
+                        <span>Dapur: {isKitchenAllReady ? 'Siap Saji ✨' : isKitchenCooking ? 'Sedang Dimasak' : 'Antrean'}</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="text-[10px] text-stone-500 font-medium">
+                    {hasBarItems && hasKitchenItems ? 'Stasiun Terpisah' : hasBarItems ? 'Hanya Minuman' : 'Hanya Makanan'}
+                  </div>
+                </div>
+
+                {/* Fast Beverage Delivery Notice when drinks are ready faster than kitchen cooking */}
+                {hasBarItems && hasKitchenItems && isBarAllReady && !isKitchenAllReady && (
+                  <div className="bg-sky-50 border-b border-sky-200 px-3.5 py-1.5 flex items-center justify-between text-[11px] text-sky-950 animate-in fade-in">
+                    <div className="flex items-center gap-1.5 font-bold">
+                      <span className="text-amber-500 text-xs">⚡</span>
+                      <span>Minuman Bar Siap Lebih Dulu! Waitress dapat mengantar ke meja tamu sekarang.</span>
+                    </div>
+                    <span className="text-[9px] bg-sky-200/80 text-sky-900 px-1.5 py-0.5 rounded font-black uppercase">
+                      Dapur Masih Masak
+                    </span>
+                  </div>
+                )}
 
                 {/* Ticket Items List - PER-ITEM STATUS & READY TOGGLE */}
                 <div className="p-4 space-y-3 flex-1 overflow-y-auto max-h-[320px]">
@@ -600,10 +713,10 @@ export const KitchenDisplayView: React.FC = () => {
                 </div>
 
                 {/* Ticket Action Footer */}
-                <div className="p-3.5 bg-[#FBF8F5] border-t border-[#EADBCE] flex flex-wrap items-center justify-between gap-2">
+                <div className="p-3.5 bg-[#FBF8F5] border-t border-[#EADBCE] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="text-xs">
                     <span className="text-stone-500 block text-[10px] uppercase font-bold">
-                      Status Tiket:
+                      Status Tiket Keseluruhan:
                     </span>
                     <span
                       className={`font-bold capitalize ${
@@ -614,22 +727,106 @@ export const KitchenDisplayView: React.FC = () => {
                           : 'text-amber-700'
                       }`}
                     >
-                      {order.status === 'pending' && 'Menunggu Dimasak'}
-                      {order.status === 'cooking' && 'Sedang Dimasak / Diracik'}
+                      {order.status === 'pending' && 'Menunggu Antrean'}
+                      {order.status === 'cooking' && (
+                        isBarAllReady && !isKitchenAllReady
+                          ? '☕ Minuman Siap • Makanan Dimasak'
+                          : !isBarAllReady && isKitchenAllReady
+                          ? '🍳 Makanan Siap • Minuman Diracik'
+                          : 'Sedang Diproses'
+                      )}
                       {order.status === 'ready' && 'Seluruh Menu Siap Saji ✨'}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    {order.status !== 'ready' && (
-                      <button
-                        onClick={() => updateOrderStatus(order.id, 'ready')}
-                        className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
-                        title="Tandai SEMUA menu di tiket ini siap saji sekaligus"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Semua Siap Saji</span>
-                      </button>
+                  <div className="flex flex-wrap items-center gap-1.5 self-end sm:self-center">
+                    {/* Barista / Bar Specific View */}
+                    {(activeRole === 'barista' || stationFilter === 'bar') ? (
+                      hasBarItems && !isBarAllReady ? (
+                        <button
+                          onClick={() => markStationItemsReady(order.id, 'bar')}
+                          className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                          title="Tandai semua racikan minuman di tiket ini siap saji (Barista)"
+                        >
+                          <Coffee className="w-3.5 h-3.5" />
+                          <span>☕ Minuman Siap Saji</span>
+                        </button>
+                      ) : hasBarItems && isBarAllReady ? (
+                        <span className="px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-300 flex items-center gap-1.5 select-none opacity-90 cursor-not-allowed" title="Semua minuman bar telah selesai dan siap saji">
+                          <CheckCheck className="w-4 h-4 text-emerald-700 font-bold" />
+                          <span>✓✓ Minuman Bar Selesai</span>
+                        </span>
+                      ) : null
+                    ) : (activeRole === 'chef' || stationFilter === 'kitchen') ? (
+                      /* Chef / Kitchen Specific View */
+                      hasKitchenItems && !isKitchenAllReady ? (
+                        <button
+                          onClick={() => markStationItemsReady(order.id, 'kitchen')}
+                          className="px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-black shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                          title="Tandai semua masakan dapur di tiket ini siap saji (Chef)"
+                        >
+                          <Utensils className="w-3.5 h-3.5" />
+                          <span>🍳 Makanan Siap Saji</span>
+                        </button>
+                      ) : hasKitchenItems && isKitchenAllReady ? (
+                        <span className="px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-300 flex items-center gap-1.5 select-none opacity-90 cursor-not-allowed" title="Semua masakan dapur telah selesai dan siap saji">
+                          <CheckCheck className="w-4 h-4 text-emerald-700 font-bold" />
+                          <span>✓✓ Makanan Dapur Selesai</span>
+                        </span>
+                      ) : null
+                    ) : (
+                      /* Combined / Waitress View: Separate options for Bar and Kitchen */
+                      <>
+                        {hasBarItems && !isBarAllReady && (
+                          <button
+                            onClick={() => markStationItemsReady(order.id, 'bar')}
+                            className="px-2.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer flex items-center gap-1"
+                            title="Tandai pesanan minuman bar siap saji"
+                          >
+                            <Coffee className="w-3 h-3" />
+                            <span>Minuman Siap</span>
+                          </button>
+                        )}
+                        {hasBarItems && isBarAllReady && (
+                          <span className="px-2.5 py-1.5 rounded-lg bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-300 flex items-center gap-1 select-none cursor-not-allowed">
+                            <CheckCheck className="w-3.5 h-3.5 text-emerald-700" />
+                            <span>✓✓ Bar Selesai</span>
+                          </span>
+                        )}
+
+                        {hasKitchenItems && !isKitchenAllReady && (
+                          <button
+                            onClick={() => markStationItemsReady(order.id, 'kitchen')}
+                            className="px-2.5 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer flex items-center gap-1"
+                            title="Tandai pesanan makanan dapur siap saji"
+                          >
+                            <Utensils className="w-3 h-3" />
+                            <span>Makanan Siap</span>
+                          </button>
+                        )}
+                        {hasKitchenItems && isKitchenAllReady && (
+                          <span className="px-2.5 py-1.5 rounded-lg bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-300 flex items-center gap-1 select-none cursor-not-allowed">
+                            <CheckCheck className="w-3.5 h-3.5 text-emerald-700" />
+                            <span>✓✓ Dapur Selesai</span>
+                          </span>
+                        )}
+
+                        {(!isBarAllReady || !isKitchenAllReady) ? (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'ready')}
+                            className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer flex items-center gap-1"
+                            title="Tandai SEMUA menu di tiket ini siap saji sekaligus"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Semua Siap</span>
+                          </button>
+                        ) : (
+                          <span className="px-2.5 py-1.5 rounded-lg bg-emerald-200 text-emerald-900 text-[11px] font-extrabold border border-emerald-400 flex items-center gap-1 select-none cursor-not-allowed">
+                            <CheckCheck className="w-4 h-4 text-emerald-800" />
+                            <span>✓✓ Semua Selesai</span>
+                          </span>
+                        )}
+                      </>
                     )}
 
                     <button

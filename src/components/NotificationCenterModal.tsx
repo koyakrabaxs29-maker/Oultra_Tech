@@ -17,6 +17,7 @@ import {
   Sparkles,
   Flame,
   ChefHat,
+  Coffee,
   PlusCircle
 } from 'lucide-react';
 
@@ -37,23 +38,28 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
     markAllNotificationsRead,
     clearNotifications,
     markItemServed,
+    markStationItemsServed,
     setActiveRole,
   } = useCafe();
 
-  const [activeTab, setActiveTab] = useState<'all' | 'additions' | 'ready' | 'delay' | 'unread'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'chef' | 'barista' | 'additions' | 'ready' | 'delay' | 'unread'>('all');
 
   if (!isOpen) return null;
 
   const filteredNotifications = notifications.filter((n) => {
+    if (activeTab === 'chef') return n.targetRole === 'chef' || n.station === 'kitchen' || n.type === 'kitchen_ready';
+    if (activeTab === 'barista') return n.targetRole === 'barista' || n.station === 'bar' || n.type === 'bar_ready';
     if (activeTab === 'additions') return n.type === 'order_items_added' || n.type === 'new_order';
-    if (activeTab === 'ready') return n.type === 'item_ready' || n.type === 'order_ready';
+    if (activeTab === 'ready') return n.type === 'item_ready' || n.type === 'bar_ready' || n.type === 'kitchen_ready' || n.type === 'order_ready';
     if (activeTab === 'delay') return n.type === 'order_delay_warning' || n.type === 'order_delay_critical';
     if (activeTab === 'unread') return !n.read;
     return true;
   });
 
+  const chefCount = notifications.filter((n) => n.targetRole === 'chef' || n.station === 'kitchen' || n.type === 'kitchen_ready').length;
+  const baristaCount = notifications.filter((n) => n.targetRole === 'barista' || n.station === 'bar' || n.type === 'bar_ready').length;
   const additionsCount = notifications.filter((n) => n.type === 'order_items_added' || n.type === 'new_order').length;
-  const readyCount = notifications.filter((n) => n.type === 'item_ready' || n.type === 'order_ready').length;
+  const readyCount = notifications.filter((n) => n.type === 'item_ready' || n.type === 'bar_ready' || n.type === 'kitchen_ready' || n.type === 'order_ready').length;
   const delayCount = notifications.filter((n) => n.type === 'order_delay_warning' || n.type === 'order_delay_critical').length;
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -169,6 +175,28 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
             Semua ({notifications.length})
           </button>
           <button
+            onClick={() => setActiveTab('barista')}
+            className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer ${
+              activeTab === 'barista'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'text-amber-300 hover:text-amber-200'
+            }`}
+          >
+            <Coffee className="w-3.5 h-3.5 text-amber-300" />
+            <span>Bar / Minuman ({baristaCount})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('chef')}
+            className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer ${
+              activeTab === 'chef'
+                ? 'bg-orange-600 text-white shadow-xs'
+                : 'text-orange-300 hover:text-orange-200'
+            }`}
+          >
+            <ChefHat className="w-3.5 h-3.5 text-orange-300" />
+            <span>Dapur / Chef ({chefCount})</span>
+          </button>
+          <button
             onClick={() => setActiveTab('additions')}
             className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTab === 'additions'
@@ -227,7 +255,7 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
             filteredNotifications.map((notif) => {
               const isAddition = notif.type === 'order_items_added';
               const isNewOrder = notif.type === 'new_order';
-              const isReady = notif.type === 'item_ready' || notif.type === 'order_ready';
+              const isReady = notif.type === 'item_ready' || notif.type === 'bar_ready' || notif.type === 'kitchen_ready' || notif.type === 'order_ready';
               const isWarning = notif.type === 'order_delay_warning';
               const isCritical = notif.type === 'order_delay_critical';
 
@@ -245,6 +273,10 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                         ? 'bg-red-950/40 border-red-500/50 ring-1 ring-red-500/30'
                         : isWarning
                         ? 'bg-amber-950/40 border-amber-500/50 ring-1 ring-amber-500/30'
+                        : notif.type === 'bar_ready'
+                        ? 'bg-amber-950/50 border-amber-500/60 ring-1 ring-amber-500/40'
+                        : notif.type === 'kitchen_ready'
+                        ? 'bg-orange-950/50 border-orange-500/60 ring-1 ring-orange-500/40'
                         : 'bg-emerald-950/40 border-emerald-500/50 ring-1 ring-emerald-500/30'
                       : 'bg-[#1C120A] border-[#3D2513] opacity-90'
                   }`}
@@ -260,6 +292,10 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                           ? 'bg-red-900/60 text-red-300 border border-red-700/50'
                           : isWarning
                           ? 'bg-amber-900/60 text-amber-300 border border-amber-700/50'
+                          : notif.type === 'bar_ready'
+                          ? 'bg-amber-600 text-white shadow-sm'
+                          : notif.type === 'kitchen_ready'
+                          ? 'bg-orange-600 text-white shadow-sm'
                           : 'bg-emerald-900/60 text-emerald-300 border border-emerald-700/50'
                       }`}
                     >
@@ -271,6 +307,10 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                         <AlertOctagon className="w-5 h-5 animate-pulse text-red-400" />
                       ) : isWarning ? (
                         <AlertTriangle className="w-5 h-5 text-amber-400" />
+                      ) : notif.type === 'bar_ready' ? (
+                        <Coffee className="w-5 h-5 text-white" />
+                      ) : notif.type === 'kitchen_ready' ? (
+                        <ChefHat className="w-5 h-5 text-white" />
                       ) : (
                         <Sparkles className="w-5 h-5 text-emerald-400" />
                       )}
@@ -288,6 +328,10 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                               ? 'bg-red-500 text-white'
                               : isWarning
                               ? 'bg-amber-500 text-black'
+                              : notif.type === 'bar_ready'
+                              ? 'bg-amber-500 text-black'
+                              : notif.type === 'kitchen_ready'
+                              ? 'bg-orange-500 text-black'
                               : 'bg-emerald-500 text-black'
                           }`}
                         >
@@ -299,6 +343,10 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                             ? '🚨 > 20 Menit'
                             : isWarning
                             ? '⚠️ Peringatan 15m'
+                            : notif.type === 'bar_ready'
+                            ? '☕ MINUMAN SIAP'
+                            : notif.type === 'kitchen_ready'
+                            ? '🍳 MAKANAN SIAP'
                             : '🍽️ Siap Saji'}
                         </span>
 
@@ -308,9 +356,17 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                           </span>
                         )}
 
-                        {notif.station && (
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-stone-800 text-stone-300">
-                            Stasiun: {notif.station.toUpperCase()}
+                        {(notif.targetRole === 'barista' || notif.station === 'bar') && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-800/60 flex items-center gap-1">
+                            <Coffee className="w-3 h-3 text-amber-300" />
+                            <span>Bar / Minuman</span>
+                          </span>
+                        )}
+
+                        {(notif.targetRole === 'chef' || notif.station === 'kitchen') && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-950/80 text-orange-300 border border-orange-800/60 flex items-center gap-1">
+                            <ChefHat className="w-3 h-3 text-orange-300" />
+                            <span>Dapur / Makanan</span>
                           </span>
                         )}
 
@@ -331,19 +387,69 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
                   {/* Notification Action Buttons */}
                   <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                     {(isAddition || isNewOrder) && (
+                      notif.targetRole === 'barista' || notif.station === 'bar' ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveRole('barista');
+                            onClose();
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                        >
+                          <Coffee className="w-3.5 h-3.5" />
+                          <span>Buka Bar BDS</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveRole('chef');
+                            onClose();
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                        >
+                          <ChefHat className="w-3.5 h-3.5" />
+                          <span>Buka Dapur KDS</span>
+                        </button>
+                      )
+                    )}
+                    {notif.type === 'bar_ready' && notif.orderId && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setActiveRole('chef');
-                          onClose();
+                          markStationItemsServed(notif.orderId!, 'bar');
                         }}
-                        className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                        disabled={notif.served}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                          notif.served
+                            ? 'bg-amber-950 text-amber-400 border border-amber-800/60 opacity-80 cursor-default'
+                            : 'bg-amber-600 hover:bg-amber-700 text-white shadow-sm'
+                        }`}
                       >
-                        <ChefHat className="w-3.5 h-3.5" />
-                        <span>Buka KDS Dapur</span>
+                        <Coffee className="w-3.5 h-3.5" />
+                        <span>{notif.served ? 'Telah Diantar' : 'Antar Minuman'}</span>
                       </button>
                     )}
-                    {isReady && notif.orderId && notif.itemId && (
+
+                    {notif.type === 'kitchen_ready' && notif.orderId && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          markStationItemsServed(notif.orderId!, 'kitchen');
+                        }}
+                        disabled={notif.served}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                          notif.served
+                            ? 'bg-orange-950 text-orange-400 border border-orange-800/60 opacity-80 cursor-default'
+                            : 'bg-orange-600 hover:bg-orange-700 text-white shadow-sm'
+                        }`}
+                      >
+                        <ChefHat className="w-3.5 h-3.5" />
+                        <span>{notif.served ? 'Telah Diantar' : 'Antar Makanan'}</span>
+                      </button>
+                    )}
+
+                    {notif.type === 'item_ready' && notif.orderId && notif.itemId && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

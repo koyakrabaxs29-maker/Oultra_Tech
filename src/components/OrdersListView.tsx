@@ -40,6 +40,7 @@ export const OrdersListView: React.FC<OrdersListViewProps> = ({
     activeOrders,
     completedOrders,
     markItemServed,
+    markStationItemsServed,
     markAllOrderItemsServed,
     markOrderServed,
     markOrderCompleted,
@@ -257,6 +258,11 @@ export const OrdersListView: React.FC<OrdersListViewProps> = ({
             const isCompleted = order.status === 'completed';
             const isReady = order.status === 'ready' || order.items.some((it) => it.status === 'ready' && !it.served);
 
+            const barItems = order.items.filter((it) => it.station === 'bar' || it.category === 'Kopi' || it.category === 'Non-Kopi');
+            const kitchenItems = order.items.filter((it) => it.station === 'kitchen' || it.category === 'Makanan Ringan' || it.category === 'Makanan Berat');
+            const unservedBarReady = barItems.filter((it) => it.status === 'ready' && !it.served);
+            const unservedKitchenReady = kitchenItems.filter((it) => it.status === 'ready' && !it.served);
+
             return (
               <div
                 key={order.id}
@@ -311,21 +317,43 @@ export const OrdersListView: React.FC<OrdersListViewProps> = ({
                         <UtensilsCrossed className="w-3.5 h-3.5 text-emerald-700" />
                         <span>Makanan/Minuman Sudah Disajikan</span>
                       </span>
-                    ) : order.status === 'ready' ? (
-                      <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold flex items-center gap-1 animate-pulse">
-                        <Sparkles className="w-3.5 h-3.5 text-amber-700" />
-                        <span>Menu Siap Saji ✨</span>
-                      </span>
-                    ) : order.status === 'cooking' ? (
-                      <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-semibold flex items-center gap-1">
-                        <Flame className="w-3.5 h-3.5 text-amber-600" />
-                        <span>Sedang Dimasak</span>
-                      </span>
                     ) : (
-                      <span className="px-3 py-1 rounded-full bg-stone-100 text-stone-800 border border-stone-200 text-xs font-semibold flex items-center gap-1">
-                        <Timer className="w-3.5 h-3.5 text-stone-600" />
-                        <span>Menunggu Dapur</span>
-                      </span>
+                      <>
+                        {unservedBarReady.length > 0 && (
+                          <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-950 border border-amber-300 text-xs font-extrabold flex items-center gap-1 animate-pulse shadow-xs">
+                            <Coffee className="w-3.5 h-3.5 text-amber-700" />
+                            <span>☕ Minuman Siap ({unservedBarReady.length})</span>
+                          </span>
+                        )}
+
+                        {unservedKitchenReady.length > 0 && (
+                          <span className="px-2.5 py-1 rounded-full bg-orange-100 text-orange-950 border border-orange-300 text-xs font-extrabold flex items-center gap-1 animate-pulse shadow-xs">
+                            <UtensilsCrossed className="w-3.5 h-3.5 text-orange-700" />
+                            <span>🍳 Makanan Siap ({unservedKitchenReady.length})</span>
+                          </span>
+                        )}
+
+                        {unservedBarReady.length === 0 && unservedKitchenReady.length === 0 && order.status === 'ready' && (
+                          <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold flex items-center gap-1 animate-pulse">
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
+                            <span>Menu Siap Saji ✨</span>
+                          </span>
+                        )}
+
+                        {order.status === 'cooking' && unservedBarReady.length === 0 && unservedKitchenReady.length === 0 && (
+                          <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-semibold flex items-center gap-1">
+                            <Flame className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Sedang Dimasak / Diracik</span>
+                          </span>
+                        )}
+
+                        {order.status === 'pending' && (
+                          <span className="px-3 py-1 rounded-full bg-stone-100 text-stone-800 border border-stone-200 text-xs font-semibold flex items-center gap-1">
+                            <Timer className="w-3.5 h-3.5 text-stone-600" />
+                            <span>Menunggu Antrean</span>
+                          </span>
+                        )}
+                      </>
                     )}
 
                     {/* Payment Status Badge */}
@@ -492,6 +520,29 @@ export const OrdersListView: React.FC<OrdersListViewProps> = ({
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
+                    {/* Fast Station Serving Buttons */}
+                    {unservedBarReady.length > 0 && (
+                      <button
+                        onClick={() => markStationItemsServed(order.id, 'bar')}
+                        className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                        title="Antar racikan minuman bar yang sudah selesai ke meja tamu"
+                      >
+                        <Coffee className="w-3.5 h-3.5" />
+                        <span>☕ Antar Minuman ({unservedBarReady.length})</span>
+                      </button>
+                    )}
+
+                    {unservedKitchenReady.length > 0 && (
+                      <button
+                        onClick={() => markStationItemsServed(order.id, 'kitchen')}
+                        className="px-3.5 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-black transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                        title="Antar masakan dapur yang sudah matang ke meja tamu"
+                      >
+                        <UtensilsCrossed className="w-3.5 h-3.5" />
+                        <span>🍳 Antar Makanan ({unservedKitchenReady.length})</span>
+                      </button>
+                    )}
+
                     {/* Button 1: Makanan & Minuman Sudah Disajikan */}
                     <button
                       onClick={() => markOrderServed(order.id)}

@@ -68,6 +68,8 @@ interface CafeContextType {
   cancelOrder: (orderId: string, reason: string) => void;
   processPayment: (orderId: string, method: PaymentMethod, details: { cashReceived?: number; changeReturned?: number; referenceNumber?: string }) => void;
   markItemServed: (orderId: string, itemId: string, forceServed?: boolean) => void;
+  markStationItemsReady: (orderId: string, station: 'bar' | 'kitchen') => void;
+  markStationItemsServed: (orderId: string, station: 'bar' | 'kitchen', forceServed?: boolean) => void;
   markAllOrderItemsServed: (orderId: string) => void;
   markOrderServed: (orderId: string) => void;
   markOrderCompleted: (orderId: string) => void;
@@ -83,6 +85,7 @@ interface CafeContextType {
   // Tables
   tables: TableInfo[];
   updateTableStatus: (tableNumber: number, status: TableInfo['status'], orderId?: string) => void;
+  addTable: (tableData?: { number?: number; capacity?: number; section?: string }) => void;
 
   // Inventory
   inventory: InventoryItem[];
@@ -167,18 +170,31 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadInitial(STORAGE_KEYS.MENU, INITIAL_MENU_ITEMS)
   );
 
+  const isToday = (dateStr: string) => {
+    try {
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      const today = new Date();
+      return d.getFullYear() === today.getFullYear() &&
+             d.getMonth() === today.getMonth() &&
+             d.getDate() === today.getDate();
+    } catch {
+      return false;
+    }
+  };
+
   const [activeOrders, setActiveOrders] = useState<Order[]>(() => {
     const deleted = loadInitial<string[]>(STORAGE_KEYS.DELETED_ORDER_IDS, []);
     const deletedSet = new Set(deleted);
     const loaded = loadInitial(STORAGE_KEYS.ORDERS, INITIAL_ORDERS);
-    return loaded.filter((o: Order) => !deletedSet.has(o.id));
+    return loaded.filter((o: Order) => !deletedSet.has(o.id) && isToday(o.createdAt || o.updatedAt));
   });
 
   const [completedOrders, setCompletedOrders] = useState<Order[]>(() => {
     const deleted = loadInitial<string[]>(STORAGE_KEYS.DELETED_ORDER_IDS, []);
     const deletedSet = new Set(deleted);
     const loaded = loadInitial(STORAGE_KEYS.PAID_ORDERS, INITIAL_PAID_ORDERS);
-    return loaded.filter((o: Order) => !deletedSet.has(o.id));
+    return loaded.filter((o: Order) => !deletedSet.has(o.id) && isToday(o.createdAt || o.updatedAt));
   });
 
   const [tables, setTables] = useState<TableInfo[]>(() => {
@@ -193,9 +209,17 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadInitial(STORAGE_KEYS.INVENTORY, INITIAL_INVENTORY)
   );
 
-  const [users, setUsers] = useState<UserAccount[]>(() => 
-    loadInitial(STORAGE_KEYS.USERS, INITIAL_USERS)
-  );
+  const [users, setUsers] = useState<UserAccount[]>(() => {
+    const loaded = loadInitial<UserAccount[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
+    const hasBarista = loaded.some((u) => u.role === 'barista' || u.id === 'usr-5');
+    if (!hasBarista) {
+      const barista = INITIAL_USERS.find((u) => u.id === 'usr-5');
+      if (barista) {
+        return [...loaded, barista];
+      }
+    }
+    return loaded;
+  });
 
   const [currentUser, setCurrentUserState] = useState<UserAccount | null>(() => {
     const savedUserId = localStorage.getItem('nadira_logged_in_user_id');
@@ -453,7 +477,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Re-sync table occupancy based on active orders
       setTables((prev) => {
-        const baseTables = (Array.isArray(serverState.tables) && serverState.tables.length === 30)
+        const baseTables = (Array.isArray(serverState.tables) && serverState.tables.length > 0)
           ? serverState.tables
           : prev;
         const updated = baseTables.map((tbl: TableInfo) => {
@@ -586,12 +610,16 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
               return updated;
             });
           }
-          if (msg.payload?.notification) {
+          const notifsToAdd = Array.isArray(msg.payload?.notifications)
+            ? msg.payload.notifications
+            : msg.payload?.notification
+            ? [msg.payload.notification]
+            : [];
+          if (notifsToAdd.length > 0) {
             setNotifications((prev) => {
-              const updated = [
-                msg.payload.notification,
-                ...prev.filter((n) => n.id !== msg.payload.notification.id),
-              ];
+              const existingIds = new Set(prev.map((n) => n.id));
+              const freshNotifs = notifsToAdd.filter((n: any) => !existingIds.has(n.id));
+              const updated = [...freshNotifs, ...prev];
               notificationsRef.current = updated;
               localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
               return updated;
@@ -606,7 +634,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       case 'add_items_to_order':
       case 'items_added': {
-        const { order, notification } = msg.payload || {};
+        const { order, notification, notifications } = msg.payload || {};
         if (order) {
           setActiveOrders((prev) => {
             const updated = prev.map((o) => (o.id === order.id ? order : o));
@@ -615,9 +643,16 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return updated;
           });
         }
-        if (notification) {
+        const notifsToAdd = Array.isArray(notifications)
+          ? notifications
+          : notification
+          ? [notification]
+          : [];
+        if (notifsToAdd.length > 0) {
           setNotifications((prev) => {
-            const updated = [notification, ...prev.filter((n) => n.id !== notification.id)];
+            const existingIds = new Set(prev.map((n) => n.id));
+            const freshNotifs = notifsToAdd.filter((n: any) => !existingIds.has(n.id));
+            const updated = [...freshNotifs, ...prev];
             notificationsRef.current = updated;
             localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
             return updated;
@@ -731,6 +766,85 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         break;
       }
+      case 'station_items_ready': {
+        const { orderId, station, notification } = msg.payload || {};
+        const now = new Date().toISOString();
+        const isBar = station === 'bar';
+        setActiveOrders((prev) => {
+          const updated = prev.map((order) => {
+            if (order.id !== orderId) return order;
+            const updatedItems = order.items.map((it) => {
+              const match = isBar
+                ? it.station === 'bar' || it.category === 'Kopi' || it.category === 'Non-Kopi'
+                : it.station === 'kitchen' || it.category === 'Makanan Ringan' || it.category === 'Makanan Berat';
+              return match ? { ...it, status: 'ready' as const, readyAt: it.readyAt || now } : it;
+            });
+            const allReady = updatedItems.length > 0 && updatedItems.every((it) => it.status === 'ready');
+            return {
+              ...order,
+              items: updatedItems,
+              barReadyAt: isBar ? now : order.barReadyAt,
+              kitchenReadyAt: !isBar ? now : order.kitchenReadyAt,
+              status: allReady ? ('ready' as const) : order.status === 'pending' ? ('cooking' as const) : order.status,
+              updatedAt: now,
+            };
+          });
+          activeOrdersRef.current = updated;
+          localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
+          return updated;
+        });
+        if (notification) {
+          setNotifications((prev) => {
+            const updated = [notification, ...prev.filter((n) => n.id !== notification.id)];
+            notificationsRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        soundAlerts.playReadyChime();
+        break;
+      }
+      case 'station_items_served': {
+        const { orderId, station, forceServed } = msg.payload || {};
+        const now = new Date().toISOString();
+        const isBar = station === 'bar';
+        const nextServed = forceServed !== undefined ? forceServed : true;
+        setActiveOrders((prev) => {
+          const updated = prev.map((order) => {
+            if (order.id !== orderId) return order;
+            const updatedItems = order.items.map((it) => {
+              const match = isBar
+                ? it.station === 'bar' || it.category === 'Kopi' || it.category === 'Non-Kopi'
+                : it.station === 'kitchen' || it.category === 'Makanan Ringan' || it.category === 'Makanan Berat';
+              return match ? { ...it, served: nextServed, servedAt: nextServed ? now : undefined, status: nextServed ? ('ready' as const) : it.status } : it;
+            });
+            const allServed = updatedItems.length > 0 && updatedItems.every((it) => it.served);
+            return {
+              ...order,
+              items: updatedItems,
+              barServedAt: isBar ? (nextServed ? now : undefined) : order.barServedAt,
+              kitchenServedAt: !isBar ? (nextServed ? now : undefined) : order.kitchenServedAt,
+              status: allServed ? ('served' as const) : order.status,
+              servedAt: allServed ? now : order.servedAt,
+              updatedAt: now,
+            };
+          });
+          activeOrdersRef.current = updated;
+          localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
+          return updated;
+        });
+        setNotifications((prev) => {
+          const updated = prev.map((n) =>
+            n.orderId === orderId && (n.station === station || (station === 'bar' && n.type === 'bar_ready') || (station === 'kitchen' && n.type === 'kitchen_ready'))
+              ? { ...n, served: nextServed, read: nextServed }
+              : n
+          );
+          notificationsRef.current = updated;
+          localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
+          return updated;
+        });
+        break;
+      }
       case 'mark_order_completed': {
         const { orderId } = msg.payload || {};
         const now = new Date().toISOString();
@@ -806,6 +920,19 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
           localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(updated));
           return updated;
         });
+        break;
+      }
+      case 'table_added': {
+        const { table } = msg.payload || {};
+        if (table) {
+          setTables((prev) => {
+            if (prev.some((t) => t.number === table.number)) return prev;
+            const updated = [...prev, table];
+            tablesRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(updated));
+            return updated;
+          });
+        }
         break;
       }
       case 'delete_completed_order':
@@ -1251,25 +1378,78 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       )
     );
 
-    // Audio chime & notification for Kitchen & Bar
+    // Separate food items (Kitchen) and drink items (Bar)
+    const foodItems = items.filter(
+      (it) => it.station === 'kitchen' || it.category === 'Makanan Ringan' || it.category === 'Makanan Berat'
+    );
+    const drinkItems = items.filter(
+      (it) => it.station === 'bar' || it.category === 'Kopi' || it.category === 'Non-Kopi'
+    );
+
+    const nowIso = new Date().toISOString();
+    const newNotifs: CafeNotification[] = [];
+
+    // Notifikasi Makanan khusus untuk Chef / Dapur
+    if (foodItems.length > 0) {
+      const foodSummary = foodItems.map((it) => `${it.quantity}x ${it.name}`).join(', ');
+      newNotifs.push({
+        id: `notif-food-${Date.now()}-${newId}`,
+        type: 'new_order',
+        title: `🍳 Pesanan Makanan: Meja #${tableNumber}`,
+        message: `Pesanan ${newOrderNumber} (${customerName.trim() || `Meja ${tableNumber}`}) masuk ke Dapur: ${foodSummary}.`,
+        tableNumber,
+        orderId: newId,
+        orderNumber: newOrderNumber,
+        station: 'kitchen',
+        targetRole: 'chef',
+        itemsSummary: foodSummary,
+        createdAt: nowIso,
+        read: false,
+      });
+    }
+
+    // Notifikasi Minuman khusus untuk Barista / Bar
+    if (drinkItems.length > 0) {
+      const drinksSummary = drinkItems.map((it) => `${it.quantity}x ${it.name}`).join(', ');
+      newNotifs.push({
+        id: `notif-drink-${Date.now() + 1}-${newId}`,
+        type: 'new_order',
+        title: `☕ Pesanan Minuman: Meja #${tableNumber}`,
+        message: `Pesanan ${newOrderNumber} (${customerName.trim() || `Meja ${tableNumber}`}) masuk ke Bar: ${drinksSummary}.`,
+        tableNumber,
+        orderId: newId,
+        orderNumber: newOrderNumber,
+        station: 'bar',
+        targetRole: 'barista',
+        itemsSummary: drinksSummary,
+        createdAt: nowIso,
+        read: false,
+      });
+    }
+
+    if (newNotifs.length === 0) {
+      newNotifs.push({
+        id: `notif-new-order-${Date.now()}-${newId}`,
+        type: 'new_order',
+        title: `📝 Pesanan Baru: Meja #${tableNumber}`,
+        message: `Pesanan ${newOrderNumber} (${customerName.trim() || `Meja ${tableNumber}`}) berisi ${items.length} menu siap diproses.`,
+        tableNumber,
+        orderId: newId,
+        orderNumber: newOrderNumber,
+        createdAt: nowIso,
+        read: false,
+      });
+    }
+
+    // Audio chime & notification dispatch
     soundAlerts.playNewOrderChime();
-    const newOrderNotif: CafeNotification = {
-      id: `notif-new-order-${Date.now()}-${newId}`,
-      type: 'new_order',
-      title: `📝 Pesanan Baru: Meja #${tableNumber}`,
-      message: `Pesanan ${newOrderNumber} (${customerName.trim() || `Meja ${tableNumber}`}) berisi ${items.length} menu siap diproses di Dapur/Bar.`,
-      tableNumber,
-      orderId: newId,
-      orderNumber: newOrderNumber,
-      createdAt: new Date().toISOString(),
-      read: false,
-    };
-    setNotifications((prev) => [newOrderNotif, ...prev]);
+    setNotifications((prev) => [...newNotifs, ...prev]);
 
     // Dispatch to server for real-time multi-device sync
     dispatchServerAction('create_order', {
       order: newOrder,
-      notification: newOrderNotif,
+      notifications: newNotifs,
+      notification: newNotifs[0],
     });
 
     showToast(`Pesanan ${newOrderNumber} berhasil dibuat untuk Meja ${tableNumber}!`);
@@ -1341,32 +1521,81 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Audio chime specifically for additional orders!
     soundAlerts.playAdditionalItemChime();
 
-    // Summary of added items for notifications and toast
-    const itemsSummary = newItems.map((it) => `${it.quantity}x ${it.name}`).join(', ');
-    const stations = Array.from(new Set(newItems.map((it) => it.station)));
-    const stationLabel = stations.length === 1 ? (stations[0] === 'bar' ? 'Bar (Minuman)' : 'Kitchen (Makanan)') : 'Kitchen & Bar';
+    // Separate food vs drink items for targeted addition notifications
+    const foodNewItems = newItems.filter(
+      (it) => it.station === 'kitchen' || it.category === 'Makanan Ringan' || it.category === 'Makanan Berat'
+    );
+    const drinkNewItems = newItems.filter(
+      (it) => it.station === 'bar' || it.category === 'Kopi' || it.category === 'Non-Kopi'
+    );
 
-    const addNotif: CafeNotification = {
-      id: `notif-add-items-${Date.now()}-${orderId}`,
-      type: 'order_items_added',
-      title: `🔔 Tambahan Pesanan: Meja #${affectedTableNumber || '?'}`,
-      message: `Meja #${affectedTableNumber} (${affectedCustomerName} - ${affectedOrderNumber}) menambah menu: ${itemsSummary}. Harap segera disiapkan di ${stationLabel}!`,
-      tableNumber: affectedTableNumber,
-      orderId,
-      orderNumber: affectedOrderNumber,
-      station: stations.length === 1 ? stations[0] : undefined,
-      createdAt: nowIso,
-      read: false,
-    };
-    setNotifications((prev) => [addNotif, ...prev]);
+    const addedNotifs: CafeNotification[] = [];
+
+    // Tambahan Makanan -> Notifikasi khusus untuk Chef
+    if (foodNewItems.length > 0) {
+      const foodAddedSummary = foodNewItems.map((it) => `${it.quantity}x ${it.name}`).join(', ');
+      addedNotifs.push({
+        id: `notif-add-food-${Date.now()}-${orderId}`,
+        type: 'order_items_added',
+        title: `🔔 Tambahan Makanan (Chef): Meja #${affectedTableNumber || '?'}`,
+        message: `Meja #${affectedTableNumber} (${affectedCustomerName} - ${affectedOrderNumber}) menambah makanan: ${foodAddedSummary}. Harap segera disiapkan di Dapur!`,
+        tableNumber: affectedTableNumber,
+        orderId,
+        orderNumber: affectedOrderNumber,
+        station: 'kitchen',
+        targetRole: 'chef',
+        itemsSummary: foodAddedSummary,
+        createdAt: nowIso,
+        read: false,
+      });
+    }
+
+    // Tambahan Minuman -> Notifikasi khusus untuk Barista
+    if (drinkNewItems.length > 0) {
+      const drinksAddedSummary = drinkNewItems.map((it) => `${it.quantity}x ${it.name}`).join(', ');
+      addedNotifs.push({
+        id: `notif-add-drinks-${Date.now() + 1}-${orderId}`,
+        type: 'order_items_added',
+        title: `🔔 Tambahan Minuman (Barista): Meja #${affectedTableNumber || '?'}`,
+        message: `Meja #${affectedTableNumber} (${affectedCustomerName} - ${affectedOrderNumber}) menambah minuman: ${drinksAddedSummary}. Harap segera diracik di Bar!`,
+        tableNumber: affectedTableNumber,
+        orderId,
+        orderNumber: affectedOrderNumber,
+        station: 'bar',
+        targetRole: 'barista',
+        itemsSummary: drinksAddedSummary,
+        createdAt: nowIso,
+        read: false,
+      });
+    }
+
+    if (addedNotifs.length === 0) {
+      const itemsSummary = newItems.map((it) => `${it.quantity}x ${it.name}`).join(', ');
+      addedNotifs.push({
+        id: `notif-add-items-${Date.now()}-${orderId}`,
+        type: 'order_items_added',
+        title: `🔔 Tambahan Pesanan: Meja #${affectedTableNumber || '?'}`,
+        message: `Meja #${affectedTableNumber} (${affectedCustomerName} - ${affectedOrderNumber}) menambah menu: ${itemsSummary}.`,
+        tableNumber: affectedTableNumber,
+        orderId,
+        orderNumber: affectedOrderNumber,
+        createdAt: nowIso,
+        read: false,
+      });
+    }
+
+    setNotifications((prev) => [...addedNotifs, ...prev]);
 
     // Dispatch to server for instant multi-device sync
     dispatchServerAction('add_items_to_order', {
       orderId,
       newItems,
+      notifications: addedNotifs,
+      notification: addedNotifs[0],
     });
 
-    showToast(`🔔 TAMBAHAN PESANAN MEJA #${affectedTableNumber || '?'}: ${itemsSummary} dikirim ke Dapur/Bar!`);
+    const itemsSummary = newItems.map((it) => `${it.quantity}x ${it.name}`).join(', ');
+    showToast(`🔔 TAMBAHAN PESANAN MEJA #${affectedTableNumber || '?'}: ${itemsSummary} dikirim ke Dapur & Bar!`);
   };
 
   const acknowledgeOrderAdditions = (orderId: string) => {
@@ -1451,24 +1680,26 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (itemStatus === 'ready' && targetOrder && targetItem && targetItem.status !== 'ready') {
       soundAlerts.playReadyChime();
+      const isBar = targetItem.station === 'bar' || targetItem.category === 'Kopi' || targetItem.category === 'Non-Kopi';
       const itemReadyNotif: CafeNotification = {
         id: `notif-item-ready-${Date.now()}-${itemId}`,
         type: 'item_ready',
-        title: '🍽️ Makanan/Minuman Siap Saji',
-        message: `${targetItem.quantity}x ${targetItem.name} untuk Meja #${targetOrder.tableNumber} siap disajikan!`,
+        title: isBar ? '☕ Minuman Siap Saji (Barista)' : '🍽️ Makanan Siap Saji (Chef)',
+        message: `${targetItem.quantity}x ${targetItem.name} untuk Meja #${targetOrder.tableNumber} telah selesai disiapkan oleh ${isBar ? 'Barista (Bar)' : 'Chef (Dapur)'} dan siap diantar!`,
         tableNumber: targetOrder.tableNumber,
         orderId: targetOrder.id,
         orderNumber: targetOrder.orderNumber,
         itemId: targetItem.id,
         itemName: targetItem.name,
         quantity: targetItem.quantity,
-        station: targetItem.station,
+        station: isBar ? 'bar' : 'kitchen',
+        targetRole: 'waitress',
         createdAt: now,
         read: false,
         served: false,
       };
       setNotifications((prev) => [itemReadyNotif, ...prev]);
-      showToast(`🔔 Meja #${targetOrder.tableNumber}: ${targetItem.quantity}x ${targetItem.name} SIAP SAJI!`);
+      showToast(`🔔 Meja #${targetOrder.tableNumber}: ${targetItem.quantity}x ${targetItem.name} SIAP SAJI (${isBar ? 'Bar' : 'Dapur'})!`);
     }
 
     setActiveOrders((prev) =>
@@ -1662,6 +1893,139 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const markOrderServed = (orderId: string) => {
     markAllOrderItemsServed(orderId);
+  };
+
+  const markStationItemsReady = (orderId: string, station: 'bar' | 'kitchen') => {
+    const targetOrder = activeOrders.find((o) => o.id === orderId);
+    if (!targetOrder) return;
+    const now = new Date().toISOString();
+    const isBar = station === 'bar';
+
+    setActiveOrders((prev) =>
+      prev.map((order) => {
+        if (order.id !== orderId) return order;
+        const updatedItems = order.items.map((it) => {
+          const match = isBar
+            ? it.station === 'bar' || it.category === 'Kopi' || it.category === 'Non-Kopi'
+            : it.station === 'kitchen' || it.category === 'Makanan Ringan' || it.category === 'Makanan Berat';
+          if (match) {
+            return {
+              ...it,
+              status: 'ready' as const,
+              readyAt: it.readyAt || now,
+              served: false,
+            };
+          }
+          return it;
+        });
+
+        const allReady = updatedItems.length > 0 && updatedItems.every((it) => it.status === 'ready');
+
+        return {
+          ...order,
+          items: updatedItems,
+          barReadyAt: isBar ? now : order.barReadyAt,
+          kitchenReadyAt: !isBar ? now : order.kitchenReadyAt,
+          status: allReady ? ('ready' as const) : order.status === 'pending' ? ('cooking' as const) : order.status,
+          updatedAt: now,
+        };
+      })
+    );
+
+    soundAlerts.playReadyChime();
+
+    const notif: CafeNotification = {
+      id: `notif-station-ready-${Date.now()}-${orderId}-${station}`,
+      type: isBar ? 'bar_ready' : 'kitchen_ready',
+      title: isBar
+        ? `☕ Minuman Bar Siap Saji (Barista): Meja #${targetOrder.tableNumber}`
+        : `🍳 Makanan Dapur Siap Saji (Chef): Meja #${targetOrder.tableNumber}`,
+      message: isBar
+        ? `Pesanan minuman untuk Meja #${targetOrder.tableNumber} (${targetOrder.orderNumber}) selesai diracik Barista! Harap waitress segera mengantar ke meja agar minuman tetap segar.`
+        : `Hidangan makanan untuk Meja #${targetOrder.tableNumber} (${targetOrder.orderNumber}) telah selesai dimasak Chef dan siap disajikan hangat ke tamu!`,
+      tableNumber: targetOrder.tableNumber,
+      orderId: targetOrder.id,
+      orderNumber: targetOrder.orderNumber,
+      station,
+      targetRole: 'waitress',
+      createdAt: now,
+      read: false,
+      served: false,
+    };
+
+    setNotifications((prev) => [notif, ...prev]);
+
+    dispatchServerAction('mark_station_items_ready', { orderId, station });
+
+    if (isBar) {
+      showToast(`☕ Minuman Meja #${targetOrder.tableNumber} SIAP SAJI! Racikan barista selesai.`);
+    } else {
+      showToast(`🍳 Makanan Meja #${targetOrder.tableNumber} SIAP SAJI! Masakan chef selesai.`);
+    }
+  };
+
+  const markStationItemsServed = (orderId: string, station: 'bar' | 'kitchen', forceServed?: boolean) => {
+    const targetOrder = activeOrders.find((o) => o.id === orderId);
+    if (!targetOrder) return;
+    const now = new Date().toISOString();
+    const isBar = station === 'bar';
+    const nextServed = forceServed !== undefined ? forceServed : true;
+
+    setActiveOrders((prev) =>
+      prev.map((order) => {
+        if (order.id !== orderId) return order;
+        const updatedItems = order.items.map((it) => {
+          const match = isBar
+            ? it.station === 'bar' || it.category === 'Kopi' || it.category === 'Non-Kopi'
+            : it.station === 'kitchen' || it.category === 'Makanan Ringan' || it.category === 'Makanan Berat';
+          if (match) {
+            return {
+              ...it,
+              served: nextServed,
+              servedAt: nextServed ? (it.servedAt || now) : undefined,
+              status: nextServed ? ('ready' as const) : it.status,
+            };
+          }
+          return it;
+        });
+
+        const allServed = updatedItems.length > 0 && updatedItems.every((it) => it.served);
+        let newOrderStatus: OrderStatus = order.status;
+        if (allServed) {
+          newOrderStatus = 'served';
+        } else if (order.status === 'served') {
+          const anyReady = updatedItems.some((it) => it.status === 'ready');
+          newOrderStatus = anyReady ? 'ready' : 'cooking';
+        }
+
+        return {
+          ...order,
+          items: updatedItems,
+          barServedAt: isBar ? (nextServed ? now : undefined) : order.barServedAt,
+          kitchenServedAt: !isBar ? (nextServed ? now : undefined) : order.kitchenServedAt,
+          status: newOrderStatus,
+          servedAt: allServed ? (order.servedAt || now) : (newOrderStatus === 'served' ? order.servedAt : undefined),
+          updatedAt: now,
+        };
+      })
+    );
+
+    setNotifications((prev) =>
+      prev.map((n) => {
+        if (n.orderId === orderId && (n.station === station || (station === 'bar' && n.type === 'bar_ready') || (station === 'kitchen' && n.type === 'kitchen_ready'))) {
+          return { ...n, served: nextServed, read: nextServed };
+        }
+        return n;
+      })
+    );
+
+    dispatchServerAction('mark_station_items_served', { orderId, station, forceServed: nextServed });
+
+    showToast(
+      isBar
+        ? (nextServed ? `☕ Minuman Meja #${targetOrder.tableNumber} berhasil disajikan!` : `Status saji minuman Meja #${targetOrder.tableNumber} dibatalkan.`)
+        : (nextServed ? `🍽️ Makanan Meja #${targetOrder.tableNumber} berhasil disajikan!` : `Status saji makanan Meja #${targetOrder.tableNumber} dibatalkan.`)
+    );
   };
 
   const markOrderCompleted = (orderId: string) => {
@@ -1863,6 +2227,28 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     dispatchServerAction('update_table_status', { tableNumber, status, orderId });
   };
 
+  const addTable = (tableData?: { number?: number; capacity?: number; section?: string }) => {
+    const existingNumbers = new Set(tables.map((t) => t.number));
+    let nextNum = tableData?.number || (tables.length > 0 ? Math.max(...tables.map((t) => t.number)) + 1 : 31);
+    while (existingNumbers.has(nextNum)) {
+      nextNum++;
+    }
+    const newTable: TableInfo = {
+      number: nextNum,
+      capacity: tableData?.capacity || 4,
+      section: tableData?.section || 'Cadangan / Overflow',
+      status: 'available',
+    };
+    setTables((prev) => {
+      const updated = [...prev, newTable];
+      tablesRef.current = updated;
+      localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(updated));
+      return updated;
+    });
+    dispatchServerAction('add_table', { table: newTable });
+    showToast(`✅ Meja Cadangan #${nextNum} (Kapasitas: ${newTable.capacity} orang) berhasil ditambahkan!`);
+  };
+
   // MENU ACTIONS
   const addMenuItem = (item: Omit<MenuItem, 'id'>) => {
     const newId = `item-${Date.now()}`;
@@ -1997,6 +2383,8 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         cancelOrder,
         processPayment,
         markItemServed,
+        markStationItemsReady,
+        markStationItemsServed,
         markAllOrderItemsServed,
         markOrderServed,
         markOrderCompleted,
@@ -2008,6 +2396,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteExpense,
         tables,
         updateTableStatus,
+        addTable,
         inventory,
         updateInventoryStock,
         addInventoryItem,

@@ -478,6 +478,118 @@ app.post('/api/action', (req, res) => {
       break;
     }
 
+    case 'mark_station_items_ready': {
+      const { orderId, station } = payload; // 'bar' | 'kitchen'
+      const order = state.activeOrders.find((o) => o.id === orderId);
+      if (order) {
+        const now = new Date().toISOString();
+        const isBar = station === 'bar';
+        order.items = order.items.map((it) => {
+          const matchStation = isBar
+            ? it.station === 'bar' || it.category === 'Kopi' || it.category === 'Non-Kopi'
+            : it.station === 'kitchen' || it.category === 'Makanan Ringan' || it.category === 'Makanan Berat';
+          if (matchStation) {
+            return {
+              ...it,
+              status: 'ready',
+              readyAt: it.readyAt || now,
+            };
+          }
+          return it;
+        });
+
+        if (isBar) {
+          order.barReadyAt = now;
+        } else {
+          order.kitchenReadyAt = now;
+        }
+
+        const allReady = order.items.every((it) => it.status === 'ready');
+        if (allReady) {
+          order.status = 'ready';
+        } else if (order.status === 'pending') {
+          order.status = 'cooking';
+        }
+        order.updatedAt = now;
+
+        const notif: CafeNotification = {
+          id: `notif-station-ready-${Date.now()}-${orderId}-${station}`,
+          type: isBar ? 'bar_ready' : 'kitchen_ready',
+          title: isBar
+            ? `☕ Minuman Bar Siap Saji: Meja #${order.tableNumber}`
+            : `🍳 Makanan Dapur Siap Saji: Meja #${order.tableNumber}`,
+          message: isBar
+            ? `Pesanan minuman untuk Meja #${order.tableNumber} (${order.orderNumber}) selesai diracik Barista! Siap diantar lebih dulu agar minuman tetap segar.`
+            : `Hidangan makanan untuk Meja #${order.tableNumber} (${order.orderNumber}) telah matang dimasak Chef dan siap disajikan hangat!`,
+          tableNumber: order.tableNumber,
+          orderId,
+          orderNumber: order.orderNumber,
+          station,
+          targetRole: 'waitress',
+          createdAt: now,
+          read: false,
+        };
+        state.notifications.unshift(notif);
+
+        eventType = 'station_items_ready';
+        eventPayload = { orderId, station, order, notification: notif };
+      }
+      break;
+    }
+
+    case 'mark_station_items_served': {
+      const { orderId, station, forceServed } = payload;
+      const order = state.activeOrders.find((o) => o.id === orderId);
+      if (order) {
+        const now = new Date().toISOString();
+        const isBar = station === 'bar';
+        const nextServed = forceServed !== undefined ? forceServed : true;
+
+        order.items = order.items.map((it) => {
+          const matchStation = isBar
+            ? it.station === 'bar' || it.category === 'Kopi' || it.category === 'Non-Kopi'
+            : it.station === 'kitchen' || it.category === 'Makanan Ringan' || it.category === 'Makanan Berat';
+          if (matchStation) {
+            return {
+              ...it,
+              served: nextServed,
+              servedAt: nextServed ? (it.servedAt || now) : undefined,
+              status: nextServed ? 'ready' : it.status,
+            };
+          }
+          return it;
+        });
+
+        if (isBar) {
+          order.barServedAt = nextServed ? now : undefined;
+        } else {
+          order.kitchenServedAt = nextServed ? now : undefined;
+        }
+
+        const allServed = order.items.length > 0 && order.items.every((it) => it.served);
+        if (allServed) {
+          order.status = 'served';
+          order.servedAt = order.servedAt || now;
+        } else if (order.status === 'served') {
+          const anyReady = order.items.some((it) => it.status === 'ready');
+          order.status = anyReady ? 'ready' : 'cooking';
+        }
+        order.updatedAt = now;
+
+        // Mark station notifications as read & served
+        state.notifications = state.notifications.map((n) => {
+          if (n.orderId === orderId && (n.station === station || (station === 'bar' && n.type === 'bar_ready') || (station === 'kitchen' && n.type === 'kitchen_ready'))) {
+            return { ...n, served: nextServed, read: nextServed };
+          }
+          return n;
+        });
+
+        eventType = 'station_items_served';
+        eventPayload = { orderId, station, forceServed: nextServed, order };
+      }
+      break;
+    }
+
     case 'cancel_order': {
       const { orderId, reason } = payload;
       const order = state.activeOrders.find((o) => o.id === orderId);
@@ -554,6 +666,16 @@ app.post('/api/action', (req, res) => {
       );
       eventType = 'table_updated';
       eventPayload = { tableNumber, status: tableStatus, orderId };
+      break;
+    }
+
+    case 'add_table': {
+      const { table } = payload;
+      if (table && !state.tables.some((t) => t.number === table.number)) {
+        state.tables.push(table);
+      }
+      eventType = 'table_added';
+      eventPayload = { table };
       break;
     }
 

@@ -39,7 +39,8 @@ const MainAppContent: React.FC = () => {
       {/* Main View Container */}
       <main className="flex-1 pb-16">
         {activeRole === 'waitress' && <WaitressView />}
-        {activeRole === 'chef' && <KitchenDisplayView />}
+        {activeRole === 'barista' && <KitchenDisplayView defaultStation="bar" />}
+        {activeRole === 'chef' && <KitchenDisplayView defaultStation="kitchen" />}
         {activeRole === 'cashier' && <CashierView />}
         {activeRole === 'owner' && <OwnerDashboardView />}
       </main>

@@ -10,12 +10,16 @@ import {
   UserCheck, 
   AlertTriangle,
   ChevronRight,
-  ShieldAlert
+  ShieldAlert,
+  Key,
+  KeyRound
 } from 'lucide-react';
 import { NadiraLogo } from './NadiraLogo';
+import { LiveClockWidget } from './LiveClockWidget';
+import { ChangePasswordModal } from './ChangePasswordModal';
 
 export const LoginView: React.FC = () => {
-  const { users, setCurrentUser, showToast } = useCafe();
+  const { users, setCurrentUser, setActiveRole, showToast } = useCafe();
   const [selectedUser, setSelectedUser] = useState<UserAccount | null>(null);
   const [pinInput, setPinInput] = useState('');
   const [showPin, setShowPin] = useState(false);
@@ -24,6 +28,10 @@ export const LoginView: React.FC = () => {
   // State for manual username login fallback
   const [isManualMode, setIsManualMode] = useState(false);
   const [usernameInput, setUsernameInput] = useState('');
+
+  // Change Password Modal state
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [changePasswordTarget, setChangePasswordTarget] = useState<UserAccount | null>(null);
 
   const activeUsers = users.filter(u => u.active);
 
@@ -64,6 +72,7 @@ export const LoginView: React.FC = () => {
     if (userToAuth.pin === pinInput.trim()) {
       // Login Success!
       setCurrentUser(userToAuth);
+      setActiveRole(userToAuth.role);
       showToast(`Selamat datang kembali, ${userToAuth.name}!`);
     } else {
       setLoginError('PIN atau Sandi yang dimasukkan salah.');
@@ -81,6 +90,11 @@ export const LoginView: React.FC = () => {
       {/* Background Decorative Blobs */}
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#E8DCCF]/40 blur-3xl -z-10"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[45%] h-[45%] rounded-full bg-[#E5D5C5]/30 blur-3xl -z-10"></div>
+
+      {/* Top-Right Page Live Day, Date & Time Widget */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-8 z-20">
+        <LiveClockWidget theme="light" />
+      </div>
 
       {/* Main Login Card Container */}
       <div className="w-full max-w-4xl bg-white rounded-[32px] border border-[#EBE0D5] shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[580px] z-10">
@@ -120,7 +134,7 @@ export const LoginView: React.FC = () => {
         <div className="col-span-1 md:col-span-7 p-6 sm:p-10 flex flex-col justify-between">
           
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pb-2 border-b border-[#F0E4D8]/80">
             <div className="flex items-center gap-2 md:hidden">
               <div className="w-8 h-8 rounded-xl bg-[#25180E] flex items-center justify-center">
                 <NadiraLogo size={22} color="white" />
@@ -130,15 +144,30 @@ export const LoginView: React.FC = () => {
               </span>
             </div>
 
-            <button
-              onClick={() => {
-                setIsManualMode(!isManualMode);
-                handleBackToSelect();
-              }}
-              className="text-xs font-bold text-[#7D4F27] hover:text-[#5A3515] transition-all underline underline-offset-4 ml-auto cursor-pointer"
-            >
-              {isManualMode ? 'Kembali ke Pilih Staf' : 'Gunakan Username Manual'}
-            </button>
+            <div className="flex items-center gap-3 ml-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  setChangePasswordTarget(selectedUser || null);
+                  setIsChangePasswordOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FAF6F2] hover:bg-[#F3ECE4] text-[#7D4F27] border border-[#E3D3C4] text-xs font-bold transition-all cursor-pointer shadow-sm"
+                title="Ganti PIN / Sandi Akun"
+              >
+                <Key className="w-3.5 h-3.5" />
+                <span>Ganti Sandi</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsManualMode(!isManualMode);
+                  handleBackToSelect();
+                }}
+                className="text-xs font-bold text-[#7D4F27] hover:text-[#5A3515] transition-all underline underline-offset-4 cursor-pointer"
+              >
+                {isManualMode ? 'Pilih Profil' : 'Mode Manual'}
+              </button>
+            </div>
           </div>
 
           <div className="my-auto py-6">
@@ -177,10 +206,24 @@ export const LoginView: React.FC = () => {
                         {user.name.split(' ')[0]}
                       </span>
                       <span className="text-[10px] sm:text-xs font-bold text-stone-500 capitalize tracking-wide mt-0.5 bg-stone-200/50 px-2 py-0.5 rounded-full">
-                        {user.role === 'chef' ? 'Chef / Barista' : user.role === 'cashier' ? 'Kasir POS' : user.role === 'waitress' ? 'Waitress' : 'Owner/CEO'}
+                        {user.role === 'barista' ? 'Barista (Bar)' : user.role === 'chef' ? 'Chef (Dapur)' : user.role === 'cashier' ? 'Kasir POS' : user.role === 'waitress' ? 'Waitress' : 'Owner/CEO'}
                       </span>
                     </button>
                   ))}
+                </div>
+
+                <div className="pt-1 text-center">
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setChangePasswordTarget(null);
+                      setIsChangePasswordOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs text-[#7D4F27] hover:text-[#5A3515] font-bold cursor-pointer hover:underline py-1 px-3 rounded-lg hover:bg-[#FAF6F2] transition-colors"
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
+                    <span>Lupa atau ingin ubah PIN staf? Klik untuk Ganti Sandi</span>
+                  </button>
                 </div>
               </div>
             )}
@@ -197,7 +240,7 @@ export const LoginView: React.FC = () => {
                       {selectedUser.name}
                     </h3>
                     <p className="text-xs font-bold text-stone-500 uppercase tracking-widest mt-0.5">
-                      {selectedUser.role === 'chef' ? 'Chef & Barista' : selectedUser.role === 'cashier' ? 'Kasir POS' : selectedUser.role === 'waitress' ? 'Waitress' : 'Owner / CEO'}
+                      {selectedUser.role === 'barista' ? 'Barista (Bar Minuman)' : selectedUser.role === 'chef' ? 'Chef (Dapur Makanan)' : selectedUser.role === 'cashier' ? 'Kasir POS' : selectedUser.role === 'waitress' ? 'Waitress' : 'Owner / CEO'}
                     </p>
                   </div>
                 </div>
@@ -209,10 +252,21 @@ export const LoginView: React.FC = () => {
                   </div>
                 )}
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black text-[#5A3E29] uppercase tracking-wider block">
-                    Sandi / PIN Akses
-                  </label>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-[#5A3E29] uppercase tracking-wider block">
+                      Sandi / PIN Akses
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowPin(!showPin)}
+                      className="text-[11px] font-bold text-[#7D4F27] hover:text-[#5A3515] flex items-center gap-1 cursor-pointer transition-colors"
+                      title={showPin ? "Sembunyikan sandi" : "Lihat sandi"}
+                    >
+                      {showPin ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      <span>{showPin ? 'Tutup Sandi' : 'Lihat Sandi'}</span>
+                    </button>
+                  </div>
                   <div className="relative">
                     <input
                       type={showPin ? 'text' : 'password'}
@@ -227,8 +281,23 @@ export const LoginView: React.FC = () => {
                       type="button"
                       onClick={() => setShowPin(!showPin)}
                       className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 text-stone-400 hover:text-stone-600 cursor-pointer"
+                      title={showPin ? "Sembunyikan sandi" : "Lihat sandi"}
                     >
                       {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setChangePasswordTarget(selectedUser);
+                        setIsChangePasswordOpen(true);
+                      }}
+                      className="text-[11px] font-bold text-[#7D4F27] hover:text-[#5A3515] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Key className="w-3 h-3" />
+                      <span>Ganti PIN / Sandi Akun Ini</span>
                     </button>
                   </div>
                 </div>
@@ -286,9 +355,21 @@ export const LoginView: React.FC = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-black text-[#5A3E29] uppercase tracking-wider block">
-                    PIN / Sandi Akses
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-[#5A3E29] uppercase tracking-wider block">
+                      PIN / Sandi Akses
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowPin(!showPin)}
+                      className="text-[11px] font-bold text-[#7D4F27] hover:text-[#5A3515] flex items-center gap-1 cursor-pointer transition-colors"
+                      title={showPin ? "Sembunyikan sandi" : "Lihat sandi"}
+                    >
+                      {showPin ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      <span>{showPin ? 'Tutup Sandi' : 'Lihat Sandi'}</span>
+                    </button>
+                  </div>
+
                   <div className="relative">
                     <input
                       type={showPin ? 'text' : 'password'}
@@ -302,8 +383,23 @@ export const LoginView: React.FC = () => {
                       type="button"
                       onClick={() => setShowPin(!showPin)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-stone-400 hover:text-stone-600 cursor-pointer"
+                      title={showPin ? "Sembunyikan sandi" : "Lihat sandi"}
                     >
                       {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setChangePasswordTarget(null);
+                        setIsChangePasswordOpen(true);
+                      }}
+                      className="text-[11px] font-bold text-[#7D4F27] hover:text-[#5A3515] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Key className="w-3 h-3" />
+                      <span>Ganti PIN / Sandi</span>
                     </button>
                   </div>
                 </div>
@@ -324,19 +420,30 @@ export const LoginView: React.FC = () => {
           <div className="pt-4 border-t border-[#F0E4D8]">
             <div className="bg-[#FAF6F2] border border-[#E3D3C4] rounded-2xl p-3.5 space-y-2">
               <span className="text-[10px] font-black text-[#7D4F27] uppercase tracking-wider block">
-                🔑 Kredensial Bawaan Demo (Gunakan untuk Uji Coba):
+                🔑 Kredensial Akses Staf:
               </span>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-[#5A3E29] font-medium">
-                <div>👑 Owner: <code className="bg-stone-200/60 px-1 py-0.5 rounded font-black text-black">owner</code> / PIN <code className="bg-stone-200/60 px-1 py-0.5 rounded font-black text-black">1122</code></div>
-                <div>💳 Kasir: <code className="bg-stone-200/60 px-1 py-0.5 rounded font-black text-black">kasir</code> / PIN <code className="bg-stone-200/60 px-1 py-0.5 rounded font-black text-black">2233</code></div>
-                <div>🛎️ Waitress: <code className="bg-stone-200/60 px-1 py-0.5 rounded font-black text-black">waitress</code> / PIN <code className="bg-stone-200/60 px-1 py-0.5 rounded font-black text-black">3344</code></div>
-                <div>👨‍🍳 Chef: <code className="bg-stone-200/60 px-1 py-0.5 rounded font-black text-black">chef</code> / PIN <code className="bg-stone-200/60 px-1 py-0.5 rounded font-black text-black">4455</code></div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5 text-[11px] text-[#5A3E29] font-medium">
+                <div>👑 Owner: <code className="bg-stone-200/60 px-1 py-0.5 rounded font-black text-black">owner</code> (1122)</div>
+                <div>💳 Kasir: <code className="bg-stone-200/60 px-1 py-0.5 rounded font-black text-black">kasir</code> (2233)</div>
+                <div>🛎️ Waitress: <code className="bg-stone-200/60 px-1 py-0.5 rounded font-black text-black">waitress</code> (3344)</div>
+                <div>☕ Barista: <code className="bg-stone-200/60 px-1 py-0.5 rounded font-black text-black">barista</code> (5566)</div>
+                <div>👨‍🍳 Chef: <code className="bg-stone-200/60 px-1 py-0.5 rounded font-black text-black">chef</code> (4455)</div>
               </div>
             </div>
           </div>
 
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => {
+          setIsChangePasswordOpen(false);
+          setChangePasswordTarget(null);
+        }}
+        targetUser={changePasswordTarget}
+      />
     </div>
   );
 };

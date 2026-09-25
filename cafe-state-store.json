@@ -629,6 +629,126 @@
   ],
   "activeOrders": [
     {
+      "id": "ORD-101",
+      "orderNumber": "#NDR-101",
+      "tableNumber": 1,
+      "customerName": "Dimas Wicaksono",
+      "items": [
+        {
+          "id": "item-101-1",
+          "menuItemId": "kopi-1",
+          "name": "Es Kopi Susu Aren Nadira",
+          "portionSize": "Large",
+          "price": 30000,
+          "quantity": 2,
+          "category": "Kopi",
+          "station": "bar",
+          "customization": {
+            "portionSize": "Large",
+            "sugarLevel": "Less Sugar (50%)",
+            "iceLevel": "Less Ice",
+            "addOns": [
+              "Extra Espresso Shot"
+            ],
+            "notes": "Tolong buat agak pekat"
+          },
+          "status": "ready",
+          "served": true,
+          "servedAt": "2026-09-24T11:48:19.000Z"
+        },
+        {
+          "id": "item-101-2",
+          "menuItemId": "snack-1",
+          "name": "Parmesan Truffle Fries",
+          "portionSize": "Reguler",
+          "price": 28000,
+          "quantity": 1,
+          "category": "Makanan Ringan",
+          "station": "kitchen",
+          "customization": {
+            "portionSize": "Reguler",
+            "notes": "Saus garlic mayo dipisah ya"
+          },
+          "status": "ready",
+          "readyAt": "2026-09-23T02:41:04.014Z",
+          "served": true,
+          "servedAt": "2026-09-24T11:48:18.992Z"
+        }
+      ],
+      "subtotal": 88000,
+      "tax": 8800,
+      "serviceCharge": 4400,
+      "total": 101200,
+      "status": "served",
+      "paymentStatus": "unpaid",
+      "waitressName": "Siti Rahma",
+      "createdAt": "2026-09-23T02:15:19.513Z",
+      "updatedAt": "2026-09-24T11:48:19.006Z"
+    }
+  ],
+  "completedOrders": [
+    {
+      "id": "ORD-103",
+      "orderNumber": "#NDR-103",
+      "tableNumber": 7,
+      "customerName": "Pak Hendra (VIP)",
+      "items": [
+        {
+          "id": "item-103-1",
+          "menuItemId": "kopi-2",
+          "name": "V60 Manual Brew Aceh Gayo",
+          "portionSize": "Reguler",
+          "price": 32000,
+          "quantity": 1,
+          "category": "Kopi",
+          "station": "bar",
+          "customization": {
+            "portionSize": "Reguler",
+            "iceLevel": "Hot / Panas",
+            "sugarLevel": "No Sugar (0%)",
+            "notes": "Sajikan panas dalam cangkir keramik"
+          },
+          "status": "ready",
+          "readyAt": "2026-09-23T02:41:06.077Z",
+          "served": true,
+          "servedAt": "2026-09-24T11:45:49.687Z"
+        },
+        {
+          "id": "item-103-2",
+          "menuItemId": "snack-2",
+          "name": "Crispy Butter Almond Croissant",
+          "portionSize": "Reguler",
+          "price": 26000,
+          "quantity": 1,
+          "category": "Makanan Ringan",
+          "station": "kitchen",
+          "customization": {
+            "portionSize": "Reguler",
+            "notes": "Tolong dihangatkan sebentar di oven"
+          },
+          "status": "ready",
+          "readyAt": "2026-09-23T02:41:09.105Z",
+          "served": true,
+          "servedAt": "2026-09-24T11:45:49.687Z"
+        }
+      ],
+      "subtotal": 58000,
+      "tax": 5800,
+      "serviceCharge": 2900,
+      "total": 66700,
+      "status": "paid",
+      "paymentStatus": "paid",
+      "waitressName": "Siti Rahma",
+      "createdAt": "2026-09-23T02:25:19.513Z",
+      "updatedAt": "2026-09-24T11:47:03.034Z",
+      "paymentMethod": "cash",
+      "paymentDetails": {
+        "cashReceived": 66700,
+        "changeReturned": 0,
+        "paidAt": "2026-09-24T11:47:03.034Z"
+      }
+    },
+    {
       "id": "ORD-076489",
       "orderNumber": "#NDR-444",
       "tableNumber": 2,
@@ -689,194 +809,17 @@
       "tax": 18400,
       "serviceCharge": 9200,
       "total": 211600,
-      "status": "pending",
-      "paymentStatus": "unpaid",
+      "status": "paid",
+      "paymentStatus": "paid",
       "waitressName": "Siti Rahma",
       "createdAt": "2026-09-24T05:01:16.490Z",
-      "updatedAt": "2026-09-24T05:01:16.490Z"
-    },
-    {
-      "id": "ORD-287322",
-      "orderNumber": "#NDR-910",
-      "tableNumber": 8,
-      "customerName": "Meja 8 Test Sync",
-      "items": [
-        {
-          "id": "test-1",
-          "menuItemId": "m-1",
-          "name": "Kopi Susu Gula Aren",
-          "price": 25000,
-          "quantity": 2,
-          "category": "Kopi",
-          "station": "bar",
-          "status": "pending"
-        }
-      ],
-      "subtotal": 50000,
-      "tax": 5000,
-      "serviceCharge": 2500,
-      "total": 57500,
-      "status": "pending",
-      "paymentStatus": "unpaid",
-      "waitressName": "Waitress On-Duty",
-      "createdAt": "2026-09-23T02:41:27.322Z",
-      "updatedAt": "2026-09-23T02:41:27.322Z"
-    },
-    {
-      "id": "ORD-101",
-      "orderNumber": "#NDR-101",
-      "tableNumber": 1,
-      "customerName": "Dimas Wicaksono",
-      "items": [
-        {
-          "id": "item-101-1",
-          "menuItemId": "kopi-1",
-          "name": "Es Kopi Susu Aren Nadira",
-          "portionSize": "Large",
-          "price": 30000,
-          "quantity": 2,
-          "category": "Kopi",
-          "station": "bar",
-          "customization": {
-            "portionSize": "Large",
-            "sugarLevel": "Less Sugar (50%)",
-            "iceLevel": "Less Ice",
-            "addOns": [
-              "Extra Espresso Shot"
-            ],
-            "notes": "Tolong buat agak pekat"
-          },
-          "status": "ready"
-        },
-        {
-          "id": "item-101-2",
-          "menuItemId": "snack-1",
-          "name": "Parmesan Truffle Fries",
-          "portionSize": "Reguler",
-          "price": 28000,
-          "quantity": 1,
-          "category": "Makanan Ringan",
-          "station": "kitchen",
-          "customization": {
-            "portionSize": "Reguler",
-            "notes": "Saus garlic mayo dipisah ya"
-          },
-          "status": "ready",
-          "readyAt": "2026-09-23T02:41:04.014Z"
-        }
-      ],
-      "subtotal": 88000,
-      "tax": 8800,
-      "serviceCharge": 4400,
-      "total": 101200,
-      "status": "ready",
-      "paymentStatus": "unpaid",
-      "waitressName": "Siti Rahma",
-      "createdAt": "2026-09-23T02:15:19.513Z",
-      "updatedAt": "2026-09-23T02:41:04.014Z"
-    },
-    {
-      "id": "ORD-102",
-      "orderNumber": "#NDR-102",
-      "tableNumber": 3,
-      "customerName": "Rina & Teman",
-      "items": [
-        {
-          "id": "item-102-1",
-          "menuItemId": "berat-1",
-          "name": "Nasi Goreng Kampoeng Wagyu",
-          "portionSize": "Large",
-          "price": 63000,
-          "quantity": 2,
-          "category": "Makanan Berat",
-          "station": "kitchen",
-          "customization": {
-            "portionSize": "Large",
-            "spicyLevel": "Pedas Sedang",
-            "addOns": [
-              "Telur Mata Sapi"
-            ],
-            "notes": "Telur setengah matang"
-          },
-          "status": "ready"
-        },
-        {
-          "id": "item-102-2",
-          "menuItemId": "non-1",
-          "name": "Matcha Uji Kyoto Latte",
-          "portionSize": "Reguler",
-          "price": 29000,
-          "quantity": 2,
-          "category": "Non-Kopi",
-          "station": "bar",
-          "customization": {
-            "portionSize": "Reguler",
-            "sugarLevel": "Low Sugar (25%)",
-            "iceLevel": "Normal Ice"
-          },
-          "status": "ready"
-        }
-      ],
-      "subtotal": 184000,
-      "tax": 18400,
-      "serviceCharge": 9200,
-      "total": 211600,
-      "status": "ready",
-      "paymentStatus": "unpaid",
-      "waitressName": "Siti Rahma",
-      "createdAt": "2026-09-23T01:54:19.513Z",
-      "updatedAt": "2026-09-23T02:29:19.513Z"
-    },
-    {
-      "id": "ORD-103",
-      "orderNumber": "#NDR-103",
-      "tableNumber": 7,
-      "customerName": "Pak Hendra (VIP)",
-      "items": [
-        {
-          "id": "item-103-1",
-          "menuItemId": "kopi-2",
-          "name": "V60 Manual Brew Aceh Gayo",
-          "portionSize": "Reguler",
-          "price": 32000,
-          "quantity": 1,
-          "category": "Kopi",
-          "station": "bar",
-          "customization": {
-            "portionSize": "Reguler",
-            "iceLevel": "Hot / Panas",
-            "sugarLevel": "No Sugar (0%)",
-            "notes": "Sajikan panas dalam cangkir keramik"
-          },
-          "status": "ready",
-          "readyAt": "2026-09-23T02:41:06.077Z"
-        },
-        {
-          "id": "item-103-2",
-          "menuItemId": "snack-2",
-          "name": "Crispy Butter Almond Croissant",
-          "portionSize": "Reguler",
-          "price": 26000,
-          "quantity": 1,
-          "category": "Makanan Ringan",
-          "station": "kitchen",
-          "customization": {
-            "portionSize": "Reguler",
-            "notes": "Tolong dihangatkan sebentar di oven"
-          },
-          "status": "ready",
-          "readyAt": "2026-09-23T02:41:09.105Z"
-        }
-      ],
-      "subtotal": 58000,
-      "tax": 5800,
-      "serviceCharge": 2900,
-      "total": 66700,
-      "status": "ready",
-      "paymentStatus": "unpaid",
-      "waitressName": "Siti Rahma",
-      "createdAt": "2026-09-23T02:25:19.513Z",
-      "updatedAt": "2026-09-23T02:41:09.105Z"
+      "updatedAt": "2026-09-24T11:47:02.885Z",
+      "paymentMethod": "cash",
+      "paymentDetails": {
+        "cashReceived": 211600,
+        "changeReturned": 0,
+        "paidAt": "2026-09-24T11:47:02.885Z"
+      }
     },
     {
       "id": "ORD-104",
@@ -906,14 +849,112 @@
       "tax": 6600,
       "serviceCharge": 3300,
       "total": 75900,
-      "status": "ready",
-      "paymentStatus": "unpaid",
+      "status": "paid",
+      "paymentStatus": "paid",
       "waitressName": "Siti Rahma",
       "createdAt": "2026-09-23T02:21:19.513Z",
-      "updatedAt": "2026-09-23T02:41:09.854Z"
-    }
-  ],
-  "completedOrders": [
+      "updatedAt": "2026-09-24T11:46:42.514Z",
+      "paymentMethod": "cash",
+      "paymentDetails": {
+        "cashReceived": 75900,
+        "changeReturned": 0,
+        "paidAt": "2026-09-24T11:46:42.514Z"
+      }
+    },
+    {
+      "id": "ORD-102",
+      "orderNumber": "#NDR-102",
+      "tableNumber": 3,
+      "customerName": "Rina & Teman",
+      "items": [
+        {
+          "id": "item-102-1",
+          "menuItemId": "berat-1",
+          "name": "Nasi Goreng Kampoeng Wagyu",
+          "portionSize": "Large",
+          "price": 63000,
+          "quantity": 2,
+          "category": "Makanan Berat",
+          "station": "kitchen",
+          "customization": {
+            "portionSize": "Large",
+            "spicyLevel": "Pedas Sedang",
+            "addOns": [
+              "Telur Mata Sapi"
+            ],
+            "notes": "Telur setengah matang"
+          },
+          "status": "ready",
+          "served": true,
+          "servedAt": "2026-09-24T11:45:49.690Z"
+        },
+        {
+          "id": "item-102-2",
+          "menuItemId": "non-1",
+          "name": "Matcha Uji Kyoto Latte",
+          "portionSize": "Reguler",
+          "price": 29000,
+          "quantity": 2,
+          "category": "Non-Kopi",
+          "station": "bar",
+          "customization": {
+            "portionSize": "Reguler",
+            "sugarLevel": "Low Sugar (25%)",
+            "iceLevel": "Normal Ice"
+          },
+          "status": "ready",
+          "served": true,
+          "servedAt": "2026-09-24T11:45:49.690Z"
+        }
+      ],
+      "subtotal": 184000,
+      "tax": 18400,
+      "serviceCharge": 9200,
+      "total": 211600,
+      "status": "paid",
+      "paymentStatus": "paid",
+      "waitressName": "Siti Rahma",
+      "createdAt": "2026-09-23T01:54:19.513Z",
+      "updatedAt": "2026-09-24T11:46:42.511Z",
+      "paymentMethod": "qris",
+      "paymentDetails": {
+        "referenceNumber": "QRIS-NDR-0391912",
+        "paidAt": "2026-09-24T11:46:42.511Z"
+      }
+    },
+    {
+      "id": "ORD-287322",
+      "orderNumber": "#NDR-910",
+      "tableNumber": 8,
+      "customerName": "Meja 8 Test Sync",
+      "items": [
+        {
+          "id": "test-1",
+          "menuItemId": "m-1",
+          "name": "Kopi Susu Gula Aren",
+          "price": 25000,
+          "quantity": 2,
+          "category": "Kopi",
+          "station": "bar",
+          "status": "pending"
+        }
+      ],
+      "subtotal": 50000,
+      "tax": 5000,
+      "serviceCharge": 2500,
+      "total": 57500,
+      "status": "paid",
+      "paymentStatus": "paid",
+      "waitressName": "Waitress On-Duty",
+      "createdAt": "2026-09-23T02:41:27.322Z",
+      "updatedAt": "2026-09-24T11:46:42.496Z",
+      "paymentMethod": "cash",
+      "paymentDetails": {
+        "cashReceived": 57500,
+        "changeReturned": 0,
+        "paidAt": "2026-09-24T11:46:42.496Z"
+      }
+    },
     {
       "id": "ORD-098",
       "orderNumber": "#NDR-098",
@@ -1324,14 +1365,12 @@
     {
       "number": 2,
       "capacity": 4,
-      "status": "occupied",
-      "currentOrderId": "ORD-076489"
+      "status": "available"
     },
     {
       "number": 3,
       "capacity": 4,
-      "status": "billing",
-      "currentOrderId": "ORD-102"
+      "status": "available"
     },
     {
       "number": 4,
@@ -1351,14 +1390,12 @@
     {
       "number": 7,
       "capacity": 2,
-      "status": "occupied",
-      "currentOrderId": "ORD-103"
+      "status": "available"
     },
     {
       "number": 8,
       "capacity": 4,
-      "status": "occupied",
-      "currentOrderId": "ORD-287322"
+      "status": "available"
     },
     {
       "number": 9,
@@ -1383,8 +1420,7 @@
     {
       "number": 13,
       "capacity": 2,
-      "status": "occupied",
-      "currentOrderId": "ORD-104"
+      "status": "available"
     },
     {
       "number": 14,
@@ -1600,7 +1636,7 @@
     },
     {
       "id": "usr-4",
-      "name": "Chef Aris (Executive Chef & Bar)",
+      "name": "Chef Aris (Head Kitchen)",
       "username": "chef",
       "role": "chef",
       "pin": "4455",
@@ -1608,139 +1644,20 @@
       "phone": "+628198765432",
       "active": true,
       "avatar": "👨‍🍳"
+    },
+    {
+      "id": "usr-5",
+      "name": "Barista Dimas (Head Barista)",
+      "username": "barista",
+      "role": "barista",
+      "pin": "5566",
+      "email": "barista@nadiracafe.id",
+      "phone": "+628198765433",
+      "active": true,
+      "avatar": "☕"
     }
   ],
-  "notifications": [
-    {
-      "id": "notif-new-order-1790226076491-ORD-076489",
-      "type": "new_order",
-      "title": "📝 Pesanan Baru: Meja #2",
-      "message": "Pesanan #NDR-444 (Tamu Meja #2) berisi 3 menu siap diproses di Dapur/Bar.",
-      "tableNumber": 2,
-      "orderId": "ORD-076489",
-      "orderNumber": "#NDR-444",
-      "createdAt": "2026-09-24T05:01:16.491Z",
-      "read": false
-    },
-    {
-      "id": "notif-new-1790131287322-ORD-287322",
-      "type": "new_order",
-      "title": "📝 Pesanan Baru: Meja #8",
-      "message": "Pesanan #NDR-910 (Meja 8 Test Sync) berisi 1 menu siap diproses di Dapur/Bar.",
-      "tableNumber": 8,
-      "orderId": "ORD-287322",
-      "orderNumber": "#NDR-910",
-      "createdAt": "2026-09-23T02:41:27.322Z",
-      "read": false
-    },
-    {
-      "id": "notif-item-ready-1790131269854-item-104-1",
-      "type": "item_ready",
-      "title": "☕ Menu Siap Saji: Meja #13",
-      "message": "2x Berry Lychee Sparkling Mocktail untuk Meja #13 siap diantar!",
-      "tableNumber": 13,
-      "orderId": "ORD-104",
-      "orderNumber": "#NDR-104",
-      "itemId": "item-104-1",
-      "itemName": "Berry Lychee Sparkling Mocktail",
-      "quantity": 2,
-      "station": "bar",
-      "createdAt": "2026-09-23T02:41:09.854Z",
-      "read": false,
-      "served": false
-    },
-    {
-      "id": "notif-item-ready-1790131269105-item-103-2",
-      "type": "item_ready",
-      "title": "🍽️ Menu Siap Saji: Meja #7",
-      "message": "1x Crispy Butter Almond Croissant untuk Meja #7 siap diantar!",
-      "tableNumber": 7,
-      "orderId": "ORD-103",
-      "orderNumber": "#NDR-103",
-      "itemId": "item-103-2",
-      "itemName": "Crispy Butter Almond Croissant",
-      "quantity": 1,
-      "station": "kitchen",
-      "createdAt": "2026-09-23T02:41:09.105Z",
-      "read": false,
-      "served": false
-    },
-    {
-      "id": "notif-item-ready-1790131266077-item-103-1",
-      "type": "item_ready",
-      "title": "☕ Menu Siap Saji: Meja #7",
-      "message": "1x V60 Manual Brew Aceh Gayo untuk Meja #7 siap diantar!",
-      "tableNumber": 7,
-      "orderId": "ORD-103",
-      "orderNumber": "#NDR-103",
-      "itemId": "item-103-1",
-      "itemName": "V60 Manual Brew Aceh Gayo",
-      "quantity": 1,
-      "station": "bar",
-      "createdAt": "2026-09-23T02:41:06.077Z",
-      "read": false,
-      "served": false
-    },
-    {
-      "id": "notif-item-ready-1790131264014-item-101-2",
-      "type": "item_ready",
-      "title": "🍽️ Menu Siap Saji: Meja #1",
-      "message": "1x Parmesan Truffle Fries untuk Meja #1 siap diantar!",
-      "tableNumber": 1,
-      "orderId": "ORD-101",
-      "orderNumber": "#NDR-101",
-      "itemId": "item-101-2",
-      "itemName": "Parmesan Truffle Fries",
-      "quantity": 1,
-      "station": "kitchen",
-      "createdAt": "2026-09-23T02:41:04.014Z",
-      "read": false,
-      "served": false
-    },
-    {
-      "id": "notif-init-1",
-      "type": "item_ready",
-      "title": "🍽️ Minuman Siap Saji",
-      "message": "2x Es Kopi Susu Aren Nadira untuk Meja #1 siap disajikan!",
-      "tableNumber": 1,
-      "orderId": "ORD-101",
-      "orderNumber": "#NDR-101",
-      "itemId": "item-101-1",
-      "itemName": "Es Kopi Susu Aren Nadira",
-      "quantity": 2,
-      "station": "bar",
-      "createdAt": "2026-09-23T02:26:19.513Z",
-      "read": false,
-      "served": false
-    },
-    {
-      "id": "notif-init-2",
-      "type": "order_delay_warning",
-      "title": "⚠️ Pengingat: Mendekati 15 Menit",
-      "message": "Pesanan #NDR-101 (Meja #1) sudah 14 menit belum selesai diracik!",
-      "tableNumber": 1,
-      "orderId": "ORD-101",
-      "orderNumber": "#NDR-101",
-      "createdAt": "2026-09-23T02:27:19.513Z",
-      "read": false
-    },
-    {
-      "id": "notif-init-3",
-      "type": "item_ready",
-      "title": "🍽️ Makanan Siap Saji",
-      "message": "2x Nasi Goreng Kampoeng Wagyu untuk Meja #3 siap disajikan!",
-      "tableNumber": 3,
-      "orderId": "ORD-102",
-      "orderNumber": "#NDR-102",
-      "itemId": "item-102-1",
-      "itemName": "Nasi Goreng Kampoeng Wagyu",
-      "quantity": 2,
-      "station": "kitchen",
-      "createdAt": "2026-09-23T02:21:19.513Z",
-      "read": true,
-      "served": true
-    }
-  ],
+  "notifications": [],
   "expenses": [
     {
       "id": "exp-1",
@@ -1815,5 +1732,5 @@
       "notes": "Tagihan wifi bulanan kafe"
     }
   ],
-  "version": 15
+  "version": 61
 }
