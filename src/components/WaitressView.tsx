@@ -33,6 +33,7 @@ import {
   Smartphone,
   List,
   Grid,
+  Grid3X3,
   ShoppingBag,
   ChevronDown,
   Link2,
@@ -129,9 +130,14 @@ export const WaitressView: React.FC = () => {
     }
   }, [currentDefaultWaitressName, availableWaitresses]);
 
-  // Mobile-first catalog browsing preferences
+  // Mobile-first catalog browsing preferences (3 view modes: Grid View, List View, Tiles View)
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [menuLayoutMode, setMenuLayoutMode] = useState<'cards' | 'list'>('cards');
+  const [menuLayoutMode, setMenuLayoutMode] = useState<'grid' | 'list' | 'tiles'>(() => {
+    const saved = localStorage.getItem('nadira_menu_view_mode');
+    if (saved === 'grid' || saved === 'list' || saved === 'tiles') return saved;
+    if (saved === 'cards') return 'grid';
+    return 'grid';
+  });
   const [isLargeTouchMode, setIsLargeTouchMode] = useState<boolean>(true);
   const [isCartReviewOpen, setIsCartReviewOpen] = useState<boolean>(false);
 
@@ -1149,31 +1155,55 @@ export const WaitressView: React.FC = () => {
                   <span className="xs:hidden">Besar</span>
                 </button>
 
-                {/* View Mode: Card Grid vs Wide List */}
-                <div className="hidden sm:flex items-center bg-[#3F2B1B] p-0.5 rounded-xl border border-[#5A3E26]">
+                {/* 3 View Modes: Grid View, List View, Tiles View */}
+                <div className="flex items-center bg-[#3F2B1B] p-0.5 rounded-xl border border-[#5A3E26] shadow-xs">
                   <button
                     type="button"
-                    onClick={() => setMenuLayoutMode('cards')}
-                    className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      menuLayoutMode === 'cards'
-                        ? 'bg-[#7D4F27] text-white'
+                    onClick={() => {
+                      setMenuLayoutMode('grid');
+                      localStorage.setItem('nadira_menu_view_mode', 'grid');
+                    }}
+                    className={`px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      menuLayoutMode === 'grid'
+                        ? 'bg-[#7D4F27] text-white shadow-xs'
                         : 'text-[#B89F88] hover:text-white'
                     }`}
-                    title="Tampilan Kartu Visual"
+                    title="1. Grid View (Tampilan Kartu Visual)"
                   >
-                    <Grid className="w-4 h-4" />
+                    <Grid className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Grid View</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => setMenuLayoutMode('list')}
-                    className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    onClick={() => {
+                      setMenuLayoutMode('list');
+                      localStorage.setItem('nadira_menu_view_mode', 'list');
+                    }}
+                    className={`px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                       menuLayoutMode === 'list'
-                        ? 'bg-[#7D4F27] text-white'
+                        ? 'bg-[#7D4F27] text-white shadow-xs'
                         : 'text-[#B89F88] hover:text-white'
                     }`}
-                    title="Tampilan Daftar Lebar"
+                    title="2. List View (Tampilan Daftar Baris)"
                   >
-                    <List className="w-4 h-4" />
+                    <List className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">List View</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuLayoutMode('tiles');
+                      localStorage.setItem('nadira_menu_view_mode', 'tiles');
+                    }}
+                    className={`px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      menuLayoutMode === 'tiles'
+                        ? 'bg-[#7D4F27] text-white shadow-xs'
+                        : 'text-[#B89F88] hover:text-white'
+                    }`}
+                    title="3. Tiles View (Tampilan Ubin Cepat POS)"
+                  >
+                    <Grid3X3 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Tiles View</span>
                   </button>
                 </div>
 
@@ -1336,7 +1366,7 @@ export const WaitressView: React.FC = () => {
                   </button>
                 </div>
               ) : menuLayoutMode === 'list' ? (
-                /* WIDE TOUCH LIST VIEW */
+                /* 2. LIST VIEW (WIDE TOUCH LIST VIEW) */
                 <div className="space-y-2.5">
                   {filteredCatalog.map((item) => {
                     const draftQty = getDraftCountForItem(item.id);
@@ -1453,8 +1483,148 @@ export const WaitressView: React.FC = () => {
                     );
                   })}
                 </div>
+              ) : menuLayoutMode === 'tiles' ? (
+                /* 3. TILES VIEW (COMPACT POS SPEED TILES) */
+                <div className={`grid gap-2 sm:gap-3 ${
+                  isLargeTouchMode 
+                    ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5' 
+                    : 'grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6'
+                }`}>
+                  {filteredCatalog.map((item) => {
+                    const draftQty = getDraftCountForItem(item.id);
+                    const isImgBroken = brokenImages[item.id];
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={`rounded-xl border transition-all flex flex-col justify-between overflow-hidden shadow-2xs group ${
+                          item.inStock
+                            ? draftQty > 0
+                              ? 'bg-amber-50/70 border-[#7D4F27] ring-2 ring-[#7D4F27]/30 shadow-xs'
+                              : 'bg-white border-[#E3D3C4] hover:border-[#7D4F27] hover:shadow-xs'
+                            : 'bg-stone-100 border-stone-200 opacity-60'
+                        }`}
+                      >
+                        {/* Compact Tile Thumbnail / Banner */}
+                        <div
+                          onClick={() => item.inStock && handleStartCustomize(item)}
+                          className="relative w-full h-24 xs:h-28 sm:h-32 bg-stone-200 overflow-hidden cursor-pointer"
+                        >
+                          {!isImgBroken && item.image ? (
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              onError={() => setBrokenImages((prev) => ({ ...prev, [item.id]: true }))}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-3xl bg-gradient-to-br from-[#FAEDCD] to-[#D4A373]">
+                              {item.category === 'Kopi' ? '☕' : item.category === 'Non-Kopi' ? '🥤' : '🍽️'}
+                            </div>
+                          )}
+
+                          {/* Subtle Bottom Gradient */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
+
+                          {/* Station Badge */}
+                          <div className="absolute top-1.5 left-1.5">
+                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-black/60 text-white backdrop-blur-xs">
+                              {item.station}
+                            </span>
+                          </div>
+
+                          {/* Draft count badge */}
+                          {draftQty > 0 && (
+                            <div className="absolute top-1.5 right-1.5 bg-emerald-600 text-white text-[11px] font-black px-1.5 py-0.5 rounded-md shadow-xs flex items-center gap-0.5">
+                              <Check className="w-3 h-3" />
+                              <span>{draftQty}x</span>
+                            </div>
+                          )}
+
+                          {/* Prep Time */}
+                          <div className="absolute bottom-1.5 right-1.5 text-[10px] text-white/90 font-medium drop-shadow-sm flex items-center gap-0.5">
+                            <Clock className="w-2.5 h-2.5" /> {item.prepTimeMinutes}m
+                          </div>
+                        </div>
+
+                        {/* Tile Information */}
+                        <div className="p-2 sm:p-2.5 flex-1 flex flex-col justify-between gap-1.5">
+                          <div>
+                            <h4 className="font-bold text-xs sm:text-sm text-[#2C1D11] leading-tight line-clamp-2 min-h-[2rem]" title={item.name}>
+                              {item.name}
+                            </h4>
+                            <div className="mt-1 flex items-baseline justify-between gap-1">
+                              <span className="text-xs sm:text-sm font-black text-[#7D4F27]">
+                                {formatRupiah(item.price)}
+                              </span>
+                              {item.hasLargePortion && (
+                                <span className="text-[9px] font-semibold text-stone-500">
+                                  Reg/Lrg
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Tile Action Bar */}
+                          <div className="pt-1.5 border-t border-[#F0E4D8]">
+                            {item.inStock ? (
+                              draftQty > 0 ? (
+                                <div className="flex items-center justify-between bg-[#FAF6F2] p-0.5 rounded-lg border border-[#E3D3C4]">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickDecrement(item)}
+                                    className="w-7 h-7 rounded bg-white border border-[#E3D3C4] flex items-center justify-center font-black text-sm text-stone-700 active:scale-90 cursor-pointer shadow-2xs"
+                                    title="Kurangi"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="text-xs font-black text-[#7D4F27]">
+                                    {draftQty}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickAdd(item)}
+                                    className="w-7 h-7 rounded bg-[#7D4F27] text-white flex items-center justify-center font-black text-sm active:scale-90 cursor-pointer shadow-2xs"
+                                    title="Tambah"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleStartCustomize(item)}
+                                    className="h-7 w-7 rounded-lg border border-[#D4A373] bg-[#FAF6F2] hover:bg-[#F3EBE3] text-[#7D4F27] flex items-center justify-center cursor-pointer active:scale-90 shrink-0"
+                                    title="Kustomisasi Porsi, Gula, Es"
+                                  >
+                                    <SlidersHorizontal className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleQuickAdd(item)}
+                                    className="h-7 flex-1 rounded-lg bg-[#7D4F27] hover:bg-[#633C1B] text-white text-xs font-bold flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+                                    title="Tambah Cepat"
+                                  >
+                                    <Plus className="w-3 h-3" />
+                                    <span>Pilih</span>
+                                  </button>
+                                </div>
+                              )
+                            ) : (
+                              <div className="py-1 text-center rounded bg-stone-100 text-stone-500 font-bold text-[10px]">
+                                Habis
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               ) : (
-                /* LARGE CARDS GRID VIEW (BEST FOR MOBILE PHONES) */
+                /* 1. GRID VIEW (LARGE CARDS GRID VIEW - BEST FOR BROWSING) */
                 <div className={`grid gap-3 sm:gap-4 ${
                   isLargeTouchMode 
                     ? 'grid-cols-1 xs:grid-cols-2 lg:grid-cols-3' 
