@@ -241,18 +241,23 @@ app.post('/api/action', (req, res) => {
 
       state.activeOrders = [newOrder, ...state.activeOrders.filter((o) => o.id !== newOrder.id)];
 
-      // Update table
+      // Update tables (support multiple joined tables)
+      const allTableNums = newOrder.joinedTableNumbers && newOrder.joinedTableNumbers.length > 0
+        ? Array.from(new Set(newOrder.joinedTableNumbers))
+        : [newOrder.tableNumber];
+
       state.tables = state.tables.map((t) =>
-        t.number === newOrder.tableNumber
-          ? { ...t, status: 'occupied', currentOrderId: newOrder.id }
+        allTableNums.includes(t.number)
+          ? { ...t, status: 'occupied', currentOrderId: newOrder.id, joinedWith: allTableNums.length > 1 ? allTableNums : undefined }
           : t
       );
 
       // Notification for Kitchen & Bar
+      const tableLabel = allTableNums.length > 1 ? allTableNums.map(n => `#${n}`).join('+') : `#${newOrder.tableNumber}`;
       const notif: CafeNotification = payload.notification || {
         id: `notif-new-${Date.now()}-${newOrder.id}`,
         type: 'new_order',
-        title: `📝 Pesanan Baru: Meja #${newOrder.tableNumber}`,
+        title: `📝 Pesanan Baru: Meja ${tableLabel}`,
         message: `Pesanan ${newOrder.orderNumber} (${newOrder.customerName}) berisi ${newOrder.items.length} menu siap diproses di Dapur/Bar.`,
         tableNumber: newOrder.tableNumber,
         orderId: newOrder.id,
@@ -264,6 +269,30 @@ app.post('/api/action', (req, res) => {
 
       eventType = 'order_created';
       eventPayload = { order: newOrder, notification: notif };
+      break;
+    }
+
+    case 'join_tables_to_order': {
+      const { orderId, tableNumbers } = payload;
+      const targetOrder = state.activeOrders.find((o) => o.id === orderId);
+      if (targetOrder && Array.isArray(tableNumbers)) {
+        const uniqueTables = Array.from(new Set([targetOrder.tableNumber, ...tableNumbers])).sort((a, b) => a - b);
+        targetOrder.joinedTableNumbers = uniqueTables;
+        targetOrder.updatedAt = new Date().toISOString();
+
+        state.tables = state.tables.map((t) => {
+          if (uniqueTables.includes(t.number)) {
+            return { ...t, status: 'occupied', currentOrderId: orderId, joinedWith: uniqueTables.length > 1 ? uniqueTables : undefined };
+          }
+          if (t.currentOrderId === orderId && !uniqueTables.includes(t.number)) {
+            return { ...t, status: 'available', currentOrderId: undefined, joinedWith: undefined };
+          }
+          return t;
+        });
+
+        eventType = 'tables_joined_to_order';
+        eventPayload = { orderId, order: targetOrder, joinedTableNumbers: uniqueTables, tables: state.tables };
+      }
       break;
     }
 
@@ -626,8 +655,12 @@ app.post('/api/action', (req, res) => {
       const order = state.activeOrders.find((o) => o.id === orderId);
       if (order) {
         state.activeOrders = state.activeOrders.filter((o) => o.id !== orderId);
+        const affectedTables = order.joinedTableNumbers && order.joinedTableNumbers.length > 0
+          ? order.joinedTableNumbers
+          : [order.tableNumber];
+
         state.tables = state.tables.map((t) =>
-          t.number === order.tableNumber ? { ...t, status: 'available', currentOrderId: undefined } : t
+          affectedTables.includes(t.number) ? { ...t, status: 'available', currentOrderId: undefined, joinedWith: undefined } : t
         );
 
         const notif: CafeNotification = {
@@ -668,8 +701,12 @@ app.post('/api/action', (req, res) => {
         state.activeOrders = state.activeOrders.filter((o) => o.id !== orderId);
         state.completedOrders.unshift(paidOrder);
 
+        const affectedTables = order.joinedTableNumbers && order.joinedTableNumbers.length > 0
+          ? order.joinedTableNumbers
+          : [order.tableNumber];
+
         state.tables = state.tables.map((t) =>
-          t.number === order.tableNumber ? { ...t, status: 'available', currentOrderId: undefined } : t
+          affectedTables.includes(t.number) ? { ...t, status: 'available', currentOrderId: undefined, joinedWith: undefined } : t
         );
 
         const notif: CafeNotification = {

@@ -130,6 +130,7 @@ export interface Order {
   id: string;
   orderNumber: string;
   tableNumber: number;
+  joinedTableNumbers?: number[]; // Daftar nomor meja jika pengunjung menggabungkan meja (misal: [4, 5])
   customerName: string;
   items: OrderItem[];
   subtotal: number;
@@ -188,6 +189,7 @@ export interface TableInfo {
   section?: string;
   status: TableStatus;
   currentOrderId?: string;
+  joinedWith?: number[]; // Nomor meja yang digabung bersama meja ini
 }
 
 export type ExpenseCategory = 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useCafe } from '../context/CafeContext';
 import { Order, PaymentMethod } from '../types';
-import { formatRupiah, formatFullDateTime, formatShortTime } from '../utils/formatters';
+import { formatRupiah, formatFullDateTime, formatShortTime, formatTableDisplay } from '../utils/formatters';
 import { 
   ReceiptText, 
   CreditCard, 
@@ -14,7 +14,8 @@ import {
   X, 
   Share2, 
   Coffee,
-  ArrowRight
+  ArrowRight,
+  Link2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { NadiraLogo } from './NadiraLogo';
@@ -42,11 +43,16 @@ export const CashierView: React.FC = () => {
   const unpaidOrders = activeOrders.filter((o) => o.paymentStatus === 'unpaid');
   const paidOrders = completedOrders.filter((o) => o.paymentStatus === 'paid');
 
-  const displayedOrders = (activeTab === 'unpaid' ? unpaidOrders : paidOrders).filter((o) =>
-    o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    o.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    o.tableNumber.toString().includes(searchQuery)
-  );
+  const displayedOrders = (activeTab === 'unpaid' ? unpaidOrders : paidOrders).filter((o) => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
+    const matchOrder = o.orderNumber.toLowerCase().includes(q);
+    const matchCust = o.customerName.toLowerCase().includes(q);
+    const allTables = o.joinedTableNumbers && o.joinedTableNumbers.length > 0 ? o.joinedTableNumbers : [o.tableNumber];
+    const matchTable = allTables.some(t => t.toString().includes(q.replace('#', '')) || `meja ${t}`.includes(q)) ||
+      formatTableDisplay(o).toLowerCase().includes(q);
+    return matchOrder || matchCust || matchTable;
+  });
 
   const selectedOrder = activeOrders.find((o) => o.id === selectedOrderId) || 
     completedOrders.find((o) => o.id === selectedOrderId) ||
@@ -195,13 +201,19 @@ export const CashierView: React.FC = () => {
                   >
                     <div className="flex items-start justify-between">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-extrabold text-sm text-[#2C1D11]">
-                            Meja #{order.tableNumber}
+                            {formatTableDisplay(order)}
                           </span>
                           <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-[#FBF8F5] border border-[#E3D3C4] text-[#7A614D]">
                             {order.orderNumber}
                           </span>
+                          {order.joinedTableNumbers && order.joinedTableNumbers.length > 1 && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-[#FAEDCD] text-[#7D4F27] border border-[#D4A373] flex items-center gap-0.5">
+                              <Link2 className="w-2.5 h-2.5" />
+                              <span>{order.joinedTableNumbers.length} Meja</span>
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs text-[#6E4F36] mt-0.5 font-medium">
                           {order.customerName} • {order.items.length} Menu
@@ -291,7 +303,7 @@ export const CashierView: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-xs text-[#7A614D] mt-0.5">
-                    Meja #{selectedOrder.tableNumber} • Tamu: {selectedOrder.customerName} • Waitress: {selectedOrder.waitressName || '-'}
+                    {formatTableDisplay(selectedOrder)} • Tamu: {selectedOrder.customerName} • Waitress: {selectedOrder.waitressName || '-'}
                   </p>
                 </div>
 
@@ -445,7 +457,7 @@ export const CashierView: React.FC = () => {
               <div>
                 <h3 className="font-bold text-base">Proses Pembayaran</h3>
                 <p className="text-xs text-[#C4AD99]">
-                  {selectedOrder.orderNumber} • Meja #{selectedOrder.tableNumber} • {formatRupiah(selectedOrder.total)}
+                  {selectedOrder.orderNumber} • {formatTableDisplay(selectedOrder)} • {formatRupiah(selectedOrder.total)}
                 </p>
               </div>
               <button
@@ -690,7 +702,7 @@ export const CashierView: React.FC = () => {
                 <div className="border-b border-dashed border-black py-1.5 text-[10px] space-y-0.5">
                   <div className="flex justify-between">
                     <span>No: {receiptOrder.orderNumber}</span>
-                    <span>Meja: #{receiptOrder.tableNumber}</span>
+                    <span>{formatTableDisplay(receiptOrder)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Tgl: {formatShortTime(receiptOrder.updatedAt)}</span>

@@ -530,10 +530,23 @@ export const OwnerDashboardView: React.FC = () => {
   };
 
   const handleSaveUser = () => {
+    const formattedUsername = userForm.username.trim().toLowerCase();
+    const defaultAvatar = userForm.role === 'owner' ? '👑' : userForm.role === 'cashier' ? '💳' : userForm.role === 'barista' ? '☕' : userForm.role === 'chef' ? '👨‍🍳' : '🛎️';
+    const finalForm: Omit<UserAccount, 'id'> = {
+      name: userForm.name.trim(),
+      username: formattedUsername,
+      role: userForm.role,
+      pin: userForm.pin.trim(),
+      email: userForm.email?.trim() || `${formattedUsername || 'staf'}@nadiracafe.id`,
+      phone: userForm.phone?.trim() || '',
+      active: userForm.active,
+      avatar: userForm.avatar || defaultAvatar,
+    };
+
     if (editingUserId) {
-      updateUser(editingUserId, userForm);
+      updateUser(editingUserId, finalForm);
     } else {
-      addUser(userForm);
+      addUser(finalForm);
     }
     setIsUserModalOpen(false);
   };

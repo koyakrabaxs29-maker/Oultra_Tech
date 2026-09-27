@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useCafe } from '../context/CafeContext';
 import { Order, OrderStatus } from '../types';
-import { formatRupiah, formatShortTime, getElapsedMinutes } from '../utils/formatters';
+import { formatRupiah, formatShortTime, getElapsedMinutes, formatTableDisplay } from '../utils/formatters';
 import { 
   UtensilsCrossed, 
   Coffee, 
@@ -21,7 +21,8 @@ import {
   RotateCcw,
   Soup,
   Timer,
-  Trash2
+  Trash2,
+  Link2
 } from 'lucide-react';
 
 interface OrdersListViewProps {
@@ -85,7 +86,11 @@ export const OrdersListView: React.FC<OrdersListViewProps> = ({
       const q = searchQuery.trim().toLowerCase();
       const matchNumber = order.orderNumber.toLowerCase().includes(q);
       const matchCustomer = order.customerName.toLowerCase().includes(q);
-      const matchTable = `meja ${order.tableNumber}`.includes(q) || order.tableNumber.toString() === q.replace('#', '');
+      const allTables = order.joinedTableNumbers && order.joinedTableNumbers.length > 0
+        ? order.joinedTableNumbers
+        : [order.tableNumber];
+      const matchTable = allTables.some(t => `meja ${t}`.includes(q) || t.toString() === q.replace('#', '')) ||
+        formatTableDisplay(order).toLowerCase().includes(q);
       const matchItem = order.items.some((it) => it.name.toLowerCase().includes(q));
       if (!matchNumber && !matchCustomer && !matchTable && !matchItem) return false;
     }
@@ -315,7 +320,10 @@ export const OrdersListView: React.FC<OrdersListViewProps> = ({
                   <div className="flex flex-wrap items-center gap-2.5">
                     {/* Table Pill */}
                     <span className="px-3 py-1 rounded-xl bg-[#7D4F27] text-white text-xs font-black tracking-wide shadow-xs flex items-center gap-1.5">
-                      <span>MEJA #{order.tableNumber}</span>
+                      {order.joinedTableNumbers && order.joinedTableNumbers.length > 1 && (
+                        <Link2 className="w-3.5 h-3.5 text-amber-300" />
+                      )}
+                      <span>{formatTableDisplay(order).toUpperCase()}</span>
                     </span>
 
                     {/* Order Number */}

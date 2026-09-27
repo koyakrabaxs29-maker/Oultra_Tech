@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useCafe } from '../context/CafeContext';
 import { 
   TableInfo, 
@@ -10,7 +10,7 @@ import {
   SpicyLevel,
   DEFAULT_CATEGORY_ADDONS
 } from '../types';
-import { formatRupiah, formatShortTime, getElapsedMinutes } from '../utils/formatters';
+import { formatRupiah, formatShortTime, getElapsedMinutes, formatTableDisplay } from '../utils/formatters';
 import { 
   UtensilsCrossed, 
   Plus, 
@@ -34,7 +34,12 @@ import {
   List,
   Grid,
   ShoppingBag,
-  ChevronDown
+  ChevronDown,
+  Link2,
+  Unlink,
+  Users,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import { OrdersListView } from './OrdersListView';
 
@@ -57,6 +62,8 @@ export const WaitressView: React.FC = () => {
     activeOrders, 
     menuItems, 
     createOrder, 
+    joinTablesToOrder,
+    unjoinTableFromOrder,
     addItemsToOrder, 
     cancelOrder,
     markItemServed,
@@ -64,7 +71,9 @@ export const WaitressView: React.FC = () => {
     markAllOrderItemsServed,
     markOrderServed,
     markOrderCompleted,
-    addTable
+    addTable,
+    users,
+    currentUser
   } = useCafe();
 
   const [viewMode, setViewMode] = useState<'tables' | 'orders'>('tables');
@@ -77,17 +86,45 @@ export const WaitressView: React.FC = () => {
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
 
+  // Multi-table selection state for new order (to handle visitors joining tables)
+  const [selectedTableNumbers, setSelectedTableNumbers] = useState<number[]>([1]);
+  const [isTablePickerModalOpen, setIsTablePickerModalOpen] = useState(false);
+
+  // Manage table joining for active order state
+  const [isManageJoinedModalOpen, setIsManageJoinedModalOpen] = useState(false);
+  const [manageJoinSelectedNumbers, setManageJoinSelectedNumbers] = useState<number[]>([]);
+
   // Add Table / Overflow modal state
   const [isAddTableModalOpen, setIsAddTableModalOpen] = useState(false);
   const [newTableNum, setNewTableNum] = useState<number>(31);
   const [newTableCap, setNewTableCap] = useState<number>(4);
   const [newTableSec, setNewTableSec] = useState<string>('Meja Cadangan / Overflow');
 
+  // Dynamic available waitresses and default waitress name from synced database
+  const availableWaitresses = useMemo(() => {
+    return users.filter((u) => u.active && (u.role === 'waitress' || u.role === 'cashier' || u.role === 'owner'));
+  }, [users]);
+
+  const currentDefaultWaitressName = useMemo(() => {
+    if (currentUser && currentUser.active) {
+      if (currentUser.role === 'waitress') return currentUser.name;
+      const firstWaitress = users.find((u) => u.role === 'waitress' && u.active);
+      return firstWaitress ? firstWaitress.name : currentUser.name;
+    }
+    const firstWaitress = users.find((u) => u.role === 'waitress' && u.active);
+    return firstWaitress ? firstWaitress.name : (users[0]?.name || 'Waitress');
+  }, [currentUser, users]);
+
   // Order creation/addition state
   const [customerNameInput, setCustomerNameInput] = useState('');
-  const [waitressNameInput, setWaitressNameInput] = useState('Siti Rahma');
+  const [waitressNameInput, setWaitressNameInput] = useState<string>(currentDefaultWaitressName);
   const [pickedDrafts, setPickedDrafts] = useState<PickedDraftItem[]>([]);
   const [searchMenuQuery, setSearchMenuQuery] = useState('');
+
+  // Automatically synchronize waitressNameInput with database changes or active user changes
+  useEffect(() => {
+    setWaitressNameInput(currentDefaultWaitressName);
+  }, [currentDefaultWaitressName]);
 
   // Mobile-first catalog browsing preferences
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -108,10 +145,18 @@ export const WaitressView: React.FC = () => {
   // Image loading errors tracker to gracefully show icon fallback
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
 
-  // Find active order for selected table
-  const activeOrderForTable = selectedTable?.currentOrderId
-    ? activeOrders.find((o) => o.id === selectedTable.currentOrderId)
-    : activeOrders.find((o) => o.tableNumber === selectedTable?.number && o.paymentStatus === 'unpaid');
+  // Find active order for selected table (supports single and combined/joined tables)
+  const activeOrderForTable = useMemo(() => {
+    if (!selectedTable) return null;
+    if (selectedTable.currentOrderId) {
+      return activeOrders.find((o) => o.id === selectedTable.currentOrderId && o.paymentStatus === 'unpaid') || null;
+    }
+    return activeOrders.find(
+      (o) =>
+        (o.tableNumber === selectedTable.number || (o.joinedTableNumbers && o.joinedTableNumbers.includes(selectedTable.number))) &&
+        o.paymentStatus === 'unpaid'
+    ) || null;
+  }, [selectedTable, activeOrders]);
 
   const occupiedCount = tables.filter((t) => t.status !== 'available').length;
   const availableCount = tables.filter((t) => t.status === 'available').length;
@@ -280,8 +325,13 @@ export const WaitressView: React.FC = () => {
     );
   };
 
-  const handleOpenNewOrder = (table: TableInfo) => {
-    setSelectedTable(table);
+  const handleOpenNewOrder = (table?: TableInfo | null, initialTableList?: number[]) => {
+    const tbl = table || tables.find((t) => t.status === 'available') || tables[0];
+    setSelectedTable(tbl);
+    const initialList = initialTableList && initialTableList.length > 0
+      ? Array.from(new Set(initialTableList)).sort((a, b) => a - b)
+      : tbl ? [tbl.number] : [1];
+    setSelectedTableNumbers(initialList);
     setCustomerNameInput('');
     setPickedDrafts([]);
     setSearchMenuQuery('');
@@ -313,16 +363,19 @@ export const WaitressView: React.FC = () => {
     }));
   };
 
-  // Submit brand new order
+  // Submit brand new order (with support for combined tables)
   const handleSaveNewOrder = () => {
-    const table = selectedTable || tables.find((t) => t.status === 'available') || tables[0];
+    const primaryTableNum = selectedTableNumbers[0] || selectedTable?.number || 1;
+    const table = tables.find((t) => t.number === primaryTableNum) || selectedTable || tables[0];
     if (!table || pickedDrafts.length === 0) return;
 
     const orderItems = buildOrderItems();
+    const joinedList = selectedTableNumbers.length > 1 ? selectedTableNumbers : undefined;
 
     createOrder({
-      tableNumber: table.number,
-      customerName: customerNameInput.trim() || `Tamu Meja #${table.number}`,
+      tableNumber: primaryTableNum,
+      joinedTableNumbers: joinedList,
+      customerName: customerNameInput.trim() || `Tamu ${formatTableDisplay({ tableNumber: primaryTableNum, joinedTableNumbers: joinedList }, true)}`,
       items: orderItems,
       waitressName: waitressNameInput,
     });
@@ -330,7 +383,27 @@ export const WaitressView: React.FC = () => {
     setIsNewOrderModalOpen(false);
     setIsCartReviewOpen(false);
     setSelectedTable(null);
+    setSelectedTableNumbers([1]);
     setPickedDrafts([]);
+  };
+
+  // Open manage joined tables modal for an active order
+  const handleOpenManageJoinModal = () => {
+    if (!activeOrderForTable) return;
+    const currentJoined = activeOrderForTable.joinedTableNumbers && activeOrderForTable.joinedTableNumbers.length > 0
+      ? activeOrderForTable.joinedTableNumbers
+      : [activeOrderForTable.tableNumber];
+    setManageJoinSelectedNumbers(currentJoined);
+    setIsManageJoinedModalOpen(true);
+  };
+
+  // Save changes to joined tables on active order
+  const handleSaveManageJoin = () => {
+    if (!activeOrderForTable) return;
+    if (manageJoinSelectedNumbers.length === 0) return;
+
+    joinTablesToOrder(activeOrderForTable.id, manageJoinSelectedNumbers);
+    setIsManageJoinedModalOpen(false);
   };
 
   // Submit additional items to existing table order
@@ -556,9 +629,13 @@ export const WaitressView: React.FC = () => {
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2.5 sm:gap-3">
               {filteredTables.map((table) => {
                 const tableOrder = activeOrders.find(
-                  (o) => o.tableNumber === table.number && o.paymentStatus === 'unpaid'
+                  (o) =>
+                    (o.tableNumber === table.number || (o.joinedTableNumbers && o.joinedTableNumbers.includes(table.number))) &&
+                    o.paymentStatus === 'unpaid'
                 );
                 const isOccupied = !!tableOrder;
+                const isJoined = !!tableOrder?.joinedTableNumbers && tableOrder.joinedTableNumbers.length > 1;
+                const otherJoined = isJoined ? tableOrder!.joinedTableNumbers!.filter((n) => n !== table.number) : [];
                 const elapsed = tableOrder ? getElapsedMinutes(tableOrder.createdAt) : 0;
 
                 return (
@@ -573,23 +650,42 @@ export const WaitressView: React.FC = () => {
                         handleOpenNewOrder(table);
                       }
                     }}
-                    className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between min-h-[125px] sm:min-h-[135px] active:scale-[0.98] ${
+                    className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between min-h-[125px] sm:min-h-[140px] active:scale-[0.98] ${
                       isOccupied
-                        ? 'bg-white border-[#D4A373] shadow-md hover:border-[#7D4F27]'
+                        ? isJoined
+                          ? 'bg-[#FFF9F3] border-[#B87A44] shadow-md ring-1 ring-[#D4A373]/50 hover:border-[#7D4F27]'
+                          : 'bg-white border-[#D4A373] shadow-md hover:border-[#7D4F27]'
                         : 'bg-[#FBF8F5] border-[#E3D3C4] hover:bg-white hover:border-[#A8713D]'
                     } ${selectedTable?.number === table.number ? 'ring-2 ring-[#7D4F27]' : ''}`}
                   >
                     <div>
                       <div className="flex items-center justify-between">
-                        <span className="text-base sm:text-lg font-extrabold text-[#2C1D11]">
-                          Meja #{table.number}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-base sm:text-lg font-extrabold text-[#2C1D11]">
+                            Meja #{table.number}
+                          </span>
+                          {isJoined && (
+                            <span title={`Digabung bersama Meja ${otherJoined.map(n => `#${n}`).join(', ')}`} className="text-[#8B4513] bg-[#F4DECD] p-0.5 rounded">
+                              <Link2 className="w-3 h-3" />
+                            </span>
+                          )}
+                        </div>
                         <span
                           className={`w-3 h-3 rounded-full ${
                             isOccupied ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'
                           }`}
                         />
                       </div>
+
+                      {/* Joined Table Badge */}
+                      {isJoined && (
+                        <div className="mt-1">
+                          <span className="text-[10px] font-extrabold bg-[#7D4F27] text-white px-1.5 py-0.5 rounded-md flex items-center gap-1 truncate">
+                            <Link2 className="w-2.5 h-2.5 shrink-0" />
+                            <span className="truncate">Gabung #{otherJoined.join(', #')}</span>
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {isOccupied && tableOrder ? (
@@ -663,11 +759,23 @@ export const WaitressView: React.FC = () => {
                     #{selectedTable.number}
                   </div>
                   <div>
-                    <h3 className="font-display text-lg font-bold text-[#2C1D11]">
-                      Meja #{selectedTable.number} ({selectedTable.section})
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-display text-lg font-bold text-[#2C1D11]">
+                        {activeOrderForTable ? formatTableDisplay(activeOrderForTable) : `Meja #${selectedTable.number} (${selectedTable.section})`}
+                      </h3>
+                      {activeOrderForTable?.joinedTableNumbers && activeOrderForTable.joinedTableNumbers.length > 1 && (
+                        <span className="px-2.5 py-0.5 rounded-full bg-[#7D4F27] text-white text-[11px] font-black flex items-center gap-1 shadow-2xs">
+                          <Link2 className="w-3 h-3" />
+                          <span>Digabung {activeOrderForTable.joinedTableNumbers.length} Meja</span>
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-[#7A614D]">
-                      Kapasitas: {selectedTable.capacity} Tamu • Status:{' '}
+                      Kapasitas Kursi: {
+                        activeOrderForTable?.joinedTableNumbers && activeOrderForTable.joinedTableNumbers.length > 1
+                          ? activeOrderForTable.joinedTableNumbers.reduce((sum, n) => sum + (tables.find(t => t.number === n)?.capacity || 4), 0)
+                          : selectedTable.capacity
+                      } Tamu • Status:{' '}
                       <strong className={activeOrderForTable ? 'text-amber-700' : 'text-emerald-700'}>
                         {activeOrderForTable ? 'Sedang Terisi' : 'Kosong (Siap Ditempati)'}
                       </strong>
@@ -675,12 +783,24 @@ export const WaitressView: React.FC = () => {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setSelectedTable(null)}
-                  className="self-end sm:self-center p-2 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2 self-end sm:self-center">
+                  {activeOrderForTable && (
+                    <button
+                      onClick={handleOpenManageJoinModal}
+                      className="px-3 py-1.5 rounded-xl bg-[#FAF0E6] hover:bg-[#F3E2D0] border border-[#D4A373] text-[#7D4F27] text-xs font-extrabold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all active:scale-95"
+                      title="Tambah meja yang digabung atau lepas meja"
+                    >
+                      <Link2 className="w-3.5 h-3.5" />
+                      <span>Kelola Gabung Meja</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setSelectedTable(null)}
+                    className="p-2 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               {/* If Table has active order */}
@@ -979,18 +1099,28 @@ export const WaitressView: React.FC = () => {
             <div className="p-3.5 sm:p-4 bg-[#2C1D11] text-[#FFF5EA] shrink-0 flex items-center justify-between border-b border-[#4A321F]">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-xl bg-[#A8713D] text-white flex items-center justify-center font-black text-sm sm:text-base shrink-0 shadow-xs">
-                  #{selectedTable?.number || 1}
+                  {isNewOrderModalOpen 
+                    ? (selectedTableNumbers.length > 1 ? `+${selectedTableNumbers.length}` : `#${selectedTableNumbers[0] || selectedTable?.number || 1}`) 
+                    : `#${selectedTable?.number || 1}`}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-sm sm:text-base leading-tight">
                       {isNewOrderModalOpen 
-                        ? `Pesanan Baru - Meja #${selectedTable?.number || 1}` 
+                        ? (selectedTableNumbers.length > 1 
+                            ? `Pesanan Baru - Meja ${selectedTableNumbers.map(n => `#${n}`).join(' + ')}` 
+                            : `Pesanan Baru - Meja #${selectedTableNumbers[0] || selectedTable?.number || 1}`)
                         : `Tambah Menu - Meja #${selectedTable?.number || 1}`}
                     </h3>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-900/80 text-emerald-200 font-semibold border border-emerald-700/50">
                       POS Waitress
                     </span>
+                    {isNewOrderModalOpen && selectedTableNumbers.length > 1 && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400 text-[#2C1D11] font-extrabold flex items-center gap-1">
+                        <Link2 className="w-2.5 h-2.5" />
+                        <span>Gabung {selectedTableNumbers.length} Meja</span>
+                      </span>
+                    )}
                   </div>
                   <p className="text-[11px] text-[#C4AD99] line-clamp-1">
                     {customerNameInput.trim() ? `Tamu: ${customerNameInput}` : 'Pilih menu makanan & minuman di bawah'}
@@ -1062,25 +1192,39 @@ export const WaitressView: React.FC = () => {
             {/* Quick Guest Name & Table Selector Bar */}
             <div className="p-3 sm:px-5 bg-white border-b border-[#E3D3C4] shrink-0 space-y-2.5">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
-                {/* Table selector dropdown if multiple available */}
+                {/* Multi-Table Selector Button & Quick Join Trigger */}
                 {isNewOrderModalOpen && (
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs font-bold text-[#2C1D11] whitespace-nowrap">Meja:</span>
-                    <select
-                      value={selectedTable?.number || 1}
-                      onChange={(e) => {
-                        const tblNum = Number(e.target.value);
-                        const found = tables.find((t) => t.number === tblNum);
-                        if (found) setSelectedTable(found);
-                      }}
-                      className="text-xs sm:text-sm font-bold py-2 px-3 rounded-xl border border-[#E3D3C4] bg-[#FAF6F2] text-[#2C1D11] focus:ring-1 focus:ring-[#7D4F27] focus:outline-none"
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <span className="text-xs font-bold text-[#2C1D11] whitespace-nowrap flex items-center gap-1">
+                      <LayoutGrid className="w-3.5 h-3.5 text-[#7D4F27]" /> Meja:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsTablePickerModalOpen(true)}
+                      className="px-3 py-2 rounded-xl border border-[#D4A373] bg-[#FAEDCD] text-[#7D4F27] hover:bg-[#F5DFB5] text-xs font-extrabold flex items-center gap-1.5 shadow-2xs cursor-pointer transition-all active:scale-95"
+                      title="Klik untuk memilih meja atau menggabungkan beberapa meja"
                     >
-                      {tables.map((t) => (
-                        <option key={t.number} value={t.number}>
-                          Meja #{t.number} ({t.status === 'available' ? 'Kosong' : 'Terisi'})
-                        </option>
-                      ))}
-                    </select>
+                      <Link2 className="w-3.5 h-3.5" />
+                      <span>
+                        {selectedTableNumbers.length === 1
+                          ? `Meja #${selectedTableNumbers[0]}`
+                          : selectedTableNumbers.map((n) => `#${n}`).join(' + ')}
+                      </span>
+                      {selectedTableNumbers.length > 1 && (
+                        <span className="bg-[#7D4F27] text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
+                          {selectedTableNumbers.length} Meja
+                        </span>
+                      )}
+                      <span className="text-[11px] font-medium text-[#7D4F27]/80">
+                        (Pilih/Gabung)
+                      </span>
+                      <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+                    </button>
+
+                    {/* Total capacity indicator */}
+                    <span className="text-[11px] text-[#8C705A] font-semibold hidden md:inline">
+                      • Kapasitas: {selectedTableNumbers.reduce((sum, n) => sum + (tables.find(t => t.number === n)?.capacity || 4), 0)} Tamu
+                    </span>
                   </div>
                 )}
 
@@ -1095,15 +1239,36 @@ export const WaitressView: React.FC = () => {
                   />
                 </div>
 
-                {/* Waitress Name Input */}
-                <div className="hidden md:flex items-center gap-1.5 shrink-0">
-                  <span className="text-xs text-stone-500 font-medium">Waitress:</span>
-                  <input
-                    type="text"
-                    value={waitressNameInput}
-                    onChange={(e) => setWaitressNameInput(e.target.value)}
-                    className="text-xs py-2 px-2.5 rounded-xl border border-[#E3D3C4] bg-[#FAF6F2] w-28 text-stone-700"
-                  />
+                {/* Dynamic Waitress / Staff Selector (Synced with Owner database) */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-xs text-stone-500 font-semibold hidden sm:inline">Waitress:</span>
+                  {availableWaitresses.length > 0 ? (
+                    <select
+                      value={waitressNameInput}
+                      onChange={(e) => setWaitressNameInput(e.target.value)}
+                      className="text-xs py-2 px-2.5 rounded-xl border border-[#E3D3C4] bg-[#FAF6F2] font-semibold text-stone-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#7D4F27] max-w-[140px] sm:max-w-[180px] truncate"
+                      title="Pilih Staf Waitress yang melayani pesanan ini"
+                    >
+                      {availableWaitresses.map((usr) => (
+                        <option key={usr.id} value={usr.name}>
+                          {usr.avatar || '🛎️'} {usr.name}
+                        </option>
+                      ))}
+                      {!availableWaitresses.some(u => u.name === waitressNameInput) && (
+                        <option value={waitressNameInput}>
+                          🛎️ {waitressNameInput}
+                        </option>
+                      )}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={waitressNameInput}
+                      onChange={(e) => setWaitressNameInput(e.target.value)}
+                      placeholder="Nama Waitress"
+                      className="text-xs py-2 px-2.5 rounded-xl border border-[#E3D3C4] bg-[#FAF6F2] w-28 text-stone-700 font-semibold"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -2015,6 +2180,331 @@ export const WaitressView: React.FC = () => {
               >
                 <Plus className="w-4 h-4" />
                 <span>Simpan & Aktifkan Meja</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Interactive Multi-Table Picker & Joiner for New Order */}
+      {isTablePickerModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-[#E3D3C4] p-4 sm:p-6 space-y-4 max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-[#E3D3C4] pb-3.5 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#FAEDCD] flex items-center justify-center text-[#7D4F27] font-bold">
+                  <LayoutGrid className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-display text-base sm:text-lg font-bold text-[#2C1D11]">
+                    Pilih & Gabung Meja
+                  </h3>
+                  <p className="text-xs text-[#7A614D]">
+                    Pilih meja tunggal atau gabungkan beberapa meja untuk rombongan tamu.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsTablePickerModalOpen(false)}
+                className="p-1.5 rounded-xl text-stone-400 hover:text-stone-700 hover:bg-stone-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Selection Summary Bar */}
+            <div className="bg-[#FAF6F2] p-3 rounded-2xl border border-[#E3D3C4] flex flex-wrap items-center justify-between gap-2.5 shrink-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-bold text-[#5A3E29] mr-1">
+                  Meja Terpilih ({selectedTableNumbers.length}):
+                </span>
+                {selectedTableNumbers.map((num) => (
+                  <span
+                    key={num}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#7D4F27] text-white text-xs font-black shadow-2xs"
+                  >
+                    <span>Meja #{num}</span>
+                    {selectedTableNumbers.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedTableNumbers((prev) => prev.filter((n) => n !== num));
+                        }}
+                        className="hover:bg-white/20 rounded-full p-0.5"
+                        title="Hapus meja ini dari pilihan"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </span>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-extrabold text-[#7D4F27] bg-[#FAEDCD] px-2.5 py-1 rounded-xl border border-[#D4A373]">
+                  👥 Kapasitas: {selectedTableNumbers.reduce((sum, n) => sum + (tables.find(t => t.number === n)?.capacity || 4), 0)} Tamu
+                </span>
+                {selectedTableNumbers.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTableNumbers([selectedTableNumbers[0]])}
+                    className="text-[11px] text-stone-500 hover:text-red-700 font-semibold underline cursor-pointer"
+                  >
+                    Reset Tunggal
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Instructions */}
+            <div className="text-[11px] text-[#7A614D] bg-amber-50/70 border border-amber-200/80 p-2.5 rounded-xl flex items-center gap-2 shrink-0">
+              <Sparkles className="w-4 h-4 text-amber-700 shrink-0" />
+              <span>
+                <strong>Petunjuk:</strong> Klik nomor meja untuk memilih atau menambah ke meja gabungan. Meja yang digabung akan otomatis menjadi satu pesanan terpadu.
+              </span>
+            </div>
+
+            {/* Tables Grid Matrix */}
+            <div className="overflow-y-auto pr-1 flex-1 space-y-2">
+              <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-2 sm:gap-2.5">
+                {tables.map((tbl) => {
+                  const isSelected = selectedTableNumbers.includes(tbl.number);
+                  const isOccupied = tbl.status !== 'available';
+
+                  return (
+                    <button
+                      key={tbl.number}
+                      type="button"
+                      disabled={isOccupied}
+                      onClick={() => {
+                        if (isOccupied) return;
+                        setSelectedTableNumbers((prev) => {
+                          if (prev.includes(tbl.number)) {
+                            // If it's the only table, don't unselect
+                            if (prev.length === 1) return prev;
+                            return prev.filter((n) => n !== tbl.number);
+                          } else {
+                            return [...prev, tbl.number].sort((a, b) => a - b);
+                          }
+                        });
+                        const primary = selectedTableNumbers.includes(tbl.number)
+                          ? (selectedTableNumbers.find(n => n !== tbl.number) || 1)
+                          : tbl.number;
+                        const foundPrimary = tables.find(t => t.number === primary);
+                        if (foundPrimary) setSelectedTable(foundPrimary);
+                      }}
+                      className={`p-2.5 sm:p-3 rounded-2xl border text-left transition-all flex flex-col justify-between min-h-[85px] cursor-pointer active:scale-95 ${
+                        isSelected
+                          ? 'bg-[#7D4F27] text-white border-[#5A3516] shadow-md ring-2 ring-[#7D4F27]/30'
+                          : isOccupied
+                          ? 'bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed opacity-60'
+                          : 'bg-[#FBF8F5] text-[#2C1D11] border-[#E3D3C4] hover:bg-white hover:border-[#7D4F27]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-sm sm:text-base">
+                          #{tbl.number}
+                        </span>
+                        {isSelected ? (
+                          <CheckCircle2 className="w-4 h-4 text-amber-300" />
+                        ) : (
+                          <span className={`w-2 h-2 rounded-full ${isOccupied ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                        )}
+                      </div>
+
+                      <div className="mt-1">
+                        <span className={`text-[10px] font-medium block truncate ${isSelected ? 'text-stone-200' : isOccupied ? 'text-stone-400' : 'text-[#7A614D]'}`}>
+                          {isOccupied ? 'Terisi' : `${tbl.capacity} Tamu`}
+                        </span>
+                        {isSelected && (
+                          <span className="text-[9px] font-black uppercase text-amber-300">
+                            Terpilih
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between gap-3 pt-3 border-t border-[#E3D3C4] shrink-0">
+              <span className="text-xs text-stone-500">
+                {selectedTableNumbers.length > 1
+                  ? `Menggabungkan ${selectedTableNumbers.length} meja`
+                  : 'Meja tunggal'}
+              </span>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsTablePickerModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-xl cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  disabled={selectedTableNumbers.length === 0}
+                  onClick={() => {
+                    const primaryNum = selectedTableNumbers[0] || 1;
+                    const found = tables.find((t) => t.number === primaryNum);
+                    if (found) setSelectedTable(found);
+                    setIsTablePickerModalOpen(false);
+                  }}
+                  className="px-5 py-2 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white text-xs sm:text-sm font-extrabold shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Gunakan Meja Terpilih</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Manage Joined Tables on Active Order */}
+      {isManageJoinedModalOpen && activeOrderForTable && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-[#E3D3C4] p-4 sm:p-6 space-y-4 max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-[#E3D3C4] pb-3.5 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#FAEDCD] flex items-center justify-center text-[#7D4F27] font-bold">
+                  <Link2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-display text-base sm:text-lg font-bold text-[#2C1D11]">
+                    Kelola Meja Gabungan
+                  </h3>
+                  <p className="text-xs text-[#7A614D]">
+                    Pesanan {activeOrderForTable.orderNumber} • Tamu: {activeOrderForTable.customerName}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsManageJoinedModalOpen(false)}
+                className="p-1.5 rounded-xl text-stone-400 hover:text-stone-700 hover:bg-stone-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Info Box */}
+            <div className="bg-[#FAF6F2] p-3 rounded-2xl border border-[#E3D3C4] flex flex-wrap items-center justify-between gap-2.5 shrink-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-bold text-[#5A3E29]">
+                  Meja yang Digabung:
+                </span>
+                {manageJoinSelectedNumbers.map((num) => (
+                  <span
+                    key={num}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#7D4F27] text-white text-xs font-black shadow-2xs"
+                  >
+                    <span>Meja #{num}</span>
+                    {manageJoinSelectedNumbers.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setManageJoinSelectedNumbers((prev) => prev.filter((n) => n !== num));
+                        }}
+                        className="hover:bg-white/20 rounded-full p-0.5"
+                        title="Lepas meja ini dari gabungan"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </span>
+                ))}
+              </div>
+
+              <span className="text-xs font-extrabold text-[#7D4F27] bg-[#FAEDCD] px-2.5 py-1 rounded-xl border border-[#D4A373]">
+                👥 Total Kapasitas: {manageJoinSelectedNumbers.reduce((sum, n) => sum + (tables.find(t => t.number === n)?.capacity || 4), 0)} Tamu
+              </span>
+            </div>
+
+            {/* Matrix of tables to join or unlink */}
+            <div className="overflow-y-auto pr-1 flex-1 space-y-2">
+              <p className="text-xs text-stone-500">
+                Pilih meja kosong untuk digabungkan, atau klik meja tercentang untuk melepaskannya:
+              </p>
+              <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-2 sm:gap-2.5">
+                {tables.map((tbl) => {
+                  const isCurrentInOrder = manageJoinSelectedNumbers.includes(tbl.number);
+                  const isOccupiedByOther = tbl.status !== 'available' && !isCurrentInOrder && tbl.currentOrderId !== activeOrderForTable.id;
+
+                  return (
+                    <button
+                      key={tbl.number}
+                      type="button"
+                      disabled={isOccupiedByOther}
+                      onClick={() => {
+                        if (isOccupiedByOther) return;
+                        setManageJoinSelectedNumbers((prev) => {
+                          if (prev.includes(tbl.number)) {
+                            if (prev.length === 1) return prev; // Keep at least one
+                            return prev.filter((n) => n !== tbl.number);
+                          } else {
+                            return [...prev, tbl.number].sort((a, b) => a - b);
+                          }
+                        });
+                      }}
+                      className={`p-2.5 sm:p-3 rounded-2xl border text-left transition-all flex flex-col justify-between min-h-[85px] cursor-pointer active:scale-95 ${
+                        isCurrentInOrder
+                          ? 'bg-[#7D4F27] text-white border-[#5A3516] shadow-md ring-2 ring-[#7D4F27]/30'
+                          : isOccupiedByOther
+                          ? 'bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed opacity-50'
+                          : 'bg-[#FBF8F5] text-[#2C1D11] border-[#E3D3C4] hover:bg-white hover:border-[#7D4F27]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-sm sm:text-base">
+                          #{tbl.number}
+                        </span>
+                        {isCurrentInOrder ? (
+                          <CheckCircle2 className="w-4 h-4 text-amber-300" />
+                        ) : (
+                          <span className={`w-2 h-2 rounded-full ${isOccupiedByOther ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                        )}
+                      </div>
+
+                      <div className="mt-1">
+                        <span className={`text-[10px] font-medium block truncate ${isCurrentInOrder ? 'text-stone-200' : isOccupiedByOther ? 'text-stone-400' : 'text-[#7A614D]'}`}>
+                          {isOccupiedByOther ? 'Diisi Tamu Lain' : `${tbl.capacity} Tamu`}
+                        </span>
+                        {isCurrentInOrder && (
+                          <span className="text-[9px] font-black uppercase text-amber-300">
+                            Digabung
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between gap-3 pt-3 border-t border-[#E3D3C4] shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsManageJoinedModalOpen(false)}
+                className="px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-xl cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={manageJoinSelectedNumbers.length === 0}
+                onClick={handleSaveManageJoin}
+                className="px-5 py-2.5 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white text-xs sm:text-sm font-extrabold shadow-md transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+              >
+                <Check className="w-4 h-4" />
+                <span>Simpan Perubahan Meja</span>
               </button>
             </div>
           </div>

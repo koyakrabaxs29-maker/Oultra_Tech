@@ -59,7 +59,9 @@ interface CafeContextType {
   activeOrders: Order[];
   completedOrders: Order[];
   allOrders: Order[];
-  createOrder: (data: { tableNumber: number; customerName: string; items: OrderItem[]; waitressName?: string }) => Order;
+  createOrder: (data: { tableNumber: number; joinedTableNumbers?: number[]; customerName: string; items: OrderItem[]; waitressName?: string }) => Order;
+  joinTablesToOrder: (orderId: string, tableNumbers: number[]) => void;
+  unjoinTableFromOrder: (orderId: string, tableNumber: number) => void;
   addItemsToOrder: (orderId: string, items: OrderItem[]) => void;
   acknowledgeOrderAdditions: (orderId: string) => void;
   updateOrderItems: (orderId: string, items: OrderItem[]) => void;
@@ -401,6 +403,28 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     usersRef.current = users;
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+
+    // Keep currentUser continuously in sync with authoritative users list
+    setCurrentUserState((prevCur) => {
+      if (!prevCur) return null;
+      const fresh = users.find((u) => u.id === prevCur.id);
+      if (!fresh || !fresh.active) {
+        localStorage.removeItem('nadira_logged_in_user_id');
+        return null;
+      }
+      if (
+        fresh.name !== prevCur.name ||
+        fresh.username !== prevCur.username ||
+        fresh.role !== prevCur.role ||
+        fresh.pin !== prevCur.pin ||
+        fresh.avatar !== prevCur.avatar ||
+        fresh.email !== prevCur.email ||
+        fresh.phone !== prevCur.phone
+      ) {
+        return fresh;
+      }
+      return prevCur;
+    });
   }, [users]);
 
   useEffect(() => {
@@ -418,6 +442,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [syncBrokerName, setSyncBrokerName] = useState<string>('Cloud Sync');
   const [connectedDevicesCount, setConnectedDevicesCount] = useState<number>(1);
   const localVersionRef = useRef<number>(1);
+  const lastSyncedServerVersionRef = useRef<number>(0);
   const isSyncInitializedRef = useRef<boolean>(false);
 
   // Offline action outbox queue
@@ -537,6 +562,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!serverState) return;
     if (version !== undefined && version > 0) {
       localVersionRef.current = Math.max(localVersionRef.current, version);
+      lastSyncedServerVersionRef.current = Math.max(lastSyncedServerVersionRef.current, version);
     }
 
     // Process deleted orders registry
@@ -573,11 +599,19 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ? serverState.tables
           : prev;
         const updated = baseTables.map((tbl: TableInfo) => {
-          const matchingOrder = mergedActive.find((o) => o.tableNumber === tbl.number);
+          const matchingOrder = mergedActive.find(
+            (o) => o.tableNumber === tbl.number || (o.joinedTableNumbers && o.joinedTableNumbers.includes(tbl.number))
+          );
           if (matchingOrder) {
-            return { ...tbl, status: 'occupied' as const, currentOrderId: matchingOrder.id };
+            const isJoined = matchingOrder.joinedTableNumbers && matchingOrder.joinedTableNumbers.length > 1;
+            return {
+              ...tbl,
+              status: 'occupied' as const,
+              currentOrderId: matchingOrder.id,
+              joinedWith: isJoined ? matchingOrder.joinedTableNumbers : undefined,
+            };
           } else if (tbl.status === 'occupied') {
-            return { ...tbl, status: 'available' as const, currentOrderId: undefined };
+            return { ...tbl, status: 'available' as const, currentOrderId: undefined, joinedWith: undefined };
           }
           return tbl;
         });
@@ -695,11 +729,15 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
             localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
             return updated;
           });
-          if (order.tableNumber) {
+          const allTableNums = order.joinedTableNumbers && order.joinedTableNumbers.length > 0
+            ? order.joinedTableNumbers
+            : order.tableNumber ? [order.tableNumber] : [];
+
+          if (allTableNums.length > 0) {
             setTables((prev) => {
               const updated = prev.map((t) =>
-                t.number === order.tableNumber
-                  ? { ...t, status: 'occupied' as const, currentOrderId: order.id }
+                allTableNums.includes(t.number)
+                  ? { ...t, status: 'occupied' as const, currentOrderId: order.id, joinedWith: allTableNums.length > 1 ? allTableNums : undefined }
                   : t
               );
               tablesRef.current = updated;
@@ -723,9 +761,37 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
           }
           soundAlerts.playNewOrderChime();
+          const tableLabel = allTableNums.length > 1 ? allTableNums.map((n: number) => `#${n}`).join('+') : `#${order.tableNumber}`;
           showToast(
-            `📝 Pesanan Baru Masuk: Meja #${order.tableNumber} (${order.orderNumber}) dari ${order.waitressName || 'Waitress'}!`
+            `📝 Pesanan Baru Masuk: Meja ${tableLabel} (${order.orderNumber}) dari ${order.waitressName || 'Waitress'}!`
           );
+        }
+        break;
+      }
+      case 'join_tables_to_order':
+      case 'tables_joined_to_order': {
+        const { orderId, joinedTableNumbers, order } = msg.payload || {};
+        if (orderId && Array.isArray(joinedTableNumbers)) {
+          setActiveOrders((prev) => {
+            const updated = prev.map((o) => (o.id === orderId ? { ...o, joinedTableNumbers, ...(order || {}) } : o));
+            activeOrdersRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
+            return updated;
+          });
+          setTables((prev) => {
+            const updated = prev.map((t) => {
+              if (joinedTableNumbers.includes(t.number)) {
+                return { ...t, status: 'occupied' as const, currentOrderId: orderId, joinedWith: joinedTableNumbers.length > 1 ? joinedTableNumbers : undefined };
+              }
+              if (t.currentOrderId === orderId && !joinedTableNumbers.includes(t.number)) {
+                return { ...t, status: 'available' as const, currentOrderId: undefined, joinedWith: undefined };
+              }
+              return t;
+            });
+            tablesRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(updated));
+            return updated;
+          });
         }
         break;
       }
@@ -958,6 +1024,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       case 'process_payment':
       case 'payment_completed': {
         const { orderId, paidOrder } = msg.payload || {};
+        const targetOrder = activeOrdersRef.current.find((o) => o.id === orderId) || paidOrder;
         setActiveOrders((prev) => {
           const updated = prev.filter((o) => o.id !== orderId);
           activeOrdersRef.current = updated;
@@ -971,20 +1038,25 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
             localStorage.setItem(STORAGE_KEYS.PAID_ORDERS, JSON.stringify(updated));
             return updated;
           });
-          setTables((prev) => {
-            const updated = prev.map((t) =>
-              t.number === paidOrder.tableNumber ? { ...t, status: 'available' as const, currentOrderId: undefined } : t
-            );
-            tablesRef.current = updated;
-            localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(updated));
-            return updated;
-          });
         }
+        const affectedTables = targetOrder?.joinedTableNumbers && targetOrder.joinedTableNumbers.length > 0
+          ? targetOrder.joinedTableNumbers
+          : targetOrder?.tableNumber ? [targetOrder.tableNumber] : [];
+
+        setTables((prev) => {
+          const updated = prev.map((t) =>
+            affectedTables.includes(t.number) ? { ...t, status: 'available' as const, currentOrderId: undefined, joinedWith: undefined } : t
+          );
+          tablesRef.current = updated;
+          localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(updated));
+          return updated;
+        });
         break;
       }
       case 'cancel_order':
       case 'order_cancelled': {
         const { orderId, cancelledOrder } = msg.payload || {};
+        const targetOrder = activeOrdersRef.current.find((o) => o.id === orderId) || cancelledOrder;
         setActiveOrders((prev) => {
           const updated = prev.filter((o) => o.id !== orderId);
           activeOrdersRef.current = updated;
@@ -998,15 +1070,19 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
             localStorage.setItem(STORAGE_KEYS.PAID_ORDERS, JSON.stringify(updated));
             return updated;
           });
-          setTables((prev) => {
-            const updated = prev.map((t) =>
-              t.number === cancelledOrder.tableNumber ? { ...t, status: 'available' as const, currentOrderId: undefined } : t
-            );
-            tablesRef.current = updated;
-            localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(updated));
-            return updated;
-          });
         }
+        const affectedTables = targetOrder?.joinedTableNumbers && targetOrder.joinedTableNumbers.length > 0
+          ? targetOrder.joinedTableNumbers
+          : targetOrder?.tableNumber ? [targetOrder.tableNumber] : [];
+
+        setTables((prev) => {
+          const updated = prev.map((t) =>
+            affectedTables.includes(t.number) ? { ...t, status: 'available' as const, currentOrderId: undefined, joinedWith: undefined } : t
+          );
+          tablesRef.current = updated;
+          localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(updated));
+          return updated;
+        });
         break;
       }
       case 'table_updated': {
@@ -1056,6 +1132,51 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return updated;
           });
         }
+        break;
+      }
+      case 'update_completed_order':
+      case 'completed_order_updated': {
+        const { orderId, updates } = msg.payload || {};
+        if (orderId && updates) {
+          setCompletedOrders((prev) => {
+            const updated = prev.map((o) => (o.id === orderId ? { ...o, ...updates, updatedAt: new Date().toISOString() } : o));
+            completedOrdersRef.current = updated;
+            localStorage.setItem(STORAGE_KEYS.PAID_ORDERS, JSON.stringify(updated));
+            return updated;
+          });
+        }
+        break;
+      }
+      case 'clear_all_active_transactions':
+      case 'active_transactions_cleared': {
+        const nowIso = new Date().toISOString();
+        const newlyCompleted: Order[] = activeOrdersRef.current.map((o) => ({
+          ...o,
+          status: 'paid',
+          paymentStatus: 'paid',
+          paymentMethod: o.paymentMethod || 'cash',
+          paymentDetails: o.paymentDetails || {
+            cashReceived: o.total,
+            changeReturned: 0,
+            paidAt: nowIso,
+          },
+          updatedAt: nowIso,
+        }));
+        setCompletedOrders((prev) => {
+          const updated = [...newlyCompleted, ...prev];
+          completedOrdersRef.current = updated;
+          localStorage.setItem(STORAGE_KEYS.PAID_ORDERS, JSON.stringify(updated));
+          return updated;
+        });
+        setActiveOrders([]);
+        activeOrdersRef.current = [];
+        localStorage.removeItem(STORAGE_KEYS.ORDERS);
+        setTables((prev) => {
+          const updated = prev.map((t) => ({ ...t, status: 'available' as const, currentOrderId: undefined }));
+          tablesRef.current = updated;
+          localStorage.setItem(STORAGE_KEYS.TABLES, JSON.stringify(updated));
+          return updated;
+        });
         break;
       }
       case 'request_state': {
@@ -1667,13 +1788,17 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     document.addEventListener('visibilitychange', handleWakeupSync);
     window.addEventListener('focus', handleWakeupSync);
 
-    // Periodic ultra-reliable sync check (every 3.5s): pulls latest state if version differs
+    // Periodic ultra-reliable sync check (every 3s): pulls latest state whenever server version changes or every 9s as catch-up
+    let pollCount = 0;
     const healthPollTimer = setInterval(() => {
       if (typeof document !== 'undefined' && document.hidden) return;
+      pollCount++;
+      const shouldPeriodicCatchUp = pollCount % 3 === 0;
+
       fetch('/api/health')
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (data?.ok && typeof data.version === 'number' && data.version > localVersionRef.current) {
+          if (data?.ok && (typeof data.version === 'number' && data.version !== lastSyncedServerVersionRef.current || shouldPeriodicCatchUp)) {
             return fetch('/api/state')
               .then((res) => (res.ok ? res.json() : null))
               .then((stateData) => {
@@ -1684,7 +1809,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         })
         .catch(() => {});
-    }, 3500);
+    }, 3000);
 
     return () => {
       document.removeEventListener('visibilitychange', handleWakeupSync);
@@ -1813,11 +1938,13 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // ORDER ACTIONS
   const createOrder = ({
     tableNumber,
+    joinedTableNumbers,
     customerName,
     items,
     waitressName,
   }: {
     tableNumber: number;
+    joinedTableNumbers?: number[];
     customerName: string;
     items: OrderItem[];
     waitressName?: string;
@@ -1825,11 +1952,15 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { subtotal, tax, serviceCharge, total } = calculateTotals(items);
     const newOrderNumber = `#NDR-${Math.floor(100 + Math.random() * 900)}`;
     const newId = `ORD-${Date.now().toString().slice(-6)}`;
+    const allTableNums = joinedTableNumbers && joinedTableNumbers.length > 0
+      ? Array.from(new Set(joinedTableNumbers)).sort((a, b) => a - b)
+      : [tableNumber];
 
     const newOrder: Order = {
       id: newId,
       orderNumber: newOrderNumber,
       tableNumber,
+      joinedTableNumbers: allTableNums.length > 1 ? allTableNums : undefined,
       customerName: customerName.trim() || `Pelanggan Meja ${tableNumber}`,
       items: items.map((it) => ({ ...it, status: it.status || 'pending' })),
       subtotal,
@@ -1838,18 +1969,18 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       total,
       status: 'pending',
       paymentStatus: 'unpaid',
-      waitressName: waitressName || (activeRole === 'waitress' ? 'Siti Rahma' : 'Waitress On-Duty'),
+      waitressName: waitressName?.trim() || (currentUser?.role === 'waitress' ? currentUser.name : (users.find((u) => u.role === 'waitress' && u.active)?.name || currentUser?.name || 'Waitress')),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     setActiveOrders((prev) => [newOrder, ...prev]);
 
-    // Update table status
+    // Update table status (for single or multiple joined tables)
     setTables((prev) =>
       prev.map((t) =>
-        t.number === tableNumber
-          ? { ...t, status: 'occupied', currentOrderId: newOrder.id }
+        allTableNums.includes(t.number)
+          ? { ...t, status: 'occupied', currentOrderId: newOrder.id, joinedWith: allTableNums.length > 1 ? allTableNums : undefined }
           : t
       )
     );
@@ -1864,6 +1995,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const nowIso = new Date().toISOString();
     const newNotifs: CafeNotification[] = [];
+    const tableLabel = allTableNums.length > 1 ? allTableNums.map(n => `#${n}`).join('+') : `#${tableNumber}`;
 
     // Notifikasi Makanan khusus untuk Chef / Dapur
     if (foodItems.length > 0) {
@@ -1871,8 +2003,8 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       newNotifs.push({
         id: `notif-food-${Date.now()}-${newId}`,
         type: 'new_order',
-        title: `🍳 Pesanan Makanan: Meja #${tableNumber}`,
-        message: `Pesanan ${newOrderNumber} (${customerName.trim() || `Meja ${tableNumber}`}) masuk ke Dapur: ${foodSummary}.`,
+        title: `🍳 Pesanan Makanan: Meja ${tableLabel}`,
+        message: `Pesanan ${newOrderNumber} (${customerName.trim() || `Meja ${tableLabel}`}) masuk ke Dapur: ${foodSummary}.`,
         tableNumber,
         orderId: newId,
         orderNumber: newOrderNumber,
@@ -1890,8 +2022,8 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       newNotifs.push({
         id: `notif-drink-${Date.now() + 1}-${newId}`,
         type: 'new_order',
-        title: `☕ Pesanan Minuman: Meja #${tableNumber}`,
-        message: `Pesanan ${newOrderNumber} (${customerName.trim() || `Meja ${tableNumber}`}) masuk ke Bar: ${drinksSummary}.`,
+        title: `☕ Pesanan Minuman: Meja ${tableLabel}`,
+        message: `Pesanan ${newOrderNumber} (${customerName.trim() || `Meja ${tableLabel}`}) masuk ke Bar: ${drinksSummary}.`,
         tableNumber,
         orderId: newId,
         orderNumber: newOrderNumber,
@@ -1907,8 +2039,8 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       newNotifs.push({
         id: `notif-new-order-${Date.now()}-${newId}`,
         type: 'new_order',
-        title: `📝 Pesanan Baru: Meja #${tableNumber}`,
-        message: `Pesanan ${newOrderNumber} (${customerName.trim() || `Meja ${tableNumber}`}) berisi ${items.length} menu siap diproses.`,
+        title: `📝 Pesanan Baru: Meja ${tableLabel}`,
+        message: `Pesanan ${newOrderNumber} (${customerName.trim() || `Meja ${tableLabel}`}) berisi ${items.length} menu siap diproses.`,
         tableNumber,
         orderId: newId,
         orderNumber: newOrderNumber,
@@ -1928,8 +2060,69 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       notification: newNotifs[0],
     });
 
-    showToast(`Pesanan ${newOrderNumber} berhasil dibuat untuk Meja ${tableNumber}!`);
+    showToast(`Pesanan ${newOrderNumber} berhasil dibuat untuk Meja ${tableLabel}!`);
     return newOrder;
+  };
+
+  const joinTablesToOrder = (orderId: string, tableNumbers: number[]) => {
+    const targetOrder = activeOrders.find((o) => o.id === orderId);
+    if (!targetOrder) return;
+    const combined = Array.from(new Set([targetOrder.tableNumber, ...tableNumbers])).sort((a, b) => a - b);
+    
+    setActiveOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, joinedTableNumbers: combined.length > 1 ? combined : undefined, updatedAt: new Date().toISOString() } : o))
+    );
+
+    setTables((prev) =>
+      prev.map((t) => {
+        if (combined.includes(t.number)) {
+          return { ...t, status: 'occupied', currentOrderId: orderId, joinedWith: combined.length > 1 ? combined : undefined };
+        }
+        if (t.currentOrderId === orderId && !combined.includes(t.number)) {
+          return { ...t, status: 'available', currentOrderId: undefined, joinedWith: undefined };
+        }
+        return t;
+      })
+    );
+
+    dispatchServerAction('join_tables_to_order', { orderId, tableNumbers: combined });
+    showToast(`🔗 Meja ${combined.map(n => `#${n}`).join(' + ')} berhasil digabung untuk pesanan ${targetOrder.orderNumber}!`);
+  };
+
+  const unjoinTableFromOrder = (orderId: string, tableNumberToRelease: number) => {
+    const targetOrder = activeOrders.find((o) => o.id === orderId);
+    if (!targetOrder) return;
+    const currentJoined = targetOrder.joinedTableNumbers || [targetOrder.tableNumber];
+    if (tableNumberToRelease === targetOrder.tableNumber && currentJoined.length === 1) {
+      showToast(`Meja #${tableNumberToRelease} adalah satu-satunya meja pada pesanan ini.`);
+      return;
+    }
+
+    const nextJoined = currentJoined.filter((t) => t !== tableNumberToRelease);
+    const newMainTable = nextJoined.includes(targetOrder.tableNumber) ? targetOrder.tableNumber : nextJoined[0];
+
+    setActiveOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? { ...o, tableNumber: newMainTable, joinedTableNumbers: nextJoined.length > 1 ? nextJoined : undefined, updatedAt: new Date().toISOString() }
+          : o
+      )
+    );
+
+    setTables((prev) =>
+      prev.map((t) => {
+        if (t.number === tableNumberToRelease && t.currentOrderId === orderId) {
+          return { ...t, status: 'available', currentOrderId: undefined, joinedWith: undefined };
+        }
+        if (nextJoined.includes(t.number)) {
+          return { ...t, status: 'occupied', currentOrderId: orderId, joinedWith: nextJoined.length > 1 ? nextJoined : undefined };
+        }
+        return t;
+      })
+    );
+
+    dispatchServerAction('join_tables_to_order', { orderId, tableNumbers: nextJoined });
+    showToast(`Meja #${tableNumberToRelease} telah dilepas dari gabungan meja.`);
   };
 
   const addItemsToOrder = (orderId: string, newItems: OrderItem[]) => {
@@ -2569,11 +2762,15 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setActiveOrders((prev) => prev.filter((o) => o.id !== orderId));
     setCompletedOrders((prev) => [cancelledOrder, ...prev]);
 
-    // Free up table
+    // Free up table(s)
+    const affectedTables = target.joinedTableNumbers && target.joinedTableNumbers.length > 0
+      ? target.joinedTableNumbers
+      : [target.tableNumber];
+
     setTables((prev) =>
       prev.map((t) =>
-        t.number === target.tableNumber
-          ? { ...t, status: 'available', currentOrderId: undefined }
+        affectedTables.includes(t.number)
+          ? { ...t, status: 'available', currentOrderId: undefined, joinedWith: undefined }
           : t
       )
     );
@@ -2605,11 +2802,15 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setActiveOrders((prev) => prev.filter((o) => o.id !== orderId));
     setCompletedOrders((prev) => [paidOrder, ...prev]);
 
-    // Free up table
+    // Free up table(s)
+    const affectedTables = target.joinedTableNumbers && target.joinedTableNumbers.length > 0
+      ? target.joinedTableNumbers
+      : [target.tableNumber];
+
     setTables((prev) =>
       prev.map((t) =>
-        t.number === target.tableNumber
-          ? { ...t, status: 'available', currentOrderId: undefined }
+        affectedTables.includes(t.number)
+          ? { ...t, status: 'available', currentOrderId: undefined, joinedWith: undefined }
           : t
       )
     );
@@ -2972,6 +3173,8 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         completedOrders,
         allOrders,
         createOrder,
+        joinTablesToOrder,
+        unjoinTableFromOrder,
         addItemsToOrder,
         acknowledgeOrderAdditions,
         updateOrderItems,

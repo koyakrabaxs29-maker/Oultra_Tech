@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useCafe } from '../context/CafeContext';
 import { OrderStatus } from '../types';
-import { getElapsedMinutes, formatShortTime } from '../utils/formatters';
+import { getElapsedMinutes, formatShortTime, formatTableDisplay } from '../utils/formatters';
 import { soundAlerts } from '../utils/soundAlerts';
 import { 
   ChefHat, 
@@ -16,7 +16,8 @@ import {
   AlertTriangle,
   AlertOctagon,
   Sparkles,
-  RotateCcw
+  RotateCcw,
+  Link2
 } from 'lucide-react';
 
 export interface KitchenDisplayViewProps {
@@ -369,13 +370,21 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({ defaultS
                   }`}
                 >
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-display font-extrabold text-lg">
-                        Meja #{order.tableNumber}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-display font-extrabold text-lg flex items-center gap-1.5">
+                        {order.joinedTableNumbers && order.joinedTableNumbers.length > 1 && (
+                          <Link2 className="w-4 h-4 text-amber-300" />
+                        )}
+                        <span>{formatTableDisplay(order)}</span>
                       </span>
                       <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/20">
                         {order.orderNumber}
                       </span>
+                      {order.joinedTableNumbers && order.joinedTableNumbers.length > 1 && (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-400 text-[#2C1D11]">
+                          GABUNG {order.joinedTableNumbers.length} MEJA
+                        </span>
+                      )}
                       {orderHasAdditions && (
                         <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-300 text-black animate-pulse flex items-center gap-1">
                           <Flame className="w-3 h-3" />
