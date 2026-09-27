@@ -202,8 +202,8 @@ export const LoginView: React.FC = () => {
                       <span className="text-3xl sm:text-4xl filter drop-shadow-sm mb-2 group-hover:scale-110 transition-transform">
                         {user.avatar}
                       </span>
-                      <span className="text-xs sm:text-sm font-black text-[#25180E] line-clamp-1">
-                        {user.name.split(' ')[0]}
+                      <span className="text-xs sm:text-sm font-black text-[#25180E] line-clamp-1 px-1">
+                        {user.name.replace(/\s*\([^)]*\)/, '').trim()}
                       </span>
                       <span className="text-[10px] sm:text-xs font-bold text-stone-500 capitalize tracking-wide mt-0.5 bg-stone-200/50 px-2 py-0.5 rounded-full">
                         {user.role === 'barista' ? 'Barista (Bar)' : user.role === 'chef' ? 'Chef (Dapur)' : user.role === 'cashier' ? 'Kasir POS' : user.role === 'waitress' ? 'Waitress' : 'Owner/CEO'}

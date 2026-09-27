@@ -247,11 +247,12 @@ export const INITIAL_TABLES: TableInfo[] = Array.from({ length: 30 }, (_, i) => 
 export const INITIAL_INVENTORY: InventoryItem[] = [];
 
 export const INITIAL_USERS: UserAccount[] = [
-  { id: 'usr-1', name: 'Nadira Putri (Owner)', username: 'owner', role: 'owner', pin: '1122', email: 'owner@nadiracafe.id', phone: '+628119876543', active: true, avatar: '👑' },
-  { id: 'usr-2', name: 'Budi Santoso (Head Cashier)', username: 'kasir', role: 'cashier', pin: '2233', email: 'kasir@nadiracafe.id', phone: '+628123456780', active: true, avatar: '💳' },
-  { id: 'usr-3', name: 'Siti Rahma (Lead Waitress)', username: 'waitress', role: 'waitress', pin: '3344', email: 'waitress@nadiracafe.id', phone: '+628135678901', active: true, avatar: '🛎️' },
+  { id: 'usr-1', name: 'Endi', username: 'owner', role: 'owner', pin: '1122', email: 'owner@nadiracafe.id', phone: '+628119876543', active: true, avatar: '👑' },
+  { id: 'usr-2', name: 'PUtri', username: 'kasir', role: 'cashier', pin: '2233', email: 'kasir@nadiracafe.id', phone: '+628123456780', active: true, avatar: '💳' },
+  { id: 'usr-3', name: 'Pak Ee', username: 'waitress1', role: 'waitress', pin: '3344', email: 'waitress@nadiracafe.id', phone: '+628135678901', active: true, avatar: '🛎️' },
   { id: 'usr-4', name: 'Chef Aris (Head Kitchen)', username: 'chef', role: 'chef', pin: '4455', email: 'chef@nadiracafe.id', phone: '+628198765432', active: true, avatar: '👨‍🍳' },
   { id: 'usr-5', name: 'Barista Dimas (Head Barista)', username: 'barista', role: 'barista', pin: '5566', email: 'barista@nadiracafe.id', phone: '+628198765433', active: true, avatar: '☕' },
+  { id: 'usr-1790506547929', name: 'Nabil', username: 'waitress1', role: 'waitress', pin: '1234', email: 'waitress1@nadiracafe.id', phone: '', active: true, avatar: '☕' },
 ];
 
 export const INITIAL_ORDERS: Order[] = [];

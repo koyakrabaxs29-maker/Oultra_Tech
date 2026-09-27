@@ -123,8 +123,11 @@ export const WaitressView: React.FC = () => {
 
   // Automatically synchronize waitressNameInput with database changes or active user changes
   useEffect(() => {
-    setWaitressNameInput(currentDefaultWaitressName);
-  }, [currentDefaultWaitressName]);
+    const isCurrentValid = availableWaitresses.some((u) => u.name === waitressNameInput);
+    if (!isCurrentValid || waitressNameInput.includes('Siti Rahma')) {
+      setWaitressNameInput(currentDefaultWaitressName);
+    }
+  }, [currentDefaultWaitressName, availableWaitresses]);
 
   // Mobile-first catalog browsing preferences
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -1244,7 +1247,7 @@ export const WaitressView: React.FC = () => {
                   <span className="text-xs text-stone-500 font-semibold hidden sm:inline">Waitress:</span>
                   {availableWaitresses.length > 0 ? (
                     <select
-                      value={waitressNameInput}
+                      value={availableWaitresses.some(u => u.name === waitressNameInput) ? waitressNameInput : (availableWaitresses[0]?.name || '')}
                       onChange={(e) => setWaitressNameInput(e.target.value)}
                       className="text-xs py-2 px-2.5 rounded-xl border border-[#E3D3C4] bg-[#FAF6F2] font-semibold text-stone-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#7D4F27] max-w-[140px] sm:max-w-[180px] truncate"
                       title="Pilih Staf Waitress yang melayani pesanan ini"
@@ -1254,11 +1257,6 @@ export const WaitressView: React.FC = () => {
                           {usr.avatar || '🛎️'} {usr.name}
                         </option>
                       ))}
-                      {!availableWaitresses.some(u => u.name === waitressNameInput) && (
-                        <option value={waitressNameInput}>
-                          🛎️ {waitressNameInput}
-                        </option>
-                      )}
                     </select>
                   ) : (
                     <input

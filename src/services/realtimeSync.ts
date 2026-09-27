@@ -51,7 +51,7 @@ const BROKERS = [
   { host: 'broker.hivemq.com', port: 8884, path: '/mqtt', name: 'HiveMQ Cloud' },
 ];
 
-const BASE_TOPIC = 'nadira_cafe_5a07e09b_v1';
+const BASE_TOPIC = 'nadira_cafe_5a07e09b_v2';
 const ACTION_TOPIC = `${BASE_TOPIC}/actions`;
 const STATE_TOPIC = `${BASE_TOPIC}/state`;
 const PEER_TOPIC = `${BASE_TOPIC}/peers`;

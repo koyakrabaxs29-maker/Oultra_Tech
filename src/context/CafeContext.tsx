@@ -167,11 +167,17 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Helper for localStorage
+  // Helper for localStorage with automatic cleanup of legacy/stale user data
   const loadInitial = <T,>(key: string, fallback: T): T => {
     try {
       const stored = localStorage.getItem(key);
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        if (key === STORAGE_KEYS.USERS && typeof stored === 'string' && stored.includes('Siti Rahma')) {
+          localStorage.removeItem(key);
+          return fallback;
+        }
+        return JSON.parse(stored);
+      }
     } catch (e) {
       console.error('Error reading localStorage', e);
     }
@@ -267,7 +273,12 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedUserId = localStorage.getItem('nadira_logged_in_user_id');
     if (savedUserId) {
       const storedUsers = loadInitial(STORAGE_KEYS.USERS, INITIAL_USERS);
-      return storedUsers.find((u: any) => u.id === savedUserId && u.active) || null;
+      const user = storedUsers.find((u: any) => u.id === savedUserId && u.active);
+      if (user && !user.name.includes('Siti Rahma')) {
+        return user;
+      }
+      localStorage.removeItem('nadira_logged_in_user_id');
+      localStorage.removeItem('nadira_logged_in_user_data');
     }
     return null;
   });
@@ -561,6 +572,10 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const applyServerState = (serverState: any, version?: number) => {
     if (!serverState) return;
     if (version !== undefined && version > 0) {
+      if (lastSyncedServerVersionRef.current > 0 && version < lastSyncedServerVersionRef.current) {
+        // Discard stale state from older brokers or outdated snapshots
+        return;
+      }
       localVersionRef.current = Math.max(localVersionRef.current, version);
       lastSyncedServerVersionRef.current = Math.max(lastSyncedServerVersionRef.current, version);
     }
@@ -664,6 +679,25 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       usersRef.current = serverState.users;
       setUsers(serverState.users);
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(serverState.users));
+
+      // Synchronize currentUser with latest user data from server
+      setCurrentUserState((prev) => {
+        const savedUserId = localStorage.getItem('nadira_logged_in_user_id') || prev?.id;
+        if (savedUserId) {
+          const matching = serverState.users.find((u: UserAccount) => u.id === savedUserId);
+          if (matching) {
+            if (!matching.active) {
+              localStorage.removeItem('nadira_logged_in_user_id');
+              localStorage.removeItem('nadira_logged_in_user_data');
+              return null;
+            }
+            localStorage.setItem('nadira_logged_in_user_id', matching.id);
+            localStorage.setItem('nadira_logged_in_user_data', JSON.stringify(matching));
+            return matching;
+          }
+        }
+        return prev;
+      });
     }
 
     if (Array.isArray(serverState.notifications)) {
@@ -1494,6 +1528,20 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUsers(msg.payload.users);
           usersRef.current = msg.payload.users;
           localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(msg.payload.users));
+          setCurrentUserState((prev) => {
+            if (!prev) return null;
+            const updated = msg.payload.users.find((u: UserAccount) => u.id === prev.id);
+            if (updated) {
+              if (!updated.active) {
+                localStorage.removeItem('nadira_logged_in_user_id');
+                localStorage.removeItem('nadira_logged_in_user_data');
+                return null;
+              }
+              localStorage.setItem('nadira_logged_in_user_data', JSON.stringify(updated));
+              return updated;
+            }
+            return prev;
+          });
         }
         break;
       }
@@ -1517,12 +1565,39 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUsers(msg.payload.users);
           usersRef.current = msg.payload.users;
           localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(msg.payload.users));
+          setCurrentUserState((prev) => {
+            if (!prev) return null;
+            const updated = msg.payload.users.find((u: UserAccount) => u.id === prev.id);
+            if (updated) {
+              if (!updated.active) {
+                localStorage.removeItem('nadira_logged_in_user_id');
+                localStorage.removeItem('nadira_logged_in_user_data');
+                return null;
+              }
+              localStorage.setItem('nadira_logged_in_user_data', JSON.stringify(updated));
+              return updated;
+            }
+            return prev;
+          });
         } else if (msg.payload?.id) {
           setUsers((prev) => {
             const updated = prev.map((u) => (u.id === msg.payload.id ? { ...u, ...msg.payload.updates } : u));
             usersRef.current = updated;
             localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updated));
             return updated;
+          });
+          setCurrentUserState((prev) => {
+            if (prev && prev.id === msg.payload.id) {
+              const updated = { ...prev, ...msg.payload.updates };
+              if (msg.payload.updates?.active === false) {
+                localStorage.removeItem('nadira_logged_in_user_id');
+                localStorage.removeItem('nadira_logged_in_user_data');
+                return null;
+              }
+              localStorage.setItem('nadira_logged_in_user_data', JSON.stringify(updated));
+              return updated;
+            }
+            return prev;
           });
         }
         break;
@@ -1532,12 +1607,30 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUsers(msg.payload.users);
           usersRef.current = msg.payload.users;
           localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(msg.payload.users));
+          setCurrentUserState((prev) => {
+            if (!prev) return null;
+            const stillExists = msg.payload.users.some((u: UserAccount) => u.id === prev.id);
+            if (!stillExists) {
+              localStorage.removeItem('nadira_logged_in_user_id');
+              localStorage.removeItem('nadira_logged_in_user_data');
+              return null;
+            }
+            return prev;
+          });
         } else if (msg.payload?.id) {
           setUsers((prev) => {
             const updated = prev.filter((u) => u.id !== msg.payload.id);
             usersRef.current = updated;
             localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updated));
             return updated;
+          });
+          setCurrentUserState((prev) => {
+            if (prev && prev.id === msg.payload.id) {
+              localStorage.removeItem('nadira_logged_in_user_id');
+              localStorage.removeItem('nadira_logged_in_user_data');
+              return null;
+            }
+            return prev;
           });
         }
         break;
@@ -3111,7 +3204,12 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addUser = (user: Omit<UserAccount, 'id'>) => {
     const newId = `usr-${Date.now()}`;
     const newUser: UserAccount = { ...user, id: newId };
-    setUsers((prev) => [...prev, newUser]);
+    setUsers((prev) => {
+      const updated = [...prev, newUser];
+      usersRef.current = updated;
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updated));
+      return updated;
+    });
     dispatchServerAction('add_user', { user: newUser });
     showToast(`Pengguna baru "${user.name}" berhasil dibuat.`);
   };
@@ -3119,10 +3217,19 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateUser = (id: string, updates: Partial<UserAccount>) => {
     setUsers((prev) => {
       const updated = prev.map((u) => (u.id === id ? { ...u, ...updates } : u));
+      usersRef.current = updated;
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updated));
       if (currentUser && currentUser.id === id) {
         const found = updated.find((u) => u.id === id);
         if (found) {
-          setCurrentUserState(found);
+          if (!found.active) {
+            localStorage.removeItem('nadira_logged_in_user_id');
+            localStorage.removeItem('nadira_logged_in_user_data');
+            setCurrentUserState(null);
+          } else {
+            localStorage.setItem('nadira_logged_in_user_data', JSON.stringify(found));
+            setCurrentUserState(found);
+          }
         }
       }
       return updated;
@@ -3132,7 +3239,17 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteUser = (id: string) => {
-    setUsers((prev) => prev.filter((u) => u.id !== id));
+    setUsers((prev) => {
+      const updated = prev.filter((u) => u.id !== id);
+      usersRef.current = updated;
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updated));
+      return updated;
+    });
+    if (currentUser && currentUser.id === id) {
+      localStorage.removeItem('nadira_logged_in_user_id');
+      localStorage.removeItem('nadira_logged_in_user_data');
+      setCurrentUserState(null);
+    }
     dispatchServerAction('delete_user', { id });
     showToast(`Pengguna telah dihapus.`);
   };
