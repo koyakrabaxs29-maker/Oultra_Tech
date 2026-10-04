@@ -1,0 +1,143 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Akun Staf dan Pengguna NADIRA Café & Resto",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "ID unik pengguna" },
+        "name": { "type": "string", "description": "Nama staf", "maxLength": 100 },
+        "username": { "type": "string", "description": "Username login", "maxLength": 50 },
+        "role": { "type": "string", "description": "Role staf", "enum": ["owner", "cashier", "waitress", "chef", "barista"] },
+        "pin": { "type": "string", "description": "PIN login 4 digit", "maxLength": 10 },
+        "avatar": { "type": "string", "description": "Emoji avatar" },
+        "isActive": { "type": "boolean", "description": "Status aktif pengguna" },
+        "createdAt": { "type": "string", "description": "Timestamp pembuatan" }
+      },
+      "required": ["id", "name", "username", "role", "pin", "isActive"]
+    },
+    "MenuItem": {
+      "title": "MenuItem",
+      "description": "Item Menu Makanan & Minuman Kafe",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "ID unik menu" },
+        "name": { "type": "string", "description": "Nama menu", "maxLength": 150 },
+        "category": { "type": "string", "description": "Kategori menu", "enum": ["Kopi", "Non-Kopi", "Makanan Utama", "Makanan Ringan", "Paket Spesial"] },
+        "price": { "type": "number", "description": "Harga reguler (IDR)" },
+        "largePriceAddition": { "type": "number", "description": "Tambahan harga large" },
+        "hasLargePortion": { "type": "boolean", "description": "Pilihan porsi large" },
+        "costPrice": { "type": "number", "description": "HPP / Modal bahan (IDR)" },
+        "description": { "type": "string", "description": "Deskripsi rasa menu", "maxLength": 500 },
+        "image": { "type": "string", "description": "URL foto menu", "maxLength": 2000 },
+        "inStock": { "type": "boolean", "description": "Ketersediaan stok menu" },
+        "prepTimeMinutes": { "type": "number", "description": "Estimasi waktu masak (menit)" },
+        "station": { "type": "string", "description": "Station dapur pembuat", "enum": ["bar", "kitchen"] },
+        "tags": { "type": "array", "description": "Tag label promo/favorit" }
+      },
+      "required": ["id", "name", "category", "price", "description", "inStock", "prepTimeMinutes", "station"]
+    },
+    "Table": {
+      "title": "Table",
+      "description": "Status Meja Kafe 1-30",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "ID meja" },
+        "number": { "type": "number", "description": "Nomor meja 1-30" },
+        "capacity": { "type": "number", "description": "Kapasitas kursi meja" },
+        "status": { "type": "string", "description": "Status meja saat ini", "enum": ["available", "occupied", "reserved", "joined"] },
+        "currentOrderId": { "type": "string", "description": "ID pesanan aktif pada meja" },
+        "occupiedSince": { "type": "string", "description": "Waktu mulai terisi" },
+        "reservedBy": { "type": "string", "description": "Nama tamu pemesan reservasi" },
+        "reservationTime": { "type": "string", "description": "Jam reservasi" },
+        "joinedWith": { "type": "array", "description": "Nomor meja lain yang digabung" }
+      },
+      "required": ["id", "number", "capacity", "status"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Data Pesanan Transaksi Kafe",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "ID pesanan" },
+        "orderNumber": { "type": "string", "description": "Nomor struk/nota", "maxLength": 50 },
+        "tableNumber": { "type": "number", "description": "Nomor meja utama" },
+        "joinedTableNumbers": { "type": "array", "description": "Nomor meja tambahan jika digabung" },
+        "customerName": { "type": "string", "description": "Nama pelanggan", "maxLength": 150 },
+        "waitressName": { "type": "string", "description": "Nama waitress pelayan", "maxLength": 100 },
+        "items": { "type": "array", "description": "Daftar item pesanan" },
+        "subtotal": { "type": "number", "description": "Subtotal harga item (IDR)" },
+        "discount": { "type": "number", "description": "Diskon promo (IDR)" },
+        "tax": { "type": "number", "description": "Pajak PB1 / PPN (IDR)" },
+        "total": { "type": "number", "description": "Total tagihan (IDR)" },
+        "status": { "type": "string", "description": "Status pesanan", "enum": ["pending", "in-kitchen", "in-bar", "ready-to-serve", "served", "completed", "cancelled"] },
+        "paymentStatus": { "type": "string", "description": "Status pembayaran", "enum": ["unpaid", "paid", "refunded"] },
+        "paymentMethod": { "type": "string", "description": "Metode pembayaran", "enum": ["cash", "qris", "debit", "credit", "transfer"] },
+        "createdAt": { "type": "string", "description": "Waktu pembuatan pesanan" },
+        "paidAt": { "type": "string", "description": "Waktu pembayaran pesanan" }
+      },
+      "required": ["id", "orderNumber", "tableNumber", "customerName", "waitressName", "items", "subtotal", "total", "status", "paymentStatus", "createdAt"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Catatan Biaya Pengeluaran Kafe",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "ID pengeluaran" },
+        "title": { "type": "string", "description": "Judul pengeluaran", "maxLength": 200 },
+        "amount": { "type": "number", "description": "Nominal biaya (IDR)" },
+        "category": { "type": "string", "description": "Kategori pengeluaran", "enum": ["Bahan Baku", "Operasional", "Gaji Staf", "Utilitas", "Lainnya"] },
+        "date": { "type": "string", "description": "Tanggal pengeluaran (YYYY-MM-DD)" },
+        "notes": { "type": "string", "description": "Catatan nota pengeluaran", "maxLength": 500 },
+        "createdBy": { "type": "string", "description": "Nama pencatat" }
+      },
+      "required": ["id", "title", "amount", "category", "date"]
+    },
+    "InventoryItem": {
+      "title": "InventoryItem",
+      "description": "Stok Bahan Baku Kafe",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "ID bahan baku" },
+        "name": { "type": "string", "description": "Nama bahan baku", "maxLength": 150 },
+        "currentStock": { "type": "number", "description": "Jumlah stok saat ini" },
+        "minStock": { "type": "number", "description": "Batas minimum stok" },
+        "unit": { "type": "string", "description": "Satuan unit (kg, liter, pcs, pack)", "maxLength": 30 },
+        "costPerUnit": { "type": "number", "description": "Biaya modal per unit (IDR)" },
+        "category": { "type": "string", "description": "Kategori bahan baku" },
+        "lastRestocked": { "type": "string", "description": "Tanggal terakhir restock" }
+      },
+      "required": ["id", "name", "currentStock", "minStock", "unit", "costPerUnit"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Data akun staf dan login POS NADIRA Café"
+    },
+    "/menu_items/{itemId}": {
+      "schema": "MenuItem",
+      "description": "Katalog menu makanan, minuman, dan status ketersediaan"
+    },
+    "/tables/{tableId}": {
+      "schema": "Table",
+      "description": "Status meja 1-30 real-time"
+    },
+    "/active_orders/{orderId}": {
+      "schema": "Order",
+      "description": "Pesanan aktif yang sedang diproses di dapur, bar, dan kasir"
+    },
+    "/completed_orders/{orderId}": {
+      "schema": "Order",
+      "description": "Arsip riwayat pesanan yang sudah dibayar dan selesai"
+    },
+    "/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Pencatatan pengeluaran harian dan operasional kafe"
+    },
+    "/inventory/{inventoryId}": {
+      "schema": "InventoryItem",
+      "description": "Manajemen stok bahan baku dan HPP"
+    }
+  }
+}

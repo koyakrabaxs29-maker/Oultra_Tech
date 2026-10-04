@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Default deny all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Users Collection (Staf & Login)
+    match /users/{userId} {
+      allow read, write: if isValidId(userId);
+    }
+
+    // Menu Items Collection
+    match /menu_items/{itemId} {
+      allow read, write: if isValidId(itemId);
+    }
+
+    // Tables Status (1-30)
+    match /tables/{tableId} {
+      allow read, write: if isValidId(tableId);
+    }
+
+    // Active Orders (Dapur, Bar, Waitress, Kasir)
+    match /active_orders/{orderId} {
+      allow read, write: if isValidId(orderId);
+    }
+
+    // Completed Orders (Riwayat Transaksi & Struk Kasir)
+    match /completed_orders/{orderId} {
+      allow read, write: if isValidId(orderId);
+    }
+
+    // Expenses (Pengeluaran Operasional)
+    match /expenses/{expenseId} {
+      allow read, write: if isValidId(expenseId);
+    }
+
+    // Inventory (Bahan Baku)
+    match /inventory/{inventoryId} {
+      allow read, write: if isValidId(inventoryId);
+    }
+
+    // Test / health check connection
+    match /test/{testId} {
+      allow read, write: if true;
+    }
+  }
+}
