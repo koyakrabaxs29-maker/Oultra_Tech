@@ -148,7 +148,7 @@ CREATE TABLE inventory_items (
       <div className="bg-[#1C120A] text-[#F3E5D8] w-full max-w-4xl rounded-2xl shadow-2xl border border-[#422915] flex flex-col max-h-[90vh] overflow-hidden">
         
         {/* Header */}
-        <div className="p-4 sm:p-5 bg-[#25180E] border-b border-[#3D2513] flex items-center justify-between">
+        <div className="p-3.5 sm:p-5 bg-[#25180E] border-b border-[#3D2513] flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8C5223] to-[#542F10] flex items-center justify-center text-white border border-[#A8713D]/40">
               <BookOpen className="w-5 h-5" />
@@ -171,7 +171,7 @@ CREATE TABLE inventory_items (
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-[#150D06] border-b border-[#311A0C] overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-2 px-4 sm:px-5 py-2 bg-[#150D06] border-b border-[#311A0C] overflow-x-auto scrollbar-none">
           <button
             onClick={() => setActiveTab('guide')}
             className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${

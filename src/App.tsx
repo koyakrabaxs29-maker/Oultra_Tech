@@ -32,7 +32,7 @@ const MainAppContent: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-[#FBF8F5] text-[#2C1D11]">
       {/* Top Navbar with Role Switcher & Brand */}
-      <Navbar 
+      <Navbar
         onOpenNotifications={() => setIsNotificationsModalOpen(true)}
       />
 

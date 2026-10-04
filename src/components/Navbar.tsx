@@ -135,8 +135,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNotifications }) => {
                 <span className="font-display text-sm sm:text-xl font-bold tracking-tight text-[#F7E6D4]">
                   NADIRA
                 </span>
-                <span className="text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full bg-[#3F2B1B] text-[#D4A373] border border-[#5A3E26] font-medium tracking-wider uppercase">
-                  Café
+                <span className="text-[9px] sm:text-[10px] px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded-full bg-[#3F2B1B] text-[#D4A373] border border-[#5A3E26] font-medium tracking-wider uppercase whitespace-nowrap">
+                  Café & Resto
                 </span>
               </div>
               <p className="text-[10px] text-[#B89F88] hidden md:block leading-tight">
