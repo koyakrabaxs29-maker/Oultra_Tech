@@ -20,13 +20,13 @@ export const DeleteTransactionModal: React.FC<DeleteTransactionModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-rose-200 overflow-hidden">
+      <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-rose-200 overflow-hidden animate-in zoom-in-95 duration-200">
         
         {/* Top Warning Banner */}
-        <div className="p-4 bg-rose-600 text-white flex items-center justify-between">
+        <div className="bg-rose-600 text-white p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-white" />
-            <h3 className="font-bold text-sm sm:text-base">
+            <h3 className="font-bold text-base">
               Konfirmasi Hapus Transaksi
             </h3>
           </div>
@@ -39,30 +39,30 @@ export const DeleteTransactionModal: React.FC<DeleteTransactionModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-5 space-y-4 text-xs">
+        <div className="p-5 space-y-4 text-xs sm:text-sm">
           <p className="text-stone-700">
             Apakah Anda yakin ingin menghapus data transaksi pembayaran berikut secara permanen?
           </p>
 
-          <div className="p-3.5 bg-rose-50/70 border border-rose-200 rounded-xl space-y-1.5 text-rose-950">
+          <div className="p-4 bg-rose-50/70 border border-rose-200 rounded-xl space-y-1.5 text-rose-950">
             <div className="flex justify-between font-bold text-sm text-[#2C1D11]">
               <span>{order.orderNumber}</span>
               <span className="text-rose-700">{formatRupiah(order.total)}</span>
             </div>
-            <div className="flex justify-between text-stone-600">
+            <div className="flex justify-between text-stone-600 text-xs">
               <span>Meja #{order.tableNumber}</span>
               <span>Pelanggan: {order.customerName}</span>
             </div>
-            <div className="flex justify-between text-stone-500 text-[11px] pt-1 border-t border-rose-100">
+            <div className="flex justify-between text-stone-500 text-xs pt-1 border-t border-rose-100">
               <span>Waktu: {formatFullDateTime(order.updatedAt || order.createdAt)}</span>
               <span className="uppercase font-semibold">{order.paymentMethod || 'cash'}</span>
             </div>
           </div>
 
-          <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-[11px]">
+          <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-xs">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-700" />
             <span>
-              <strong>Perhatian:</strong> Data transaksi yang dihapus akan tersimpan secara permanen dan <strong>tidak akan ditampilkan kembali</strong> saat refresh aplikasi atau login ulang. Laporan kas masuk/keluar dan laba rugi akan diperbarui secara otomatis.
+              Perhatian: Data transaksi yang dihapus tidak dapat dipulihkan kembali. Laporan kas masuk dan omset kafe akan otomatis disesuaikan.
             </span>
           </div>
 
@@ -71,7 +71,7 @@ export const DeleteTransactionModal: React.FC<DeleteTransactionModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold transition-colors cursor-pointer"
             >
               Batal
             </button>
@@ -81,10 +81,10 @@ export const DeleteTransactionModal: React.FC<DeleteTransactionModalProps> = ({
                 onConfirm(order.id);
                 onClose();
               }}
-              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-colors shadow-sm cursor-pointer flex items-center gap-1.5"
             >
               <Trash2 className="w-4 h-4" />
-              <span>Ya, Hapus Transaksi</span>
+              <span>Hapus Transaksi</span>
             </button>
           </div>
         </div>

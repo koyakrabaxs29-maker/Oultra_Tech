@@ -1721,6 +1721,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // 4. Persist directly to Google Cloud Firestore database
     try {
+      const isOwnerRole = activeRole === 'owner' || currentUser?.role === 'owner';
       if (
         action === 'create_order' || 
         action === 'update_order_items' || 
@@ -1731,6 +1732,7 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const order = payload.order || activeOrdersRef.current.find((o) => o.id === payload.orderId);
         if (order) syncOrderToFirestore(order);
       } else if (action === 'process_payment') {
+        // Uang Masuk: Simpan transaksi pembayaran ke Firebase Cloud Firestore
         if (payload.order) {
           syncCompletedOrderToFirestore(payload.order);
           removeActiveOrderFromFirestore(payload.order.id);
@@ -1741,20 +1743,19 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } else if (action === 'cancel_order' || action === 'delete_order') {
         if (payload.orderId) removeActiveOrderFromFirestore(payload.orderId);
-      } else if (action === 'add_user' || action === 'update_user') {
-        const user = payload.user || usersRef.current.find((u) => u.id === payload.id);
-        if (user) syncUserToFirestore(user);
-      } else if (action === 'delete_user') {
-        if (payload.id) removeUserFromFirestore(payload.id);
+      } else if (action === 'add_user' || action === 'update_user' || action === 'delete_user') {
+        // Data Akun Staf: Disimpan pada Local Storage Owner, tidak dikirim ke Firebase
       } else if (action === 'add_menu_item' || action === 'update_menu_item') {
         const item = payload.item || menuItemsRef.current.find((m) => m.id === payload.id);
         if (item) syncMenuItemToFirestore(item);
       } else if (action === 'delete_menu_item') {
         if (payload.id) removeMenuItemFromFirestore(payload.id);
       } else if (action === 'add_expense' || action === 'update_expense') {
+        // Uang Keluar: Simpan pengeluaran operasional ke Firebase Cloud Firestore
         const expense = payload.expense || expensesRef.current.find((e) => e.id === payload.id);
         if (expense) syncExpenseToFirestore(expense);
       } else if (action === 'delete_expense') {
+        // Uang Keluar: Hapus pengeluaran operasional dari Firebase Cloud Firestore
         if (payload.id) removeExpenseFromFirestore(payload.id);
       } else if (action === 'add_inventory_item' || action === 'update_inventory_stock') {
         const inv = payload.item || inventoryRef.current.find((i) => i.id === payload.id);
@@ -1931,64 +1932,6 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })
       .catch(() => {});
 
-    // Initial Firebase Firestore setup & real-time subscriptions
-    testFirestoreConnection();
-    seedFirestoreIfEmpty(
-      INITIAL_USERS,
-      INITIAL_MENU_ITEMS,
-      INITIAL_TABLES,
-      INITIAL_INVENTORY,
-      INITIAL_EXPENSES
-    );
-    const unsubFirestore = setupFirestoreSubscriptions({
-      onUsersLoaded: (cloudUsers) => {
-        if (cloudUsers && cloudUsers.length > 0) {
-          setUsers(cloudUsers);
-          usersRef.current = cloudUsers;
-        }
-      },
-      onMenuLoaded: (cloudMenu) => {
-        if (cloudMenu && cloudMenu.length > 0) {
-          setMenuItems(cloudMenu);
-          menuItemsRef.current = cloudMenu;
-        }
-      },
-      onTablesLoaded: (cloudTables) => {
-        if (cloudTables && cloudTables.length > 0) {
-          setTables(cloudTables);
-          tablesRef.current = cloudTables;
-        }
-      },
-      onActiveOrdersLoaded: (cloudActive) => {
-        if (cloudActive) {
-          const clean = cloudActive.filter((o) => !isDemoOrder(o));
-          setActiveOrders(clean);
-          activeOrdersRef.current = clean;
-        }
-      },
-      onCompletedOrdersLoaded: (cloudCompleted) => {
-        if (cloudCompleted) {
-          const clean = cloudCompleted.filter((o) => !isDemoOrder(o));
-          setCompletedOrders(clean);
-          completedOrdersRef.current = clean;
-        }
-      },
-      onExpensesLoaded: (cloudExpenses) => {
-        if (cloudExpenses) {
-          const clean = cloudExpenses.filter((e) => !isDemoExpense(e));
-          setExpenses(clean);
-          expensesRef.current = clean;
-        }
-      },
-      onInventoryLoaded: (cloudInv) => {
-        if (cloudInv) {
-          const clean = cloudInv.filter((i) => !isDemoInventory(i));
-          setInventory(clean);
-          inventoryRef.current = clean;
-        }
-      },
-    });
-
     // Screen wakeup / Tab focus listener (ensures tablets/phones sync immediately when screen turns on)
     const handleWakeupSync = () => {
       if (document.visibilityState === 'visible') {
@@ -2030,7 +1973,69 @@ export const CafeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       document.removeEventListener('visibilitychange', handleWakeupSync);
       window.removeEventListener('focus', handleWakeupSync);
       clearInterval(healthPollTimer);
-      if (unsubFirestore) unsubFirestore();
+    };
+  }, []);
+
+  // Dedicated Firebase Firestore Synchronization & Real-time Subscriptions
+  // Data Transaksi Uang Masuk (completed_orders) & Uang Keluar (expenses) disimpan di Firebase
+  // Data Akun Staf disimpan pada Local Storage Owner
+  useEffect(() => {
+    testFirestoreConnection();
+
+    seedFirestoreIfEmpty(
+      INITIAL_MENU_ITEMS,
+      INITIAL_TABLES,
+      INITIAL_INVENTORY,
+      INITIAL_EXPENSES
+    );
+
+    const unsubFirestore = setupFirestoreSubscriptions({
+      onMenuLoaded: (cloudMenu) => {
+        if (cloudMenu && cloudMenu.length > 0) {
+          setMenuItems(cloudMenu);
+          menuItemsRef.current = cloudMenu;
+        }
+      },
+      onTablesLoaded: (cloudTables) => {
+        if (cloudTables && cloudTables.length > 0) {
+          setTables(cloudTables);
+          tablesRef.current = cloudTables;
+        }
+      },
+      onActiveOrdersLoaded: (cloudActive) => {
+        if (cloudActive) {
+          const clean = cloudActive.filter((o) => !isDemoOrder(o));
+          setActiveOrders(clean);
+          activeOrdersRef.current = clean;
+        }
+      },
+      // Uang Masuk: Transaksi Selesai / Penjualan Lunas di Firebase
+      onCompletedOrdersLoaded: (cloudCompleted) => {
+        if (cloudCompleted) {
+          const clean = cloudCompleted.filter((o) => !isDemoOrder(o));
+          setCompletedOrders(clean);
+          completedOrdersRef.current = clean;
+        }
+      },
+      // Uang Keluar: Pengeluaran Operasional di Firebase
+      onExpensesLoaded: (cloudExpenses) => {
+        if (cloudExpenses) {
+          const clean = cloudExpenses.filter((e) => !isDemoExpense(e));
+          setExpenses(clean);
+          expensesRef.current = clean;
+        }
+      },
+      onInventoryLoaded: (cloudInv) => {
+        if (cloudInv) {
+          const clean = cloudInv.filter((i) => !isDemoInventory(i));
+          setInventory(clean);
+          inventoryRef.current = clean;
+        }
+      },
+    });
+
+    return () => {
+      unsubFirestore();
     };
   }, []);
 

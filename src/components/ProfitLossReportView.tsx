@@ -277,14 +277,14 @@ export const ProfitLossReportView: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="font-display text-lg sm:text-xl font-bold text-[#2C1D11]">
-              Laporan Keuangan Laba Rugi (Profit & Loss Statement)
+              Laporan Keuangan Laba Rugi (Profit & Loss)
             </h2>
-            <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
-              Executive View
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+              Executive Statement
             </span>
           </div>
           <p className="text-xs text-[#7A614D] mt-1">
-            Analisis komprehensif omset penjualan, harga pokok bahan baku (HPP), beban operasional kafe, dan margin laba bersih.
+            Analisis komprehensif omset penjualan, HPP bahan baku, beban operasional, dan margin laba bersih.
           </p>
         </div>
 
@@ -293,15 +293,15 @@ export const ProfitLossReportView: React.FC = () => {
           <div className="flex items-center bg-[#FBF8F5] p-1 rounded-xl border border-[#E3D3C4] text-xs font-semibold">
             {[
               { key: 'today', label: 'Hari Ini' },
-              { key: '7days', label: '7 Hari' },
+              { key: '7days', label: '7 Hari Terakhir' },
               { key: '30days', label: 'Bulan Ini' },
-              { key: 'all', label: 'Semua' },
+              { key: 'all', label: 'Semua Waktu' },
             ].map((p) => (
               <button
                 key={p.key}
                 id={`btn-period-${p.key}`}
                 onClick={() => setPeriod(p.key as PeriodOption)}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer ${
                   period === p.key
                     ? 'bg-[#7D4F27] text-white shadow-xs font-bold'
                     : 'text-[#7A614D] hover:text-[#2C1D11]'
@@ -315,16 +315,16 @@ export const ProfitLossReportView: React.FC = () => {
           <button
             id="btn-add-expense"
             onClick={handleOpenAddExpense}
-            className="px-3.5 py-2 rounded-xl bg-[#2C1D11] hover:bg-[#422B19] text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+            className="px-3.5 py-1.5 rounded-xl bg-[#2C1D11] hover:bg-[#422B19] text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
           >
             <Plus className="w-4 h-4 text-amber-400" />
-            <span>+ Catat Pengeluaran</span>
+            <span>+ Catat Biaya</span>
           </button>
 
           <button
             id="btn-export-csv-pl"
             onClick={handleExportCSV}
-            className="px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-[#5A3E29] text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+            className="px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-[#5A3E29] text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
             title="Download CSV Laba Rugi"
           >
             <Download className="w-3.5 h-3.5" />
@@ -333,7 +333,7 @@ export const ProfitLossReportView: React.FC = () => {
 
           <button
             onClick={() => window.print()}
-            className="px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-[#5A3E29] text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+            className="px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-[#5A3E29] text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
             title="Cetak Laporan"
           >
             <Printer className="w-3.5 h-3.5" />
@@ -345,60 +345,60 @@ export const ProfitLossReportView: React.FC = () => {
       {/* KPI Cards: Revenue, COGS, Gross Profit, OPEX, Net Profit */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Penjualan Bersih */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E3D3C4] shadow-xs space-y-1">
+        <div className="bg-white p-5 rounded-2xl border border-[#E3D3C4] shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#8A715C]">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#8A715C]">
               Penjualan Bersih (Net Sales)
             </span>
-            <span className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
+            <span className="p-2 rounded-xl bg-blue-50 text-blue-600">
               <DollarSign className="w-4 h-4" />
             </span>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-[#2C1D11]">
+          <div className="text-2xl font-black text-[#2C1D11]">
             {formatRupiah(grossSales)}
           </div>
-          <div className="flex items-center justify-between text-[11px] text-[#7A614D]">
-            <span>Dari {filteredOrders.length} transaksi selesai</span>
+          <div className="flex items-center justify-between text-xs text-[#7A614D]">
+            <span>{filteredOrders.length} transaksi selesai</span>
             <span className="font-semibold text-emerald-600">100% Omset</span>
           </div>
         </div>
 
         {/* Card 2: HPP (COGS) */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E3D3C4] shadow-xs space-y-1">
+        <div className="bg-white p-5 rounded-2xl border border-[#E3D3C4] shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#8A715C]">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#8A715C]">
               Beban Bahan Baku (HPP)
             </span>
-            <span className="p-1.5 rounded-lg bg-amber-50 text-amber-700">
+            <span className="p-2 rounded-xl bg-amber-50 text-amber-700">
               <Coffee className="w-4 h-4" />
             </span>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-amber-900">
+          <div className="text-2xl font-black text-amber-900">
             {formatRupiah(totalCOGS)}
           </div>
-          <div className="flex items-center justify-between text-[11px] text-[#7A614D]">
+          <div className="flex items-center justify-between text-xs text-[#7A614D]">
             <span>Biaya Pokok Menu</span>
             <span className="font-semibold text-amber-700">
-              {grossSales > 0 ? ((totalCOGS / grossSales) * 100).toFixed(1) : 0}% dari Omset
+              {grossSales > 0 ? ((totalCOGS / grossSales) * 100).toFixed(1) : 0}% Omset
             </span>
           </div>
         </div>
 
         {/* Card 3: Beban Operasional (OPEX) */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E3D3C4] shadow-xs space-y-1">
+        <div className="bg-white p-5 rounded-2xl border border-[#E3D3C4] shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#8A715C]">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#8A715C]">
               Beban Operasional (OPEX)
             </span>
-            <span className="p-1.5 rounded-lg bg-rose-50 text-rose-600">
+            <span className="p-2 rounded-xl bg-rose-50 text-rose-600">
               <Receipt className="w-4 h-4" />
             </span>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-rose-900">
+          <div className="text-2xl font-black text-rose-900">
             {formatRupiah(totalExpenses)}
           </div>
-          <div className="flex items-center justify-between text-[11px] text-[#7A614D]">
-            <span>Gaji, sewa, listrik, utilitas</span>
+          <div className="flex items-center justify-between text-xs text-[#7A614D]">
+            <span>Operasional & utilitas</span>
             <span className="font-semibold text-rose-600">
               {filteredExpenses.length} Pos Dicatat
             </span>
@@ -406,31 +406,31 @@ export const ProfitLossReportView: React.FC = () => {
         </div>
 
         {/* Card 4: Laba / Rugi Bersih (Net Profit/Loss) */}
-        <div className={`p-4 sm:p-5 rounded-2xl border shadow-xs space-y-1 ${
+        <div className={`p-5 rounded-2xl border shadow-xs space-y-2 ${
           isProfitable 
             ? 'bg-emerald-50/70 border-emerald-300' 
             : 'bg-rose-50/70 border-rose-300'
         }`}>
           <div className="flex items-center justify-between">
-            <span className={`text-[11px] font-bold uppercase tracking-wider ${
+            <span className={`text-xs font-bold uppercase tracking-wider ${
               isProfitable ? 'text-emerald-800' : 'text-rose-800'
             }`}>
-              {isProfitable ? 'Laba Bersih (Net Profit)' : 'Rugi Bersih (Net Loss)'}
+              {isProfitable ? 'Laba Bersih' : 'Rugi Bersih'}
             </span>
-            <span className={`p-1.5 rounded-lg ${
+            <span className={`p-2 rounded-xl ${
               isProfitable ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
             }`}>
               {isProfitable ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
             </span>
           </div>
-          <div className={`text-xl sm:text-2xl font-black ${
+          <div className={`text-2xl font-black ${
             isProfitable ? 'text-emerald-700' : 'text-rose-700'
           }`}>
             {formatRupiah(Math.abs(netProfit))}
           </div>
-          <div className="flex items-center justify-between text-[11px]">
+          <div className="flex items-center justify-between text-xs">
             <span className={`font-semibold ${isProfitable ? 'text-emerald-700' : 'text-rose-700'}`}>
-              {isProfitable ? 'STATUS: SURPLUS LABA' : 'STATUS: DEFISIT RUGI'}
+              {isProfitable ? 'SURPLUS' : 'DEFISIT'}
             </span>
             <span className={`font-bold ${isProfitable ? 'text-emerald-800' : 'text-rose-800'}`}>
               Margin: {netMarginPercent}%
@@ -446,34 +446,34 @@ export const ProfitLossReportView: React.FC = () => {
         <div className="lg:col-span-8 bg-white p-5 sm:p-6 rounded-2xl border border-[#E3D3C4] shadow-sm space-y-5">
           <div className="flex items-center justify-between border-b border-[#F0E4D8] pb-3">
             <div>
-              <h3 className="font-display text-base font-bold text-[#2C1D11]">
+              <h3 className="font-display text-base sm:text-lg font-bold text-[#2C1D11]">
                 Rincian Laporan Laba Rugi Komprehensif
               </h3>
-              <span className="text-xs text-[#7A614D]">Format Standar Akuntansi Usaha Restoran & Kafe</span>
+              <span className="text-xs text-[#7A614D]">Format Standar Akuntansi Kafe</span>
             </div>
-            <span className="text-[11px] font-semibold text-stone-500 bg-stone-100 px-2.5 py-1 rounded-lg">
-              Periode: {period === 'today' ? 'Hari Ini' : period === '7days' ? '7 Hari Terakhir' : period === '30days' ? '30 Hari Terakhir' : 'Semua Waktu'}
+            <span className="text-xs font-semibold text-stone-500 bg-stone-100 px-2.5 py-1 rounded-md">
+              Periode: {period === 'today' ? 'Hari Ini' : period === '7days' ? '7 Hari Terakhir' : period === '30days' ? '30 Hari Ini' : 'Semua Data'}
             </span>
           </div>
 
-          <div className="space-y-4 text-xs font-sans">
+          <div className="space-y-4 text-xs sm:text-sm font-sans">
             
             {/* Section I: Revenue */}
             <div className="space-y-2">
               <div className="flex justify-between items-center bg-[#FBF8F5] p-2.5 rounded-xl font-bold text-[#2C1D11] border border-[#E3D3C4]">
-                <span className="text-sm uppercase tracking-wider text-[#7D4F27]">I. Pendapatan Usaha (Revenue)</span>
-                <span className="text-sm">{formatRupiah(grossSales)}</span>
+                <span className="text-xs uppercase tracking-wider text-[#7D4F27]">I. Pendapatan Usaha (Revenue)</span>
+                <span className="text-sm sm:text-base">{formatRupiah(grossSales)}</span>
               </div>
               <div className="px-3 space-y-1.5 text-stone-700">
                 <div className="flex justify-between py-1 border-b border-dashed border-stone-200">
                   <span className="pl-2">• Penjualan Makanan & Minuman</span>
                   <span className="font-semibold">{formatRupiah(grossSales)}</span>
                 </div>
-                <div className="flex justify-between py-1 border-b border-dashed border-stone-200 text-stone-500 text-[11px]">
+                <div className="flex justify-between py-1 border-b border-dashed border-stone-200 text-stone-500 text-xs">
                   <span className="pl-2">• PPN Restoran (10%)</span>
                   <span>{formatRupiah(totalTax)}</span>
                 </div>
-                <div className="flex justify-between py-1 border-b border-dashed border-stone-200 text-stone-500 text-[11px]">
+                <div className="flex justify-between py-1 border-b border-dashed border-stone-200 text-stone-500 text-xs">
                   <span className="pl-2">• Service Charge Layanan (5%)</span>
                   <span>{formatRupiah(totalServiceCharge)}</span>
                 </div>
@@ -487,8 +487,8 @@ export const ProfitLossReportView: React.FC = () => {
             {/* Section II: COGS & Gross Profit */}
             <div className="space-y-2 pt-2">
               <div className="flex justify-between items-center bg-[#FBF8F5] p-2.5 rounded-xl font-bold text-[#2C1D11] border border-[#E3D3C4]">
-                <span className="text-sm uppercase tracking-wider text-[#7D4F27]">II. Harga Pokok Penjualan (HPP / COGS)</span>
-                <span className="text-sm text-amber-900">({formatRupiah(totalCOGS)})</span>
+                <span className="text-xs uppercase tracking-wider text-[#7D4F27]">II. Harga Pokok Penjualan (HPP / COGS)</span>
+                <span className="text-sm sm:text-base text-amber-900">({formatRupiah(totalCOGS)})</span>
               </div>
               <div className="px-3 space-y-1.5 text-stone-700">
                 <div className="flex justify-between py-1 border-b border-dashed border-stone-200">
@@ -498,8 +498,8 @@ export const ProfitLossReportView: React.FC = () => {
                 <div className="flex justify-between py-2 px-3 rounded-lg bg-amber-50/70 border border-amber-200 font-bold text-[#2C1D11]">
                   <span>LABA KOTOR (GROSS PROFIT)</span>
                   <div className="text-right">
-                    <span className="text-sm text-[#7D4F27]">{formatRupiah(grossProfit)}</span>
-                    <span className="text-[10px] text-stone-500 block">Margin: {grossMarginPercent}%</span>
+                    <span className="text-sm sm:text-base text-[#7D4F27]">{formatRupiah(grossProfit)}</span>
+                    <span className="text-xs text-stone-500 block">Margin: {grossMarginPercent}%</span>
                   </div>
                 </div>
               </div>
@@ -508,8 +508,8 @@ export const ProfitLossReportView: React.FC = () => {
             {/* Section III: Operational Expenses (OPEX) */}
             <div className="space-y-2 pt-2">
               <div className="flex justify-between items-center bg-[#FBF8F5] p-2.5 rounded-xl font-bold text-[#2C1D11] border border-[#E3D3C4]">
-                <span className="text-sm uppercase tracking-wider text-[#7D4F27]">III. Beban Operasional (OPEX)</span>
-                <span className="text-sm text-rose-900">({formatRupiah(totalExpenses)})</span>
+                <span className="text-xs uppercase tracking-wider text-[#7D4F27]">III. Beban Operasional (OPEX)</span>
+                <span className="text-sm sm:text-base text-rose-900">({formatRupiah(totalExpenses)})</span>
               </div>
               
               <div className="px-3 space-y-1.5 text-stone-700">
@@ -525,7 +525,7 @@ export const ProfitLossReportView: React.FC = () => {
                       <div className="text-right">
                         <span className="font-semibold">{formatRupiah(amount)}</span>
                         {amount > 0 && (
-                          <span className="text-[10px] text-stone-400 ml-2">({percentOfSales}%)</span>
+                          <span className="text-xs text-stone-400 ml-2">({percentOfSales}%)</span>
                         )}
                       </div>
                     </div>
@@ -540,18 +540,18 @@ export const ProfitLossReportView: React.FC = () => {
             </div>
 
             {/* Section IV: Final Bottom Line (Net Profit / Loss) */}
-            <div className={`p-4 rounded-xl border mt-4 ${
+            <div className={`p-4 rounded-xl border mt-3 ${
               isProfitable 
-                ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm' 
+                ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm' 
                 : 'bg-rose-600 text-white border-rose-700 shadow-sm'
             }`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-[11px] uppercase tracking-wider font-bold opacity-90 block">
+                  <span className="text-xs uppercase tracking-wider font-bold opacity-90 block">
                     IV. HASIL AKHIR LAPORAN KEUANGAN
                   </span>
                   <h4 className="text-base sm:text-lg font-black tracking-tight">
-                    {isProfitable ? 'LABA BERSIH TAHUN/BULAN BERJALAN' : 'RUGI BERSIH OPERASIONAL'}
+                    {isProfitable ? 'LABA BERSIH BERJALAN' : 'RUGI BERSIH OPERASIONAL'}
                   </h4>
                 </div>
                 <div className="text-right">
@@ -559,7 +559,7 @@ export const ProfitLossReportView: React.FC = () => {
                     {formatRupiah(netProfit)}
                   </div>
                   <span className="text-xs font-semibold opacity-95">
-                    Net Profit Margin: {netMarginPercent}%
+                    Net Margin: {netMarginPercent}%
                   </span>
                 </div>
               </div>
@@ -569,10 +569,10 @@ export const ProfitLossReportView: React.FC = () => {
         </div>
 
         {/* Right Column: Visual Breakdown & Expense Management (4 cols) */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-4 space-y-4">
           
           {/* Visual Financial Structure */}
-          <div className="bg-white p-5 rounded-2xl border border-[#E3D3C4] shadow-sm space-y-4">
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E3D3C4] shadow-sm space-y-3">
             <h3 className="font-display text-sm font-bold text-[#2C1D11] flex items-center gap-2">
               <PieChart className="w-4 h-4 text-[#7D4F27]" />
               Struktur Alokasi Pendapatan
@@ -621,13 +621,13 @@ export const ProfitLossReportView: React.FC = () => {
           </div>
 
           {/* Manage Recorded Operational Expenses */}
-          <div className="bg-white p-5 rounded-2xl border border-[#E3D3C4] shadow-sm space-y-3">
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E3D3C4] shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-display text-sm font-bold text-[#2C1D11]">
                   Pos Pengeluaran ({filteredExpenses.length})
                 </h3>
-                <span className="text-[11px] text-[#7A614D]">Kelola biaya operasional</span>
+                <span className="text-xs text-[#7A614D]">Kelola biaya operasional</span>
               </div>
               <div className="flex items-center gap-1.5">
                 {expenses.length > 0 && (
@@ -637,7 +637,7 @@ export const ProfitLossReportView: React.FC = () => {
                         clearAllExpenses();
                       }
                     }}
-                    className="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-[11px] font-bold transition-colors cursor-pointer flex items-center gap-1"
+                    className="px-2 py-1 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
                     title="Kosongkan semua pengeluaran"
                   >
                     <Trash2 className="w-3 h-3 text-rose-600" />
@@ -654,17 +654,17 @@ export const ProfitLossReportView: React.FC = () => {
               </div>
             </div>
 
-            <div className="divide-y divide-[#F0E4D8] border border-[#E3D3C4] rounded-xl overflow-y-auto max-h-[360px] scrollbar-thin">
+            <div className="divide-y divide-[#F0E4D8] border border-[#E3D3C4] rounded-xl overflow-y-auto max-h-[350px] scrollbar-thin text-xs">
               {filteredExpenses.length === 0 ? (
                 <div className="p-4 text-center text-xs text-stone-500">
                   Belum ada pengeluaran operasional pada periode ini.
                 </div>
               ) : (
                 filteredExpenses.map((exp) => (
-                  <div key={exp.id} className="p-3 bg-white hover:bg-stone-50 flex items-center justify-between text-xs transition-colors">
+                  <div key={exp.id} className="p-2.5 bg-white hover:bg-stone-50 flex items-center justify-between transition-colors">
                     <div className="space-y-0.5 pr-2">
                       <div className="font-bold text-[#2C1D11] line-clamp-1">{exp.name}</div>
-                      <div className="flex items-center gap-1.5 text-[10px] text-stone-500">
+                      <div className="flex items-center gap-1.5 text-[11px] text-stone-500">
                         <span>{exp.category}</span>
                         <span>•</span>
                         <span>{exp.date}</span>
@@ -674,20 +674,20 @@ export const ProfitLossReportView: React.FC = () => {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-rose-700 whitespace-nowrap">
+                      <span className="font-bold text-rose-700 whitespace-nowrap text-xs">
                         {formatRupiah(exp.amount)}
                       </span>
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleOpenEditExpense(exp)}
-                          className="p-1 text-stone-400 hover:text-stone-700 rounded transition-colors"
+                          className="p-1 text-stone-400 hover:text-stone-700 rounded transition-colors cursor-pointer"
                           title="Edit"
                         >
                           <Edit className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => deleteExpense(exp.id)}
-                          className="p-1 text-stone-400 hover:text-rose-600 rounded transition-colors"
+                          className="p-1 text-stone-400 hover:text-rose-600 rounded transition-colors cursor-pointer"
                           title="Hapus"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -707,20 +707,20 @@ export const ProfitLossReportView: React.FC = () => {
       {/* EXPENSE MODAL (ADD / EDIT) */}
       {isExpenseModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-[#E3D3C4] overflow-hidden">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-[#E3D3C4] overflow-hidden">
             <div className="p-4 bg-[#2C1D11] text-white flex items-center justify-between">
-              <h3 className="font-bold text-sm">
-                {editingExpenseId ? 'Edit Pos Pengeluaran' : 'Catat Pengeluaran Operasional Baru'}
+              <h3 className="font-bold text-base sm:text-lg">
+                {editingExpenseId ? 'Edit Pos Pengeluaran' : 'Catat Pengeluaran Baru'}
               </h3>
               <button
                 onClick={() => setIsExpenseModalOpen(false)}
-                className="text-stone-300 hover:text-white"
+                className="text-stone-300 hover:text-white cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-5 space-y-4 text-xs">
+            <div className="p-5 space-y-3.5 text-xs sm:text-sm">
               <div className="space-y-1">
                 <label className="font-bold text-[#2C1D11]">Nama / Keterangan Pengeluaran *</label>
                 <input
@@ -760,7 +760,7 @@ export const ProfitLossReportView: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-bold text-[#2C1D11]">Tanggal Transaksi *</label>
+                  <label className="font-bold text-[#2C1D11]">Tanggal *</label>
                   <input
                     type="date"
                     value={expenseForm.date}
@@ -772,10 +772,10 @@ export const ProfitLossReportView: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="font-bold text-[#2C1D11]">Catatan Tambahan (Opsional)</label>
+                <label className="font-bold text-[#2C1D11]">Catatan (Opsional)</label>
                 <textarea
                   rows={2}
-                  placeholder="Misal: Nota #123 dari agen es kristal, bon pembelian dapur..."
+                  placeholder="Misal: Nota #123 agen es, bon dapur..."
                   value={expenseForm.notes}
                   onChange={(e) => setExpenseForm({ ...expenseForm, notes: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl border border-[#E3D3C4] focus:outline-none focus:ring-2 focus:ring-[#7D4F27]"
@@ -786,16 +786,16 @@ export const ProfitLossReportView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsExpenseModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold transition-all cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold transition-all cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="button"
                   onClick={handleSaveExpense}
-                  className="px-4 py-2 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white font-bold transition-all cursor-pointer shadow-xs"
+                  className="px-4 py-2 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white text-xs font-bold transition-all cursor-pointer shadow-sm"
                 >
-                  {editingExpenseId ? 'Simpan Perubahan' : 'Catat Pengeluaran'}
+                  {editingExpenseId ? 'Simpan' : 'Catat Biaya'}
                 </button>
               </div>
             </div>

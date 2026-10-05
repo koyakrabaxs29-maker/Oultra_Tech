@@ -111,10 +111,6 @@
     }
   },
   "firestore": {
-    "/users/{userId}": {
-      "schema": "User",
-      "description": "Data akun staf dan login POS NADIRA Café"
-    },
     "/menu_items/{itemId}": {
       "schema": "MenuItem",
       "description": "Katalog menu makanan, minuman, dan status ketersediaan"

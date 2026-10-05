@@ -1,5 +1,12 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signOut, 
+  onAuthStateChanged, 
+  User as FirebaseUser 
+} from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -8,6 +15,26 @@ export const db = firebaseConfig.firestoreDatabaseId
   ? getFirestore(app, firebaseConfig.firestoreDatabaseId) 
   : getFirestore(app);
 export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
+
+export const OWNER_EMAILS = [
+  'koyakrabaxs29@gmail.com',
+  'owner@nadiracafe.id',
+];
+
+export async function signInOwnerWithGoogle(): Promise<FirebaseUser> {
+  const result = await signInWithPopup(auth, googleProvider);
+  return result.user;
+}
+
+export async function signOutFirebaseUser(): Promise<void> {
+  await signOut(auth);
+}
+
+export function isUserFirebaseOwner(user: FirebaseUser | null): boolean {
+  if (!user || !user.email) return false;
+  return OWNER_EMAILS.includes(user.email.toLowerCase()) || user.email.toLowerCase().includes('owner');
+}
 
 export enum OperationType {
   CREATE = 'create',

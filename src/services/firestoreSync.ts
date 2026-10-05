@@ -37,35 +37,28 @@ export interface FirestoreDataCallbacks {
   onInventoryLoaded?: (inventory: InventoryItem[]) => void;
 }
 
+function sanitizePayload<T>(data: T): T {
+  return JSON.parse(JSON.stringify(data));
+}
+
 /**
  * Seed initial data to Firestore if collections are currently empty
+ * (Catatan: Data akun disimpan di Local Storage, tidak di Cloud Firestore)
  */
 export async function seedFirestoreIfEmpty(
-  initialUsers: UserAccount[],
   initialMenu: MenuItem[],
   initialTables: TableInfo[],
   initialInventory: InventoryItem[],
   initialExpenses: OperationalExpense[]
 ) {
   try {
-    const usersSnap = await getDocs(collection(db, COLLECTIONS.USERS));
-    if (usersSnap.empty) {
-      console.log('🌱 Seeding initial users to Firestore...');
-      const batch = writeBatch(db);
-      initialUsers.forEach((user) => {
-        const ref = doc(db, COLLECTIONS.USERS, user.id);
-        batch.set(ref, user);
-      });
-      await batch.commit();
-    }
-
     const menuSnap = await getDocs(collection(db, COLLECTIONS.MENU_ITEMS));
     if (menuSnap.empty) {
       console.log('🌱 Seeding initial menu items to Firestore...');
       const batch = writeBatch(db);
       initialMenu.forEach((item) => {
         const ref = doc(db, COLLECTIONS.MENU_ITEMS, item.id);
-        batch.set(ref, item);
+        batch.set(ref, sanitizePayload(item));
       });
       await batch.commit();
     }
@@ -76,29 +69,30 @@ export async function seedFirestoreIfEmpty(
       const batch = writeBatch(db);
       initialTables.forEach((table) => {
         const ref = doc(db, COLLECTIONS.TABLES, `table-${table.number}`);
-        batch.set(ref, table);
+        batch.set(ref, sanitizePayload(table));
       });
       await batch.commit();
     }
 
     const invSnap = await getDocs(collection(db, COLLECTIONS.INVENTORY));
-    if (invSnap.empty) {
+    if (invSnap.empty && initialInventory.length > 0) {
       console.log('🌱 Seeding initial inventory to Firestore...');
       const batch = writeBatch(db);
       initialInventory.forEach((inv) => {
         const ref = doc(db, COLLECTIONS.INVENTORY, inv.id);
-        batch.set(ref, inv);
+        batch.set(ref, sanitizePayload(inv));
       });
       await batch.commit();
     }
 
+    // Uang Keluar (Expenses) di Firebase
     const expSnap = await getDocs(collection(db, COLLECTIONS.EXPENSES));
     if (expSnap.empty && initialExpenses.length > 0) {
       console.log('🌱 Seeding initial expenses to Firestore...');
       const batch = writeBatch(db);
       initialExpenses.forEach((exp) => {
         const ref = doc(db, COLLECTIONS.EXPENSES, exp.id);
-        batch.set(ref, exp);
+        batch.set(ref, sanitizePayload(exp));
       });
       await batch.commit();
     }
@@ -108,31 +102,14 @@ export async function seedFirestoreIfEmpty(
 }
 
 /**
- * Setup real-time listeners for all Firestore collections
+ * Setup real-time listeners for Firestore collections
+ * - Data Akun: Disimpan lokal di Local Storage Owner
+ * - Data Transaksi Uang Masuk (completed_orders) & Uang Keluar (expenses): Disimpan & disinkronkan di Firebase
  */
 export function setupFirestoreSubscriptions(callbacks: FirestoreDataCallbacks) {
   const unsubscribes: Array<() => void> = [];
 
-  // 1. Users
-  try {
-    const unsubUsers = onSnapshot(
-      collection(db, COLLECTIONS.USERS),
-      (snapshot) => {
-        if (callbacks.onUsersLoaded && !snapshot.empty) {
-          const users = snapshot.docs.map((d) => d.data() as UserAccount);
-          callbacks.onUsersLoaded(users);
-        }
-      },
-      (error) => {
-        handleFirestoreError(error, OperationType.GET, COLLECTIONS.USERS);
-      }
-    );
-    unsubscribes.push(unsubUsers);
-  } catch (e) {
-    console.warn('Users onSnapshot error:', e);
-  }
-
-  // 2. Menu Items
+  // 1. Menu Items (Semua Role Staf)
   try {
     const unsubMenu = onSnapshot(
       collection(db, COLLECTIONS.MENU_ITEMS),
@@ -151,7 +128,7 @@ export function setupFirestoreSubscriptions(callbacks: FirestoreDataCallbacks) {
     console.warn('Menu onSnapshot error:', e);
   }
 
-  // 3. Tables
+  // 2. Tables (Semua Role Staf)
   try {
     const unsubTables = onSnapshot(
       collection(db, COLLECTIONS.TABLES),
@@ -171,7 +148,7 @@ export function setupFirestoreSubscriptions(callbacks: FirestoreDataCallbacks) {
     console.warn('Tables onSnapshot error:', e);
   }
 
-  // 4. Active Orders
+  // 3. Active Orders (Semua Role Staf)
   try {
     const unsubActive = onSnapshot(
       collection(db, COLLECTIONS.ACTIVE_ORDERS),
@@ -190,7 +167,7 @@ export function setupFirestoreSubscriptions(callbacks: FirestoreDataCallbacks) {
     console.warn('ActiveOrders onSnapshot error:', e);
   }
 
-  // 5. Completed Orders
+  // 4. Data Transaksi Uang Masuk (Completed Orders / Penjualan Lunas) di Firebase
   try {
     const unsubCompleted = onSnapshot(
       collection(db, COLLECTIONS.COMPLETED_ORDERS),
@@ -209,7 +186,7 @@ export function setupFirestoreSubscriptions(callbacks: FirestoreDataCallbacks) {
     console.warn('CompletedOrders onSnapshot error:', e);
   }
 
-  // 6. Expenses
+  // 5. Data Transaksi Uang Keluar (Expenses / Pengeluaran Operasional) di Firebase
   try {
     const unsubExpenses = onSnapshot(
       collection(db, COLLECTIONS.EXPENSES),
@@ -228,7 +205,7 @@ export function setupFirestoreSubscriptions(callbacks: FirestoreDataCallbacks) {
     console.warn('Expenses onSnapshot error:', e);
   }
 
-  // 7. Inventory
+  // 6. Inventory (Semua Role Staf)
   try {
     const unsubInventory = onSnapshot(
       collection(db, COLLECTIONS.INVENTORY),
@@ -256,7 +233,7 @@ export function setupFirestoreSubscriptions(callbacks: FirestoreDataCallbacks) {
 export async function syncOrderToFirestore(order: Order) {
   try {
     const ref = doc(db, COLLECTIONS.ACTIVE_ORDERS, order.id);
-    await setDoc(ref, order);
+    await setDoc(ref, sanitizePayload(order));
   } catch (e) {
     handleFirestoreError(e, OperationType.WRITE, `${COLLECTIONS.ACTIVE_ORDERS}/${order.id}`);
   }
@@ -274,7 +251,7 @@ export async function removeActiveOrderFromFirestore(orderId: string) {
 export async function syncCompletedOrderToFirestore(order: Order) {
   try {
     const ref = doc(db, COLLECTIONS.COMPLETED_ORDERS, order.id);
-    await setDoc(ref, order);
+    await setDoc(ref, sanitizePayload(order));
   } catch (e) {
     handleFirestoreError(e, OperationType.WRITE, `${COLLECTIONS.COMPLETED_ORDERS}/${order.id}`);
   }
@@ -283,34 +260,25 @@ export async function syncCompletedOrderToFirestore(order: Order) {
 export async function syncTableToFirestore(table: TableInfo) {
   try {
     const ref = doc(db, COLLECTIONS.TABLES, `table-${table.number}`);
-    await setDoc(ref, table);
+    await setDoc(ref, sanitizePayload(table));
   } catch (e) {
     handleFirestoreError(e, OperationType.WRITE, `${COLLECTIONS.TABLES}/table-${table.number}`);
   }
 }
 
-export async function syncUserToFirestore(user: UserAccount) {
-  try {
-    const ref = doc(db, COLLECTIONS.USERS, user.id);
-    await setDoc(ref, user);
-  } catch (e) {
-    handleFirestoreError(e, OperationType.WRITE, `${COLLECTIONS.USERS}/${user.id}`);
-  }
+// User accounts are stored locally in Local Storage Owner, not in Firebase
+export async function syncUserToFirestore(_user: UserAccount) {
+  // Disimpan pada Local Storage Owner, tidak dikirim ke Firebase
 }
 
-export async function removeUserFromFirestore(userId: string) {
-  try {
-    const ref = doc(db, COLLECTIONS.USERS, userId);
-    await deleteDoc(ref);
-  } catch (e) {
-    handleFirestoreError(e, OperationType.DELETE, `${COLLECTIONS.USERS}/${userId}`);
-  }
+export async function removeUserFromFirestore(_userId: string) {
+  // Disimpan pada Local Storage Owner, tidak dikirim ke Firebase
 }
 
 export async function syncMenuItemToFirestore(item: MenuItem) {
   try {
     const ref = doc(db, COLLECTIONS.MENU_ITEMS, item.id);
-    await setDoc(ref, item);
+    await setDoc(ref, sanitizePayload(item));
   } catch (e) {
     handleFirestoreError(e, OperationType.WRITE, `${COLLECTIONS.MENU_ITEMS}/${item.id}`);
   }
@@ -328,7 +296,7 @@ export async function removeMenuItemFromFirestore(itemId: string) {
 export async function syncExpenseToFirestore(expense: OperationalExpense) {
   try {
     const ref = doc(db, COLLECTIONS.EXPENSES, expense.id);
-    await setDoc(ref, expense);
+    await setDoc(ref, sanitizePayload(expense));
   } catch (e) {
     handleFirestoreError(e, OperationType.WRITE, `${COLLECTIONS.EXPENSES}/${expense.id}`);
   }
@@ -346,7 +314,7 @@ export async function removeExpenseFromFirestore(expenseId: string) {
 export async function syncInventoryToFirestore(item: InventoryItem) {
   try {
     const ref = doc(db, COLLECTIONS.INVENTORY, item.id);
-    await setDoc(ref, item);
+    await setDoc(ref, sanitizePayload(item));
   } catch (e) {
     handleFirestoreError(e, OperationType.WRITE, `${COLLECTIONS.INVENTORY}/${item.id}`);
   }

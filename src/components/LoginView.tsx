@@ -17,6 +17,7 @@ import {
 import { NadiraLogo } from './NadiraLogo';
 import { LiveClockWidget } from './LiveClockWidget';
 import { ChangePasswordModal } from './ChangePasswordModal';
+import { signInOwnerWithGoogle, isUserFirebaseOwner } from '../services/firebase';
 
 export const LoginView: React.FC = () => {
   const { users, setCurrentUser, setActiveRole, showToast } = useCafe();
@@ -24,6 +25,7 @@ export const LoginView: React.FC = () => {
   const [pinInput, setPinInput] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [isGoogleLoggingIn, setIsGoogleLoggingIn] = useState(false);
   
   // State for manual username login fallback
   const [isManualMode, setIsManualMode] = useState(false);
@@ -76,6 +78,41 @@ export const LoginView: React.FC = () => {
       showToast(`Selamat datang kembali, ${userToAuth.name}!`);
     } else {
       setLoginError('PIN atau Sandi yang dimasukkan salah.');
+    }
+  };
+
+  const handleGoogleOwnerLogin = async () => {
+    try {
+      setIsGoogleLoggingIn(true);
+      setLoginError(null);
+      const user = await signInOwnerWithGoogle();
+      if (isUserFirebaseOwner(user)) {
+        let ownerAcc = users.find(u => u.role === 'owner');
+        if (!ownerAcc) {
+          ownerAcc = {
+            id: 'usr-1',
+            name: user.displayName || 'Owner',
+            username: 'owner',
+            role: 'owner',
+            pin: '1122',
+            email: user.email || 'koyakrabaxs29@gmail.com',
+            phone: '',
+            active: true,
+            avatar: '👑'
+          };
+        }
+        setCurrentUser(ownerAcc);
+        setActiveRole('owner');
+        showToast(`👑 Berhasil masuk sebagai Owner (${user.email}) dengan akses Firebase aktif!`);
+      } else {
+        setLoginError(`Email ${user.email} bukan akun Owner yang terdaftar (koyakrabaxs29@gmail.com). Hak akses data transaksi Cloud Firestore ditolak.`);
+      }
+    } catch (e: any) {
+      if (e?.code !== 'auth/popup-closed-by-user') {
+        setLoginError('Gagal masuk Google Firebase: ' + (e?.message || 'Koneksi gagal.'));
+      }
+    } finally {
+      setIsGoogleLoggingIn(false);
     }
   };
 
@@ -225,6 +262,19 @@ export const LoginView: React.FC = () => {
                     <span>Lupa atau ingin ubah PIN staf? Klik untuk Ganti Sandi</span>
                   </button>
                 </div>
+
+                {/* Khusus Owner: Autentikasi Google Firebase */}
+                <div className="pt-2 border-t border-[#F0E4D8]/80 text-center">
+                  <button
+                    type="button"
+                    onClick={handleGoogleOwnerLogin}
+                    disabled={isGoogleLoggingIn}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#25180E] hover:bg-[#3D2513] text-amber-300 text-xs font-bold transition-all shadow-sm cursor-pointer border border-amber-500/30"
+                  >
+                    <span>👑</span>
+                    <span>{isGoogleLoggingIn ? 'Memverifikasi...' : 'Login Khusus Owner via Google Firebase'}</span>
+                  </button>
+                </div>
               </div>
             )}
 
@@ -318,6 +368,23 @@ export const LoginView: React.FC = () => {
                     <span>Masuk Aplikasi</span>
                   </button>
                 </div>
+
+                {selectedUser.role === 'owner' && (
+                  <div className="pt-3 border-t border-[#F0E4D8] space-y-2 text-center">
+                    <p className="text-[11px] font-bold text-[#7A614D]">
+                      Atau autentikasi langsung akun Owner Firebase Cloud:
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleGoogleOwnerLogin}
+                      disabled={isGoogleLoggingIn}
+                      className="w-full py-2.5 px-4 rounded-xl border border-amber-600/40 bg-amber-50 hover:bg-amber-100 text-[#542F10] text-xs font-black shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <span>🔐</span>
+                      <span>{isGoogleLoggingIn ? 'Memverifikasi...' : 'Masuk dengan Google (Owner Firebase)'}</span>
+                    </button>
+                  </div>
+                )}
               </form>
             )}
 

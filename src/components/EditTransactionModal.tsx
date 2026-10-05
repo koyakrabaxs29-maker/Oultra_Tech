@@ -69,28 +69,28 @@ export const EditTransactionModal: React.FC<EditTransactionModalProps> = ({
       <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-[#E3D3C4] overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Header */}
-        <div className="p-4 bg-[#2C1D11] text-white flex items-center justify-between">
+        <div className="bg-[#2C1D11] text-[#FFF5EA] px-5 py-4 flex items-center justify-between border-b border-[#422915]">
           <div className="flex items-center gap-2">
             <Edit3 className="w-5 h-5 text-amber-400" />
             <div>
-              <h3 className="font-bold text-sm sm:text-base">
+              <h3 className="font-bold text-base sm:text-lg">
                 Edit Transaksi: {order.orderNumber}
               </h3>
-              <span className="text-[11px] text-stone-300">
-                Ubah rincian pembayaran, nama pelanggan, atau nominal
+              <span className="text-xs text-stone-300">
+                Ubah rincian pembayaran atau nominal
               </span>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-white/10 text-stone-300 hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg hover:bg-white/10 text-stone-300 hover:text-white transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto text-xs">
+        <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto text-xs sm:text-sm">
           
           {/* Order Identity */}
           <div className="grid grid-cols-2 gap-3">

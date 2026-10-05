@@ -691,18 +691,18 @@ export const OwnerDashboardView: React.FC = () => {
             <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-[#A8713D] to-[#6E421B] flex items-center justify-center text-white border border-[#C58E55]/30 shadow-md mb-3">
               <Lock className="w-6 h-6 text-[#F7E6D4]" />
             </div>
-            <h2 className="font-display text-xl font-bold tracking-tight text-[#F7E6D4]">
+            <h2 className="font-display text-xl sm:text-2xl font-bold tracking-tight text-[#F7E6D4]">
               Otentikasi Owner / CEO
             </h2>
             <p className="text-xs text-[#C4AD99] mt-1">
-              NADIRA Café & Resto • Panel Manajemen Terproteksi
+              NADIRA Café & Resto • Panel Manajemen Eksekutif
             </p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleLoginSubmit} className="p-6 sm:p-8 space-y-5">
+          <form onSubmit={handleLoginSubmit} className="p-6 sm:p-8 space-y-4">
             {loginError && (
-              <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold flex items-center gap-2 animate-pulse">
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold flex items-center gap-2 animate-pulse">
                 <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
                 <span>{loginError}</span>
               </div>
@@ -719,7 +719,7 @@ export const OwnerDashboardView: React.FC = () => {
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
                   placeholder="Masukkan username owner..."
-                  className="w-full text-sm py-3 px-4 rounded-xl border border-[#E3D3C4] bg-[#FAF6F2] text-[#2C1D11] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#7D4F27] focus:border-[#7D4F27] transition-all"
+                  className="w-full text-sm py-2.5 px-3.5 rounded-xl border border-[#E3D3C4] bg-[#FAF6F2] text-[#2C1D11] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#7D4F27] focus:border-[#7D4F27] transition-all"
                 />
               </div>
             </div>
@@ -736,12 +736,12 @@ export const OwnerDashboardView: React.FC = () => {
                   onChange={(e) => setPasswordInput(e.target.value)}
                   placeholder="Masukkan PIN / Sandi..."
                   maxLength={16}
-                  className="w-full text-sm py-3 pl-4 pr-11 rounded-xl border border-[#E3D3C4] bg-[#FAF6F2] text-[#2C1D11] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#7D4F27] focus:border-[#7D4F27] tracking-wider transition-all"
+                  className="w-full text-sm py-2.5 pl-3.5 pr-10 rounded-xl border border-[#E3D3C4] bg-[#FAF6F2] text-[#2C1D11] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#7D4F27] focus:border-[#7D4F27] tracking-wider transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-stone-400 hover:text-stone-600 cursor-pointer animate-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-stone-400 hover:text-stone-600 cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -750,7 +750,7 @@ export const OwnerDashboardView: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full py-3.5 px-4 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white text-sm font-extrabold shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white text-sm font-extrabold shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2"
             >
               <LogIn className="w-4 h-4" />
               <span>Masuk Panel Owner</span>
@@ -765,44 +765,49 @@ export const OwnerDashboardView: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       
       {/* Top Banner & Navigation */}
-      <div className="bg-[#24170D] text-[#FFF5EA] p-4 sm:p-5 rounded-2xl border border-[#422915] shadow-md flex flex-col gap-4">
-        {/* Header Title Row */}
-        <div className="flex items-center justify-between gap-3 border-b border-[#3D2513]/80 pb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-[#A8713D] to-[#6E421B] flex items-center justify-center text-white border border-[#C58E55]/30 shadow-inner shrink-0">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <h1 id="heading-owner-ceo-dashboard" className="font-display text-lg sm:text-2xl font-bold text-[#F7E6D4] tracking-tight">
+      <div className="bg-[#24170D] text-[#FFF5EA] p-3 sm:p-4 rounded-xl border border-[#422915] shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+        {/* Left: Info */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#A8713D] to-[#6E421B] flex items-center justify-center text-white border border-[#C58E55]/20 shadow-inner shrink-0">
+            <ShieldCheck className="w-4.5 h-4.5 text-[#F7E6D4]" />
+          </div>
+          <div>
+            <h1 id="heading-owner-ceo-dashboard" className="font-display text-sm sm:text-base font-black text-[#F7E6D4] tracking-tight">
               Owner & CEO Dashboard
             </h1>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-[10px] text-[#C4AD99]">NADIRA Café & Resto • Panel Manajemen</span>
+              <span className="inline-flex items-center gap-1 text-[9px] font-bold bg-[#1C120A] text-emerald-400 px-1.5 py-0.2 rounded-full border border-emerald-950">
+                <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Firebase Sync</span>
+              </span>
+            </div>
           </div>
-
-          <div></div>
         </div>
 
-        {/* Tab Selector - Repositioned for high visibility & ease of touch/click */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 bg-[#1C120A] p-2 rounded-xl border border-[#3D2513]">
+        {/* Right: Tab Selector */}
+        <div className="flex flex-wrap items-center gap-1 bg-[#1C120A] p-1 rounded-lg border border-[#3D2513] max-w-full overflow-x-auto scrollbar-none">
           {[
-            { key: 'analytics', label: 'Laporan & Omset', icon: <TrendingUp className="w-4 h-4" /> },
-            { key: 'profit_loss', label: 'Laba Rugi (P&L)', icon: <Receipt className="w-4 h-4" /> },
-            { key: 'menu', label: 'Menu & Harga', icon: <Coffee className="w-4 h-4" /> },
-            { key: 'inventory', label: 'Stok Bahan Baku', icon: <Boxes className="w-4 h-4" />, badge: lowStockItems.length },
-            { key: 'users', label: 'Pengguna & Staf', icon: <Users className="w-4 h-4" /> },
+            { key: 'analytics', label: 'Laporan', icon: <TrendingUp className="w-3.5 h-3.5" /> },
+            { key: 'profit_loss', label: 'Laba Rugi', icon: <Receipt className="w-3.5 h-3.5" /> },
+            { key: 'menu', label: 'Menu', icon: <Coffee className="w-3.5 h-3.5" /> },
+            { key: 'inventory', label: 'Stok Bahan', icon: <Boxes className="w-3.5 h-3.5" />, badge: lowStockItems.length },
+            { key: 'users', label: 'Staf', icon: <Users className="w-3.5 h-3.5" /> },
           ].map((tab) => (
             <button
               key={tab.key}
               id={`tab-owner-${tab.key}`}
               onClick={() => setActiveTab(tab.key as any)}
-              className={`px-3 py-2.5 rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              className={`px-2.5 py-1.2 rounded text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                 activeTab === tab.key
-                  ? 'bg-gradient-to-r from-[#8C582B] to-[#7D4F27] text-white shadow-md ring-1 ring-[#D4A373]/40'
-                  : 'text-[#C4AD99] hover:text-white hover:bg-[#2C1C10]'
+                  ? 'bg-gradient-to-r from-[#8C582B] to-[#7D4F27] text-white shadow-xs ring-1 ring-[#D4A373]/30'
+                  : 'text-[#C4AD99] hover:text-white hover:bg-[#2C1C10]/50'
               }`}
             >
               <span className="shrink-0">{tab.icon}</span>
-              <span className="truncate">{tab.label}</span>
+              <span>{tab.label}</span>
               {typeof tab.badge === 'number' && tab.badge > 0 && (
-                <span className="ml-auto px-1.5 py-0.5 rounded-full text-[10px] bg-red-500 text-white font-black shadow-xs">
+                <span className="ml-1 px-1.5 py-0.2 rounded-full text-[9px] bg-red-500 text-white font-black">
                   {tab.badge}
                 </span>
               )}
@@ -814,51 +819,51 @@ export const OwnerDashboardView: React.FC = () => {
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E3D3C4] shadow-sm space-y-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#8A715C]">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E3D3C4] shadow-xs space-y-1">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#8A715C]">
             Total Omset Hari Ini
           </span>
-          <div className="text-xl sm:text-2xl font-extrabold text-[#7D4F27]">
+          <div className="text-xl sm:text-2xl font-black text-[#7D4F27]">
             {formatRupiah(totalRevenue)}
           </div>
-          <span className="text-[11px] text-emerald-600 font-semibold block">
-            ↑ 18.5% dari target harian
+          <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+            ↑ 18.5% dari target
           </span>
         </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E3D3C4] shadow-sm space-y-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#8A715C]">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E3D3C4] shadow-xs space-y-1">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#8A715C]">
             Total Transaksi Selesai
           </span>
-          <div className="text-xl sm:text-2xl font-extrabold text-[#2C1D11]">
+          <div className="text-xl sm:text-2xl font-black text-[#2C1D11]">
             {totalTransactions} Transaksi
           </div>
-          <span className="text-[11px] text-[#7A614D] font-medium block">
-            {activeOrders.length} pesanan aktif sedang berjalan
+          <span className="text-xs text-[#7A614D] font-medium">
+            {activeOrders.length} pesanan sedang aktif
           </span>
         </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E3D3C4] shadow-sm space-y-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#8A715C]">
-            Rata-rata Nilai Transaksi
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E3D3C4] shadow-xs space-y-1">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#8A715C]">
+            Rata-rata Nilai Bill
           </span>
-          <div className="text-xl sm:text-2xl font-extrabold text-[#2C1D11]">
+          <div className="text-xl sm:text-2xl font-black text-[#2C1D11]">
             {formatRupiah(avgBasketSize)}
           </div>
-          <span className="text-[11px] text-[#7A614D] font-medium block">
-            Per struk / per bill meja
+          <span className="text-xs text-[#7A614D] font-medium">
+            Per struk / per meja
           </span>
         </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E3D3C4] shadow-sm space-y-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#8A715C]">
-            Menu Terlaris (Best Seller)
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E3D3C4] shadow-xs space-y-1">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#8A715C]">
+            Menu Terlaris
           </span>
-          <div className="text-sm font-bold text-[#7D4F27] truncate">
+          <div className="text-lg sm:text-xl font-black text-[#7D4F27] truncate">
             {bestSeller}
           </div>
-          <span className="text-[11px] text-stone-500 font-medium block">
-            Favorit pengunjung NADIRA
+          <span className="text-xs text-stone-500 font-medium">
+            Paling diminati pengunjung
           </span>
         </div>
 
@@ -869,18 +874,18 @@ export const OwnerDashboardView: React.FC = () => {
         <div className="space-y-6">
 
           {/* LAPORAN UANG MASUK & KELUAR (DENGAN FILTER REKAP LENGKAP) */}
-          <div className="bg-white rounded-2xl border border-[#E3D3C4] p-5 sm:p-6 shadow-sm space-y-5">
+          <div className="bg-white rounded-2xl border border-[#E3D3C4] p-5 shadow-sm space-y-4">
             {/* Header & Main Controls */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#F0E4D8]">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-[#F0E4D8]">
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-[#7D4F27] text-white flex items-center justify-center font-bold shadow-xs">
                     <Scale className="w-4 h-4" />
                   </div>
                   <h3 className="font-display text-base sm:text-lg font-bold text-[#2C1D11]">
                     Laporan Uang Masuk & Keluar
                   </h3>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 font-bold border border-amber-200">
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 font-bold border border-amber-200">
                     Rekap Terfilter
                   </span>
                 </div>
@@ -911,7 +916,7 @@ export const OwnerDashboardView: React.FC = () => {
                 <button
                   id="btn-export-cashflow-csv"
                   onClick={handleExportCashflowRecap}
-                  className="px-3 py-1.5 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  className="px-3.5 py-1.5 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                   title="Unduh Rekap Transaksi Terfilter (CSV)"
                 >
                   <Download className="w-3.5 h-3.5" />
@@ -922,9 +927,9 @@ export const OwnerDashboardView: React.FC = () => {
             </div>
 
             {/* Filter Rekap Transaksi: Modern, Simpel, dengan Tombol Terapkan */}
-            <div className="bg-[#FAF6F2] p-3 sm:p-4 rounded-2xl border border-[#E3D3C4] shadow-2xs space-y-3">
+            <div className="bg-[#FAF6F2] p-4 rounded-xl border border-[#E3D3C4] shadow-xs space-y-3">
               {/* Row 1: Header & Period Segmented Pills */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-[#7D4F27]" />
                   <span className="text-xs font-bold text-[#5A3E29]">
@@ -951,9 +956,9 @@ export const OwnerDashboardView: React.FC = () => {
                           showToast(`📅 Periode rekap: ${p.label}`);
                         }
                       }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                         cashflowPeriod === p.key
-                          ? 'bg-[#7D4F27] text-white shadow-xs'
+                          ? 'bg-[#7D4F27] text-white shadow-xs font-bold'
                           : 'bg-white text-[#7A614D] hover:bg-[#EDE1D5] hover:text-[#2C1D11] border border-[#E3D3C4]/60'
                       }`}
                     >
@@ -963,14 +968,14 @@ export const OwnerDashboardView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Row 2: Advanced Filter Inputs (Date, Type, Payment, Search) */}
+              {/* Row 2: Advanced Filter Inputs (Date, Type, Search) */}
               {(isFilterPanelExpanded || cashflowPeriod === 'custom') && (
                 <div className="pt-3 border-t border-[#E8DFD6] space-y-3 animate-in fade-in duration-200">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     
                     {/* Filter 1: Custom Date Range */}
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-[#7A614D] uppercase tracking-wider block">
+                      <label className="text-[11px] font-bold text-[#7A614D] uppercase tracking-wider block">
                         Rentang Tanggal
                       </label>
                       <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-[#E3D3C4]">
@@ -998,40 +1003,23 @@ export const OwnerDashboardView: React.FC = () => {
 
                     {/* Filter 2: Jenis Rekap Transaksi */}
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-[#7A614D] uppercase tracking-wider block">
+                      <label className="text-[11px] font-bold text-[#7A614D] uppercase tracking-wider block">
                         Jenis Rekap
                       </label>
                       <select
                         value={cashflowTypeFilter}
                         onChange={(e) => setCashflowTypeFilter(e.target.value as any)}
-                        className="w-full text-xs py-2 px-3 rounded-xl border border-[#E3D3C4] bg-white text-[#2C1D11] focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
+                        className="w-full text-xs py-1.5 px-2.5 rounded-xl border border-[#E3D3C4] bg-white text-[#2C1D11] focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
                       >
                         <option value="all">Semua (Masuk & Keluar)</option>
-                        <option value="inflow">📥 Hanya Uang Masuk (Penjualan)</option>
-                        <option value="outflow">📤 Hanya Uang Keluar (Biaya)</option>
+                        <option value="inflow">📥 Hanya Uang Masuk</option>
+                        <option value="outflow">📤 Hanya Uang Keluar</option>
                       </select>
                     </div>
 
-                    {/* Filter 3: Metode Pembayaran */}
+                    {/* Filter 3: Cari Transaksi */}
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-[#7A614D] uppercase tracking-wider block">
-                        Metode Pembayaran
-                      </label>
-                      <select
-                        value={cashflowPaymentFilter}
-                        onChange={(e) => setCashflowPaymentFilter(e.target.value as any)}
-                        className="w-full text-xs py-2 px-3 rounded-xl border border-[#E3D3C4] bg-white text-[#2C1D11] focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
-                      >
-                        <option value="all">Semua Metode Pembayaran</option>
-                        <option value="cash">💵 Tunai (Cash)</option>
-                        <option value="qris">📱 QRIS Digital</option>
-                        <option value="bank_transfer">💳 Transfer Bank / Debit</option>
-                      </select>
-                    </div>
-
-                    {/* Filter 4: Cari Transaksi */}
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-[#7A614D] uppercase tracking-wider block">
+                      <label className="text-[11px] font-bold text-[#7A614D] uppercase tracking-wider block">
                         Pencarian Kata Kunci
                       </label>
                       <div className="relative">
@@ -1039,8 +1027,8 @@ export const OwnerDashboardView: React.FC = () => {
                           type="text"
                           value={cashflowSearch}
                           onChange={(e) => setCashflowSearch(e.target.value)}
-                          placeholder="No. Order / Pelanggan / Biaya..."
-                          className="w-full text-xs py-2 pl-8 pr-7 rounded-xl border border-[#E3D3C4] bg-white text-[#2C1D11] focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
+                          placeholder="No. Order / Pelanggan..."
+                          className="w-full text-xs py-1.5 pl-8 pr-7 rounded-xl border border-[#E3D3C4] bg-white text-[#2C1D11] focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
                         />
                         <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                         {cashflowSearch && (
@@ -1069,7 +1057,7 @@ export const OwnerDashboardView: React.FC = () => {
                         setCashflowSearch('');
                         showToast('🔄 Seluruh filter rekap telah di-reset ke hari ini.');
                       }}
-                      className="px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-[#5A3E29] text-xs font-semibold transition-all cursor-pointer"
+                      className="px-3 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-[#5A3E29] text-xs font-semibold transition-all cursor-pointer"
                     >
                       Reset Filter
                     </button>
@@ -1080,10 +1068,10 @@ export const OwnerDashboardView: React.FC = () => {
                       onClick={() => {
                         showToast('✅ Filter rekap transaksi berhasil diterapkan!');
                       }}
-                      className="px-5 py-2 rounded-xl bg-[#7D4F27] hover:bg-[#653E1D] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+                      className="px-4 py-1.5 rounded-xl bg-[#7D4F27] hover:bg-[#653E1D] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
                     >
                       <Check className="w-3.5 h-3.5" />
-                      <span>Terapkan Filter</span>
+                      <span>Terapkan</span>
                     </button>
                   </div>
                 </div>
@@ -1094,7 +1082,7 @@ export const OwnerDashboardView: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               
               {/* Card 1: Uang Masuk Terfilter */}
-              <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 space-y-1">
+              <div className="p-4 sm:p-5 rounded-xl border border-emerald-200 bg-emerald-50/50 space-y-1">
                 <div className="flex items-center justify-between text-xs font-bold text-emerald-800">
                   <span className="flex items-center gap-1.5">
                     <ArrowDownRight className="w-4 h-4 text-emerald-600" />
@@ -1104,16 +1092,16 @@ export const OwnerDashboardView: React.FC = () => {
                     {filteredCashflowOrders.length} Transaksi
                   </span>
                 </div>
-                <div className="text-2xl font-extrabold text-emerald-700">
+                <div className="text-xl sm:text-2xl font-black text-emerald-700">
                   {formatRupiah(filteredInflow)}
                 </div>
-                <p className="text-[11px] text-emerald-800/80">
-                  Total pembayaran kasir sesuai kriteria filter
+                <p className="text-xs text-emerald-800/80">
+                  Total pembayaran kasir terfilter
                 </p>
               </div>
 
               {/* Card 2: Uang Keluar Terfilter */}
-              <div className="p-4 rounded-xl border border-rose-200 bg-rose-50/50 space-y-1">
+              <div className="p-4 sm:p-5 rounded-xl border border-rose-200 bg-rose-50/50 space-y-1">
                 <div className="flex items-center justify-between text-xs font-bold text-rose-800">
                   <span className="flex items-center gap-1.5">
                     <ArrowUpRight className="w-4 h-4 text-rose-600" />
@@ -1123,16 +1111,16 @@ export const OwnerDashboardView: React.FC = () => {
                     {filteredCashflowExpenses.length} Pos Biaya
                   </span>
                 </div>
-                <div className="text-2xl font-extrabold text-rose-700">
+                <div className="text-xl sm:text-2xl font-black text-rose-700">
                   {formatRupiah(filteredOutflow)}
                 </div>
-                <p className="text-[11px] text-rose-800/80">
-                  Biaya operasional & belanja bahan terfilter
+                <p className="text-xs text-rose-800/80">
+                  Biaya operasional & belanja bahan
                 </p>
               </div>
 
               {/* Card 3: Arus Kas Bersih Terfilter */}
-              <div className={`p-4 rounded-xl border space-y-1 ${
+              <div className={`p-4 sm:p-5 rounded-xl border space-y-1 ${
                 filteredNetCash >= 0 
                   ? 'border-amber-200 bg-[#FFFDF9]' 
                   : 'border-rose-200 bg-rose-50/30'
@@ -1140,9 +1128,9 @@ export const OwnerDashboardView: React.FC = () => {
                 <div className="flex items-center justify-between text-xs font-bold text-[#5A3E29]">
                   <span className="flex items-center gap-1.5">
                     <Scale className="w-4 h-4 text-[#7D4F27]" />
-                    Selisih Kas Bersih (Net Cash)
+                    Kas Bersih (Net Cash)
                   </span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold uppercase ${
                     filteredNetCash >= 0
                       ? 'bg-emerald-100 text-emerald-800'
                       : 'bg-rose-100 text-rose-800'
@@ -1150,12 +1138,12 @@ export const OwnerDashboardView: React.FC = () => {
                     {filteredNetCash >= 0 ? 'Surplus' : 'Defisit'}
                   </span>
                 </div>
-                <div className={`text-2xl font-extrabold ${
+                <div className={`text-xl sm:text-2xl font-black ${
                   filteredNetCash >= 0 ? 'text-[#7D4F27]' : 'text-rose-600'
                 }`}>
                   {formatRupiah(filteredNetCash)}
                 </div>
-                <p className="text-[11px] text-stone-500">
+                <p className="text-xs text-stone-500">
                   {filteredNetCash >= 0 
                     ? `Surplus saldo kas sebesar ${formatRupiah(filteredNetCash)}`
                     : `Pengeluaran melebihi pemasukan kas terfilter`}
@@ -1374,25 +1362,25 @@ export const OwnerDashboardView: React.FC = () => {
 
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5">
             
             {/* Category Revenue Breakdown */}
-            <div className="lg:col-span-6 bg-white p-5 rounded-2xl border border-[#E3D3C4] shadow-sm space-y-4">
-              <h3 className="font-display text-base font-bold text-[#2C1D11] flex items-center gap-2">
-                <PieChart className="w-4 h-4 text-[#7D4F27]" />
+            <div className="lg:col-span-6 bg-white p-3 rounded-xl border border-[#E3D3C4] shadow-xs space-y-2">
+              <h3 className="font-display text-xs sm:text-sm font-bold text-[#2C1D11] flex items-center gap-1.5">
+                <PieChart className="w-3.5 h-3.5 text-[#7D4F27]" />
                 Proporsi Omset per Kategori Menu
               </h3>
               
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {Object.entries(categoryRevenue).map(([cat, amount]) => {
                   const percent = totalRevenue > 0 ? Math.round((amount / totalRevenue) * 100) : 25;
                   return (
-                    <div key={cat} className="space-y-1">
-                      <div className="flex justify-between text-xs font-semibold">
+                    <div key={cat} className="space-y-0.5">
+                      <div className="flex justify-between text-[11px] font-semibold">
                         <span className="text-[#2C1D11]">{cat}</span>
                         <span className="text-[#7D4F27] font-bold">{formatRupiah(amount)} ({percent}%)</span>
                       </div>
-                      <div className="w-full h-2 rounded-full bg-stone-100 overflow-hidden">
+                      <div className="w-full h-1.5 rounded-full bg-stone-100 overflow-hidden">
                         <div
                           className="h-full bg-[#7D4F27] rounded-full transition-all duration-500"
                           style={{ width: `${percent}%` }}
@@ -1405,32 +1393,32 @@ export const OwnerDashboardView: React.FC = () => {
             </div>
 
             {/* Best Seller Rank */}
-            <div className="lg:col-span-6 bg-white p-5 rounded-2xl border border-[#E3D3C4] shadow-sm space-y-4">
+            <div className="lg:col-span-6 bg-white p-3 rounded-xl border border-[#E3D3C4] shadow-xs space-y-2">
               <div className="flex items-center justify-between">
-                <h3 className="font-display text-base font-bold text-[#2C1D11]">
-                  Peringkat Menu Paling Laris
+                <h3 className="font-display text-xs sm:text-sm font-bold text-[#2C1D11]">
+                  Peringkat Menu Terlaris
                 </h3>
                 <button
                   onClick={handleExportCSV}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-xs font-semibold text-[#5A3E29] transition-colors"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-[10px] font-semibold text-[#5A3E29] transition-colors"
                 >
-                  <Download className="w-3.5 h-3.5" />
+                  <Download className="w-3 h-3" />
                   <span>Export CSV</span>
                 </button>
               </div>
 
-              <div className="divide-y divide-[#F0E4D8] border border-[#E3D3C4] rounded-xl overflow-hidden">
+              <div className="divide-y divide-[#F0E4D8] border border-[#E3D3C4] rounded-lg overflow-hidden">
                 {bestSellerEntries.slice(0, 5).map(([name, data], idx) => (
-                  <div key={name} className="p-3 bg-white flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-5 h-5 rounded-full bg-[#FAEDCD] text-[#7D4F27] font-bold flex items-center justify-center text-[10px]">
+                  <div key={name} className="py-1.5 px-2 bg-white flex items-center justify-between text-[11px]">
+                    <div className="flex items-center gap-2">
+                      <span className="w-4 h-4 rounded-full bg-[#FAEDCD] text-[#7D4F27] font-bold flex items-center justify-center text-[9px]">
                         {idx + 1}
                       </span>
-                      <span className="font-bold text-[#2C1D11]">{name}</span>
+                      <span className="font-bold text-[#2C1D11] line-clamp-1">{name}</span>
                     </div>
-                    <div className="text-right">
-                      <span className="font-bold text-[#7D4F27] block">{data.qty} porsi terjual</span>
-                      <span className="text-[10px] text-stone-500">{formatRupiah(data.revenue)}</span>
+                    <div className="text-right shrink-0">
+                      <span className="font-bold text-[#7D4F27] block">{data.qty} porsi</span>
+                      <span className="text-[9.5px] text-stone-500">{formatRupiah(data.revenue)}</span>
                     </div>
                   </div>
                 ))}
@@ -1440,13 +1428,13 @@ export const OwnerDashboardView: React.FC = () => {
           </div>
 
           {/* Full Transaction History Table with Edit & Delete */}
-          <div className="bg-white rounded-2xl border border-[#E3D3C4] p-5 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="bg-white rounded-xl border border-[#E3D3C4] p-3 sm:p-3.5 shadow-xs space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <h3 className="font-display text-base font-bold text-[#2C1D11]">
+                <h3 className="font-display text-xs sm:text-sm font-bold text-[#2C1D11]">
                   Riwayat Transaksi Pembayaran Resmi ({completedOrders.length})
                 </h3>
-                <p className="text-xs text-[#7A614D]">
+                <p className="text-[11px] text-[#7A614D]">
                   Kelola, edit rincian pembayaran, atau hapus transaksi tercatat bila terjadi koreksi kasir.
                 </p>
               </div>
@@ -1513,14 +1501,14 @@ export const OwnerDashboardView: React.FC = () => {
               <table className="w-full text-left text-xs">
                 <thead className="bg-[#FBF8F5] text-[#5A3E29] font-bold border-b border-[#E3D3C4]">
                   <tr>
-                    <th className="p-3">No. Order</th>
-                    <th className="p-3">Meja</th>
-                    <th className="p-3">Pelanggan</th>
-                    <th className="p-3">Waktu Bayar</th>
-                    <th className="p-3">Metode</th>
-                    <th className="p-3 text-right">Subtotal</th>
-                    <th className="p-3 text-right">Total Transaksi</th>
-                    <th className="p-3 text-center">Aksi</th>
+                    <th className="py-2 px-2.5">No. Order</th>
+                    <th className="py-2 px-2.5">Meja</th>
+                    <th className="py-2 px-2.5">Pelanggan</th>
+                    <th className="py-2 px-2.5">Waktu Bayar</th>
+                    <th className="py-2 px-2.5">Metode</th>
+                    <th className="py-2 px-2.5 text-right">Subtotal</th>
+                    <th className="py-2 px-2.5 text-right">Total Transaksi</th>
+                    <th className="py-2 px-2.5 text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F0E4D8]">
@@ -1540,35 +1528,35 @@ export const OwnerDashboardView: React.FC = () => {
                     })
                     .map((order) => (
                       <tr key={order.id} className="hover:bg-stone-50 transition-colors">
-                        <td className="p-3 font-bold text-[#7D4F27] whitespace-nowrap">{order.orderNumber}</td>
-                        <td className="p-3 font-semibold whitespace-nowrap">Meja #{order.tableNumber}</td>
-                        <td className="p-3 text-stone-700 font-medium">{order.customerName}</td>
-                        <td className="p-3 text-stone-500 whitespace-nowrap">{formatFullDateTime(order.updatedAt || order.createdAt)}</td>
-                        <td className="p-3">
-                          <span className="uppercase font-bold text-[10px] px-2 py-0.5 rounded bg-stone-100 text-stone-700">
+                        <td className="py-1.5 px-2.5 font-bold text-[#7D4F27] whitespace-nowrap">{order.orderNumber}</td>
+                        <td className="py-1.5 px-2.5 font-semibold whitespace-nowrap">Meja #{order.tableNumber}</td>
+                        <td className="py-1.5 px-2.5 text-stone-700 font-medium">{order.customerName}</td>
+                        <td className="py-1.5 px-2.5 text-stone-500 whitespace-nowrap text-[10px]">{formatFullDateTime(order.updatedAt || order.createdAt)}</td>
+                        <td className="py-1.5 px-2.5">
+                          <span className="uppercase font-bold text-[9px] px-1.5 py-0.2 rounded bg-stone-100 text-stone-700">
                             {order.paymentMethod || 'cash'}
                           </span>
                         </td>
-                        <td className="p-3 text-right text-stone-600">{formatRupiah(order.subtotal)}</td>
-                        <td className="p-3 text-right font-extrabold text-[#2C1D11]">{formatRupiah(order.total)}</td>
-                        <td className="p-3 text-center whitespace-nowrap">
-                          <div className="flex items-center justify-center gap-1.5">
+                        <td className="py-1.5 px-2.5 text-right text-stone-600 text-[11px]">{formatRupiah(order.subtotal)}</td>
+                        <td className="py-1.5 px-2.5 text-right font-extrabold text-[#2C1D11] text-xs">{formatRupiah(order.total)}</td>
+                        <td className="py-1.5 px-2.5 text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-1">
                             <button
                               id={`btn-edit-tx-${order.id}`}
                               onClick={() => setEditingTransaction(order)}
-                              className="px-2 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 text-[11px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                              className="px-1.5 py-0.5 rounded bg-stone-100 hover:bg-stone-200 text-stone-700 text-[10px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
                               title="Edit Transaksi"
                             >
-                              <Edit className="w-3 h-3 text-[#7D4F27]" />
+                              <Edit className="w-2.5 h-2.5 text-[#7D4F27]" />
                               <span>Edit</span>
                             </button>
                             <button
                               id={`btn-del-tx-${order.id}`}
                               onClick={() => setDeletingTransaction(order)}
-                              className="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors cursor-pointer"
+                              className="p-1 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors cursor-pointer"
                               title="Hapus Transaksi"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-3 h-3" />
                             </button>
                           </div>
                         </td>
@@ -1612,98 +1600,98 @@ export const OwnerDashboardView: React.FC = () => {
 
       {/* SUB-TAB 2: Manajemen Menu & Harga (CRUD) */}
       {activeTab === 'menu' && (
-        <div className="bg-white rounded-2xl border border-[#E3D3C4] p-5 shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="bg-white rounded-xl border border-[#E3D3C4] p-3 sm:p-3.5 shadow-xs space-y-2.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <h3 className="font-display text-lg font-bold text-[#2C1D11]">
+              <h3 className="font-display text-xs sm:text-sm font-bold text-[#2C1D11]">
                 Katalog Menu & Manajemen Harga
               </h3>
-              <p className="text-xs text-[#7A614D]">
+              <p className="text-[11px] text-[#7A614D]">
                 Tambah menu baru, ubah harga, hapus, dan atur ketersediaan stok dapur secara instan.
               </p>
             </div>
             <button
               id="btn-add-new-menu"
               onClick={handleOpenAddMenu}
-              className="px-4 py-2.5 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white text-xs sm:text-sm font-bold shadow-sm transition-all cursor-pointer flex items-center gap-2"
+              className="px-3 py-1.5 rounded-lg bg-[#7D4F27] hover:bg-[#633C1B] text-white text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5" />
               <span>Tambah Menu Baru</span>
             </button>
           </div>
 
-          <div className="border border-[#E3D3C4] rounded-xl overflow-x-auto">
+          <div className="border border-[#E3D3C4] rounded-lg overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-[#FBF8F5] text-[#5A3E29] font-bold border-b border-[#E3D3C4]">
                 <tr>
-                  <th className="p-3">Foto & Nama Menu</th>
-                  <th className="p-3">Kategori</th>
-                  <th className="p-3">Stasiun Dapur</th>
-                  <th className="p-3">Porsi & Add-ons</th>
-                  <th className="p-3 text-right">Harga Jual</th>
-                  <th className="p-3 text-center">Status Stok</th>
-                  <th className="p-3 text-right">Aksi</th>
+                  <th className="py-2 px-2.5">Foto & Nama Menu</th>
+                  <th className="py-2 px-2.5">Kategori</th>
+                  <th className="py-2 px-2.5">Stasiun Dapur</th>
+                  <th className="py-2 px-2.5">Porsi & Add-ons</th>
+                  <th className="py-2 px-2.5 text-right">Harga Jual</th>
+                  <th className="py-2 px-2.5 text-center">Status Stok</th>
+                  <th className="py-2 px-2.5 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F0E4D8]">
                 {menuItems.map((item) => (
                   <tr key={item.id} className="hover:bg-stone-50">
-                    <td className="p-3">
-                      <div className="flex items-center gap-3">
+                    <td className="py-1.5 px-2.5">
+                      <div className="flex items-center gap-2">
                         <img
                           src={item.image}
                           alt={item.name}
-                          className="w-12 h-12 rounded-lg object-cover border border-[#E3D3C4]"
+                          className="w-9 h-9 rounded-md object-cover border border-[#E3D3C4] shrink-0"
                         />
                         <div>
-                          <span className="font-bold text-[#2C1D11] block">{item.name}</span>
-                          <span className="text-[10px] text-[#8A715C] line-clamp-1 max-w-[220px]">
+                          <span className="font-bold text-[#2C1D11] block line-clamp-1">{item.name}</span>
+                          <span className="text-[9.5px] text-[#8A715C] line-clamp-1 max-w-[200px]">
                             {item.description}
                           </span>
                         </div>
                       </div>
                     </td>
-                    <td className="p-3 font-semibold text-stone-700">{item.category}</td>
-                    <td className="p-3">
-                      <span className="uppercase text-[10px] font-bold px-2 py-0.5 rounded bg-stone-100 text-stone-700">
+                    <td className="py-1.5 px-2.5 font-semibold text-stone-700 text-[11px]">{item.category}</td>
+                    <td className="py-1.5 px-2.5">
+                      <span className="uppercase text-[9px] font-bold px-1.5 py-0.2 rounded bg-stone-100 text-stone-700">
                         {item.station}
                       </span>
                     </td>
-                    <td className="p-3">
-                      <div className="space-y-1">
+                    <td className="py-1.5 px-2.5">
+                      <div className="space-y-0.5">
                         {item.hasLargePortion !== false && (
-                          <div className="text-[10px] text-stone-600 font-medium">
+                          <div className="text-[9.5px] text-stone-600 font-medium">
                             Large: +{formatRupiah(item.largePriceAddition || 6000)}
                           </div>
                         )}
                         {item.availableAddOns && item.availableAddOns.length > 0 ? (
                           <div className="flex flex-wrap gap-1 items-center">
-                            <span className="px-1.5 py-0.5 bg-amber-100 text-[#7D4F27] border border-amber-200 font-bold text-[9px] rounded">
+                            <span className="px-1 py-0.2 bg-amber-100 text-[#7D4F27] border border-amber-200 font-bold text-[8.5px] rounded">
                               {item.availableAddOns.length} Add-on
                             </span>
                             {item.availableAddOns.slice(0, 2).map((a) => (
-                              <span key={a.id} className="text-[9px] text-stone-600 bg-stone-100 px-1 py-0.5 rounded">
+                              <span key={a.id} className="text-[8.5px] text-stone-600 bg-stone-100 px-1 py-0.2 rounded">
                                 {a.name} (+{formatRupiah(a.price)})
                               </span>
                             ))}
                             {item.availableAddOns.length > 2 && (
-                              <span className="text-[9px] text-[#7D4F27] font-semibold">
+                              <span className="text-[8.5px] text-[#7D4F27] font-semibold">
                                 +{item.availableAddOns.length - 2} lagi
                               </span>
                             )}
                           </div>
                         ) : (
-                          <span className="text-[10px] text-stone-400 italic">Standar Kategori</span>
+                          <span className="text-[9.5px] text-stone-400 italic">Standar Kategori</span>
                         )}
                       </div>
                     </td>
-                    <td className="p-3 text-right font-extrabold text-[#7D4F27] text-sm">
+                    <td className="py-1.5 px-2.5 text-right font-extrabold text-[#7D4F27] text-xs">
                       {formatRupiah(item.price)}
                     </td>
-                    <td className="p-3 text-center">
+                    <td className="py-1.5 px-2.5 text-center">
                       <button
                         onClick={() => toggleMenuStock(item.id)}
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer transition-colors ${
+                        className={`px-2 py-0.5 rounded-full text-[9px] font-bold cursor-pointer transition-colors ${
                           item.inStock
                             ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                             : 'bg-red-100 text-red-800 hover:bg-red-200'
@@ -1712,14 +1700,14 @@ export const OwnerDashboardView: React.FC = () => {
                         {item.inStock ? 'Tersedia' : 'Habis'}
                       </button>
                     </td>
-                    <td className="p-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                    <td className="py-1.5 px-2.5 text-right">
+                      <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => handleOpenEditMenu(item)}
-                          className="p-1.5 rounded-lg text-stone-600 hover:text-[#7D4F27] hover:bg-stone-100 transition-colors"
+                          className="p-1 rounded text-stone-600 hover:text-[#7D4F27] hover:bg-stone-100 transition-colors"
                           title="Edit Menu"
                         >
-                          <Edit className="w-4 h-4" />
+                          <Edit className="w-3 h-3" />
                         </button>
                         <button
                           onClick={() => {
@@ -1727,10 +1715,10 @@ export const OwnerDashboardView: React.FC = () => {
                               deleteMenuItem(item.id);
                             }
                           }}
-                          className="p-1.5 rounded-lg text-stone-600 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          className="p-1 rounded text-stone-600 hover:text-red-600 hover:bg-red-50 transition-colors"
                           title="Hapus Menu"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
                     </td>
@@ -1747,11 +1735,11 @@ export const OwnerDashboardView: React.FC = () => {
         <div className="bg-white rounded-2xl border border-[#E3D3C4] p-5 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="font-display text-lg font-bold text-[#2C1D11]">
-                Manajemen Stok Bahan Baku Sederhana
+              <h3 className="font-display text-base sm:text-lg font-bold text-[#2C1D11]">
+                Manajemen Stok Bahan Baku
               </h3>
               <p className="text-xs text-[#7A614D]">
-                Pantau sisa biji kopi, susu UHT/oats, sirup, daging, kentang dan kemasan dengan peringatan stok kritis.
+                Pantau sisa biji kopi, susu, sirup, daging, dan kemasan dengan peringatan stok kritis.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -1762,29 +1750,29 @@ export const OwnerDashboardView: React.FC = () => {
                       clearAllInventory();
                     }
                   }}
-                  className="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
                 >
                   <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                  <span>Kosongkan Semua Stok</span>
+                  <span>Kosongkan Stok</span>
                 </button>
               )}
               <button
                 onClick={() => setIsInventoryModalOpen(true)}
-                className="px-4 py-2.5 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white text-xs sm:text-sm font-bold shadow-sm transition-all cursor-pointer flex items-center gap-2"
+                className="px-4 py-2 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white text-xs font-bold shadow-sm transition-all cursor-pointer flex items-center gap-2"
               >
                 <PackagePlus className="w-4 h-4" />
-                <span>Tambah Bahan Baku</span>
+                <span>Tambah Bahan</span>
               </button>
             </div>
           </div>
 
           {/* Critical stock alert banner */}
           {lowStockItems.length > 0 && (
-            <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl flex items-center gap-3 text-amber-900 text-xs">
-              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+            <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl flex items-center gap-2.5 text-amber-900 text-xs">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
               <div>
                 <strong>Peringatan Restock ({lowStockItems.length} bahan menipis):</strong>{' '}
-                {lowStockItems.map((i) => `${i.name} (sisa ${i.stockQuantity} ${i.unit})`).join(', ')}. Segera lakukan pemesanan ulang ke supplier.
+                {lowStockItems.map((i) => `${i.name} (sisa ${i.stockQuantity} ${i.unit})`).join(', ')}.
               </div>
             </div>
           )}
@@ -1807,10 +1795,10 @@ export const OwnerDashboardView: React.FC = () => {
                   <tr>
                     <td colSpan={7} className="p-8 text-center text-stone-500 bg-white">
                       <div className="flex flex-col items-center justify-center gap-2">
-                        <Boxes className="w-8 h-8 text-stone-300" />
+                        <Boxes className="w-10 h-10 text-stone-300" />
                         <p className="font-bold text-sm text-[#2C1D11]">Belum Ada Data Stok Bahan Baku</p>
-                        <p className="text-xs text-[#7A614D] max-w-md">
-                          Seluruh data stok demo telah dibersihkan. Silakan klik tombol <strong>"Tambah Bahan Baku"</strong> di atas untuk mendaftarkan bahan baku riil kafe Anda.
+                        <p className="text-xs text-[#7A614D] max-w-sm">
+                          Silakan klik tombol <strong>"Tambah Bahan"</strong> untuk mendaftarkan bahan baku.
                         </p>
                       </div>
                     </td>
@@ -1819,7 +1807,7 @@ export const OwnerDashboardView: React.FC = () => {
                   inventory.map((inv) => {
                     const isLow = inv.stockQuantity <= inv.minThreshold;
                     return (
-                      <tr key={inv.id} className="hover:bg-stone-50">
+                      <tr key={inv.id} className="hover:bg-stone-50 transition-colors">
                         <td className="p-3 font-bold text-[#2C1D11]">{inv.name}</td>
                         <td className="p-3 text-stone-600">{inv.category}</td>
                         <td className="p-3 text-right font-extrabold text-[#7D4F27] text-sm">
@@ -1841,7 +1829,7 @@ export const OwnerDashboardView: React.FC = () => {
                                 setRestockItem(inv);
                                 setRestockAmount(5);
                               }}
-                              className="px-2.5 py-1 rounded-lg bg-[#FAEDCD] hover:bg-[#F5DEB3] text-[#7D4F27] font-bold text-[11px] transition-colors"
+                              className="px-2.5 py-1 rounded bg-[#FAEDCD] hover:bg-[#F5DEB3] text-[#7D4F27] font-bold text-xs transition-colors"
                             >
                               + Restock
                             </button>
@@ -1851,9 +1839,9 @@ export const OwnerDashboardView: React.FC = () => {
                                   deleteInventoryItem(inv.id);
                                 }
                               }}
-                              className="p-1 rounded text-stone-400 hover:text-red-600"
+                              className="p-1.5 rounded text-stone-400 hover:text-red-600"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </td>
@@ -1872,18 +1860,18 @@ export const OwnerDashboardView: React.FC = () => {
         <div className="bg-white rounded-2xl border border-[#E3D3C4] p-5 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="font-display text-lg font-bold text-[#2C1D11]">
+              <h3 className="font-display text-base sm:text-lg font-bold text-[#2C1D11]">
                 Pengguna Aplikasi & Hak Akses Staf
               </h3>
               <p className="text-xs text-[#7A614D]">
-                Kelola akun kasir, waitress, chef, dan owner dengan PIN otentikasi login cepat di tablet POS.
+                Data akun staf tersimpan aman di Local Storage Owner. Kelola akun kasir, waitress, chef, barista, dan owner.
               </p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setShowAllPins(!showAllPins)}
-                className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs ${
+                className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs ${
                   showAllPins
                     ? 'bg-amber-100 text-amber-900 border-amber-300'
                     : 'bg-[#FAF6F2] hover:bg-[#F3ECE4] text-[#7D4F27] border-[#E3D3C4]'
@@ -1896,15 +1884,15 @@ export const OwnerDashboardView: React.FC = () => {
 
               <button
                 onClick={handleOpenAddUser}
-                className="px-4 py-2.5 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white text-xs sm:text-sm font-bold shadow-sm transition-all cursor-pointer flex items-center gap-2"
+                className="px-4 py-2 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white text-xs font-bold shadow-sm transition-all cursor-pointer flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
-                <span>Tambah Staf Baru</span>
+                <span>Tambah Staf</span>
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {users.map((usr) => {
               const isSelf = currentUser?.id === usr.id;
               const onlineSess = Object.values(onlineSessions).find(
@@ -1912,7 +1900,7 @@ export const OwnerDashboardView: React.FC = () => {
               );
               const isOnline = isSelf || !!onlineSess;
 
-              // Calculate operational metrics for this staff to help Owner monitor productivity
+              // Calculate operational metrics for this staff
               let performanceBadge = null;
               if (usr.role === 'waitress') {
                 const wOrders = [...activeOrders, ...completedOrders].filter(
@@ -1920,9 +1908,9 @@ export const OwnerDashboardView: React.FC = () => {
                          o.waitressName?.toLowerCase().includes(usr.name.split(' ')[0].toLowerCase())
                 );
                 performanceBadge = (
-                  <div className="text-[11px] text-[#7A614D] font-bold bg-[#FAF6F2] border border-[#EADBCE] rounded-xl px-2.5 py-1.5 flex items-center gap-1.5">
-                    <span className="text-xs">🛎️</span>
-                    <span>{wOrders.length} Order Diinput</span>
+                  <div className="text-xs text-[#7A614D] font-bold bg-[#FAF6F2] border border-[#EADBCE] rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+                    <span>🛎️</span>
+                    <span>{wOrders.length} Order Dilayani</span>
                   </div>
                 );
               } else if (usr.role === 'barista') {
@@ -1930,9 +1918,9 @@ export const OwnerDashboardView: React.FC = () => {
                   return sum + o.items.filter(it => (it.station === 'bar' || it.category === 'Kopi' || it.category === 'Non-Kopi') && (it.status === 'ready' || o.status === 'completed')).reduce((s, it) => s + it.quantity, 0);
                 }, 0);
                 performanceBadge = (
-                  <div className="text-[11px] text-amber-900 font-bold bg-amber-50 border border-amber-200 rounded-xl px-2.5 py-1.5 flex items-center gap-1.5">
-                    <span className="text-xs">☕</span>
-                    <span>{preparedDrinks} Minuman Bar</span>
+                  <div className="text-xs text-amber-900 font-bold bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+                    <span>☕</span>
+                    <span>{preparedDrinks} Porsi Minuman Dibuat</span>
                   </div>
                 );
               } else if (usr.role === 'chef') {
@@ -1940,91 +1928,86 @@ export const OwnerDashboardView: React.FC = () => {
                   return sum + o.items.filter(it => (it.station === 'kitchen' || it.category === 'Makanan Ringan' || it.category === 'Makanan Berat') && (it.status === 'ready' || o.status === 'completed')).reduce((s, it) => s + it.quantity, 0);
                 }, 0);
                 performanceBadge = (
-                  <div className="text-[11px] text-orange-700 font-bold bg-orange-50 border border-orange-100 rounded-xl px-2.5 py-1.5 flex items-center gap-1.5">
-                    <span className="text-xs">🍳</span>
-                    <span>{preparedFood} Makanan Dapur</span>
+                  <div className="text-xs text-orange-700 font-bold bg-orange-50 border border-orange-100 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+                    <span>🍳</span>
+                    <span>{preparedFood} Porsi Makanan Disiapkan</span>
                   </div>
                 );
               } else if (usr.role === 'cashier') {
                 performanceBadge = (
-                  <div className="text-[11px] text-blue-700 font-bold bg-blue-50 border border-blue-100 rounded-xl px-2.5 py-1.5 flex items-center gap-1.5">
-                    <span className="text-xs">💳</span>
-                    <span>{completedOrders.length} Transaksi Sukses</span>
+                  <div className="text-xs text-blue-700 font-bold bg-blue-50 border border-blue-100 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+                    <span>💳</span>
+                    <span>{completedOrders.length} Pembayaran Sukses</span>
                   </div>
                 );
               } else if (usr.role === 'owner') {
                 const totalStafCount = users.filter(u => u.role !== 'owner').length;
                 performanceBadge = (
-                  <div className="text-[11px] text-purple-700 font-bold bg-purple-50 border border-purple-100 rounded-xl px-2.5 py-1.5 flex items-center gap-1.5">
-                    <span className="text-xs">👑</span>
-                    <span>Memantau {totalStafCount} Staf</span>
+                  <div className="text-xs text-purple-700 font-bold bg-purple-50 border border-purple-100 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+                    <span>👑</span>
+                    <span>{totalStafCount} Staf Di Bawah Supervisi</span>
                   </div>
                 );
               }
 
               return (
-                <div key={usr.id} className="p-4 rounded-2xl border border-[#E3D3C4] bg-white hover:border-[#C4AD99] hover:shadow-md transition-all duration-200 space-y-4 flex flex-col justify-between relative overflow-hidden">
-                  {/* Decorative background indicator */}
-                  <div className={`absolute top-0 right-0 w-24 h-24 -mr-12 -mt-12 rounded-full opacity-5 filter blur-xl ${isOnline ? 'bg-emerald-500' : 'bg-stone-500'}`} />
-
-                  <div className="space-y-3">
+                <div key={usr.id} className="p-4 sm:p-5 rounded-xl border border-[#E3D3C4] bg-white hover:border-[#C4AD99] transition-all space-y-3 flex flex-col justify-between shadow-2xs">
+                  <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-2xl filter drop-shadow-sm">{usr.avatar}</span>
-                        {/* Real-time online/offline status pill */}
-                        <span className={`text-[10px] font-black tracking-wide px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                        <span className="text-2xl">{usr.avatar}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1.5 ${
                           isOnline 
-                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200/50' 
-                            : 'bg-stone-100 text-stone-500 border border-stone-200/50'
+                            ? 'bg-emerald-100 text-emerald-800' 
+                            : 'bg-stone-100 text-stone-500'
                         }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-stone-400'}`} />
-                          {isOnline ? (isSelf ? 'Online (Sesi Ini)' : 'Online (Peer)') : 'Offline'}
+                          <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-stone-400'}`} />
+                          {isOnline ? 'Online' : 'Offline'}
                         </span>
                       </div>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
                         usr.role === 'owner' ? 'bg-purple-100 text-purple-800' :
                         usr.role === 'cashier' ? 'bg-blue-100 text-blue-800' :
-                        usr.role === 'barista' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
+                        usr.role === 'barista' ? 'bg-amber-100 text-amber-900' :
                         usr.role === 'chef' ? 'bg-orange-100 text-orange-800' :
                         'bg-emerald-100 text-emerald-800'
                       }`}>
-                        {usr.role === 'barista' ? '☕ Barista' : usr.role === 'chef' ? '👨‍🍳 Chef' : usr.role}
+                        {usr.role === 'barista' ? 'Barista' : usr.role === 'chef' ? 'Chef' : usr.role}
                       </span>
                     </div>
 
                     <div>
                       <h4 className="font-bold text-sm text-[#2C1D11] flex items-center gap-1.5">
                         {usr.name}
-                        {isSelf && <span className="text-[10px] font-bold text-stone-400 bg-stone-100 px-1.5 py-0.2 rounded-full">Anda</span>}
+                        {isSelf && <span className="text-[10px] font-bold text-stone-400 bg-stone-100 px-1.5 rounded">Anda</span>}
                       </h4>
-                      <p className="text-xs text-[#7A614D] flex items-center gap-1.5 flex-wrap mt-0.5">
+                      <p className="text-xs text-[#7A614D] flex items-center gap-1.5 flex-wrap mt-1">
                         <span>@{usr.username}</span>
                         <span>•</span>
                         <span>PIN:</span>
-                        <code className="bg-stone-100 px-1.5 py-0.2 rounded font-mono font-bold text-black border border-stone-200">
+                        <code className="bg-stone-100 px-1.5 py-0.5 rounded font-mono font-bold text-black border border-stone-200 text-xs">
                           {(showAllPins || revealedPins[usr.id]) ? usr.pin : '••••'}
                         </code>
                         <button
                           type="button"
                           onClick={() => setRevealedPins(prev => ({ ...prev, [usr.id]: !(showAllPins || prev[usr.id]) }))}
-                          className="p-0.5 rounded text-stone-400 hover:text-stone-700 hover:bg-stone-100 cursor-pointer"
-                          title={(showAllPins || revealedPins[usr.id]) ? "Sembunyikan PIN" : "Lihat PIN"}
+                          className="p-1 rounded text-stone-400 hover:text-stone-700 cursor-pointer"
                         >
                           {(showAllPins || revealedPins[usr.id]) ? <EyeOff className="w-3.5 h-3.5 text-amber-700" /> : <Eye className="w-3.5 h-3.5" />}
                         </button>
                       </p>
-                      <p className="text-[11px] text-stone-500 mt-1 select-all">✉️ {usr.email}</p>
+                      <p className="text-xs text-stone-400 truncate mt-1">✉️ {usr.email}</p>
                     </div>
                   </div>
 
-                  {/* Operational Performance & Online Info */}
-                  <div className="space-y-3">
+                  {/* Performance & Action */}
+                  <div className="space-y-2 pt-2 border-t border-[#E3D3C4]">
                     {performanceBadge}
 
-                    <div className="pt-2 border-t border-[#E3D3C4] flex items-center justify-between">
-                      <span className={`text-[10px] font-semibold flex items-center gap-1.5 ${usr.active ? 'text-emerald-700' : 'text-red-600'}`}>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-xs font-semibold flex items-center gap-1.5 ${usr.active ? 'text-emerald-700' : 'text-red-600'}`}>
                         <span className={`w-2 h-2 rounded-full ${usr.active ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                        {usr.active ? 'Aktif' : 'Tidak Aktif'}
+                        {usr.active ? 'Aktif' : 'Nonaktif'}
                       </span>
                       <div className="flex items-center gap-1">
                         <button
@@ -2032,17 +2015,17 @@ export const OwnerDashboardView: React.FC = () => {
                             setChangePasswordTarget(usr);
                             setIsChangePasswordOpen(true);
                           }}
-                          className="p-1 rounded text-amber-700 hover:text-amber-900 hover:bg-amber-100 transition-colors cursor-pointer"
-                          title="Ganti PIN / Sandi Staf"
+                          className="p-1.5 rounded text-amber-700 hover:bg-amber-100 transition-colors cursor-pointer"
+                          title="Ganti PIN"
                         >
-                          <KeyRound className="w-3.5 h-3.5" />
+                          <KeyRound className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleOpenEditUser(usr)}
-                          className="p-1 rounded text-stone-600 hover:text-[#7D4F27] hover:bg-stone-100 transition-colors cursor-pointer"
+                          className="p-1.5 rounded text-stone-600 hover:text-[#7D4F27] hover:bg-stone-100 transition-colors cursor-pointer"
                           title="Edit Staf"
                         >
-                          <Edit className="w-3.5 h-3.5" />
+                          <Edit className="w-4 h-4" />
                         </button>
                         {usr.role !== 'owner' && (
                           <button
@@ -2051,10 +2034,10 @@ export const OwnerDashboardView: React.FC = () => {
                                 deleteUser(usr.id);
                               }
                             }}
-                            className="p-1 rounded text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                            className="p-1.5 rounded text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                             title="Hapus Staf"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         )}
                       </div>
@@ -2072,15 +2055,15 @@ export const OwnerDashboardView: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl border border-[#E3D3C4] overflow-hidden flex flex-col max-h-[90vh]">
             <div className="p-4 bg-[#2C1D11] text-[#FFF5EA] flex items-center justify-between">
-              <h3 className="font-bold text-base">
+              <h3 className="font-bold text-base sm:text-lg">
                 {editingMenuId ? 'Edit Menu & Harga' : 'Tambah Menu Baru'}
               </h3>
-              <button onClick={() => setIsMenuModalOpen(false)} className="text-stone-300 hover:text-white">
+              <button onClick={() => setIsMenuModalOpen(false)} className="text-stone-300 hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-5 overflow-y-auto space-y-3.5 text-xs">
+            <div className="p-5 overflow-y-auto space-y-4 text-xs sm:text-sm">
               <div>
                 <label className="font-bold text-[#2C1D11] block mb-1">Nama Menu:</label>
                 <input
@@ -2088,7 +2071,7 @@ export const OwnerDashboardView: React.FC = () => {
                   value={menuForm.name}
                   onChange={(e) => setMenuForm({ ...menuForm, name: e.target.value })}
                   placeholder="Contoh: Affogato Vanilla Caramel"
-                  className="w-full p-2.5 rounded-xl border border-[#E3D3C4] focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
+                  className="w-full p-2.5 rounded-xl border border-[#E3D3C4] focus:outline-none focus:ring-2 focus:ring-[#7D4F27]"
                 />
               </div>
 
@@ -2098,7 +2081,7 @@ export const OwnerDashboardView: React.FC = () => {
                   <select
                     value={menuForm.category}
                     onChange={(e) => setMenuForm({ ...menuForm, category: e.target.value as MenuCategory })}
-                    className="w-full p-2.5 rounded-xl border border-[#E3D3C4] focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
+                    className="w-full p-2.5 rounded-xl border border-[#E3D3C4] focus:outline-none focus:ring-2 focus:ring-[#7D4F27]"
                   >
                     <option value="Kopi">Kopi</option>
                     <option value="Non-Kopi">Non-Kopi</option>
@@ -2113,17 +2096,17 @@ export const OwnerDashboardView: React.FC = () => {
                     type="number"
                     value={menuForm.price}
                     onChange={(e) => setMenuForm({ ...menuForm, price: Number(e.target.value) })}
-                    className="w-full p-2.5 rounded-xl border border-[#E3D3C4] focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
+                    className="w-full p-2.5 rounded-xl border border-[#E3D3C4] focus:outline-none focus:ring-2 focus:ring-[#7D4F27]"
                   />
                 </div>
               </div>
 
               {/* PORSI LARGE DENGAN HARGA KUSTOM (Ubah / Hapus) */}
-              <div className="bg-[#FAF6F2] p-3.5 rounded-xl border border-[#EADBCE] space-y-3">
+              <div className="bg-[#FAF6F2] p-2.5 rounded-lg border border-[#EADBCE] space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="font-bold text-[#2C1D11] block">Porsi Large (Harga Kustom)</label>
-                    <span className="text-[10px] text-stone-500 block">Aktifkan jika item memiliki variasi porsi besar dengan harga kustom tambahan</span>
+                    <label className="font-bold text-[11px] text-[#2C1D11] block">Porsi Large (Harga Kustom)</label>
+                    <span className="text-[9.5px] text-stone-500 block">Variasi porsi besar dengan selisih harga kustom</span>
                   </div>
                   <input
                     type="checkbox"
@@ -2631,22 +2614,22 @@ export const OwnerDashboardView: React.FC = () => {
                 value={restockAmount}
                 onChange={(e) => setRestockAmount(Number(e.target.value))}
                 min={1}
-                className="w-full text-base font-bold p-2.5 rounded-xl border border-[#E3D3C4] focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
+                className="w-full text-base font-bold p-2.5 rounded-xl border border-[#E3D3C4] focus:outline-none focus:ring-2 focus:ring-[#7D4F27]"
               />
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setRestockItem(null)}
-                className="px-4 py-2 text-xs font-semibold text-stone-600 rounded-xl hover:bg-stone-100"
+                className="px-4 py-2 text-xs font-semibold text-stone-600 rounded-xl hover:bg-stone-100 cursor-pointer"
               >
                 Batal
               </button>
               <button
                 onClick={handleConfirmRestock}
-                className="px-4 py-2 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white font-bold text-xs shadow-sm"
+                className="px-4 py-2 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white font-bold text-xs shadow-md cursor-pointer"
               >
-                Konfirmasi Restock
+                Restock
               </button>
             </div>
           </div>
@@ -2658,13 +2641,13 @@ export const OwnerDashboardView: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-[#E3D3C4] overflow-hidden flex flex-col">
             <div className="p-4 bg-[#2C1D11] text-[#FFF5EA] flex items-center justify-between">
-              <h3 className="font-bold text-sm">Tambah Bahan Baku Baru</h3>
-              <button onClick={() => setIsInventoryModalOpen(false)} className="text-stone-300 hover:text-white">
+              <h3 className="font-bold text-base sm:text-lg">Tambah Bahan Baku</h3>
+              <button onClick={() => setIsInventoryModalOpen(false)} className="text-stone-300 hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-4 space-y-3 text-xs">
+            <div className="p-5 space-y-3 text-xs sm:text-sm">
               <div>
                 <label className="font-bold text-[#2C1D11] block mb-1">Nama Bahan:</label>
                 <input
@@ -2672,17 +2655,17 @@ export const OwnerDashboardView: React.FC = () => {
                   value={invForm.name}
                   onChange={(e) => setInvForm({ ...invForm, name: e.target.value })}
                   placeholder="Contoh: Bubuk Kakao 100%"
-                  className="w-full p-2 rounded-lg border border-[#E3D3C4]"
+                  className="w-full p-2.5 rounded-xl border border-[#E3D3C4]"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-[#2C1D11] block mb-1">Kategori:</label>
                   <select
                     value={invForm.category}
                     onChange={(e) => setInvForm({ ...invForm, category: e.target.value as any })}
-                    className="w-full p-2 rounded-lg border border-[#E3D3C4]"
+                    className="w-full p-2.5 rounded-xl border border-[#E3D3C4]"
                   >
                     <option value="Kopi & Biji">Kopi & Biji</option>
                     <option value="Susu & Dairy">Susu & Dairy</option>
@@ -2698,19 +2681,19 @@ export const OwnerDashboardView: React.FC = () => {
                     value={invForm.unit}
                     onChange={(e) => setInvForm({ ...invForm, unit: e.target.value })}
                     placeholder="kg, liter, pcs..."
-                    className="w-full p-2 rounded-lg border border-[#E3D3C4]"
+                    className="w-full p-2.5 rounded-xl border border-[#E3D3C4]"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-[#2C1D11] block mb-1">Stok Awal:</label>
                   <input
                     type="number"
                     value={invForm.stockQuantity}
                     onChange={(e) => setInvForm({ ...invForm, stockQuantity: Number(e.target.value) })}
-                    className="w-full p-2 rounded-lg border border-[#E3D3C4]"
+                    className="w-full p-2.5 rounded-xl border border-[#E3D3C4]"
                   />
                 </div>
                 <div>
@@ -2719,23 +2702,23 @@ export const OwnerDashboardView: React.FC = () => {
                     type="number"
                     value={invForm.minThreshold}
                     onChange={(e) => setInvForm({ ...invForm, minThreshold: Number(e.target.value) })}
-                    className="w-full p-2 rounded-lg border border-[#E3D3C4]"
+                    className="w-full p-2.5 rounded-xl border border-[#E3D3C4]"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="p-3 bg-[#FBF8F5] border-t border-[#E3D3C4] flex justify-end gap-2">
+            <div className="p-4 bg-[#FBF8F5] border-t border-[#E3D3C4] flex justify-end gap-2">
               <button
                 onClick={() => setIsInventoryModalOpen(false)}
-                className="px-3 py-1.5 text-xs text-stone-600 hover:bg-stone-200 rounded-lg"
+                className="px-4 py-2 text-stone-600 hover:bg-stone-200 rounded-xl cursor-pointer"
               >
                 Batal
               </button>
               <button
                 disabled={!invForm.name.trim()}
                 onClick={handleSaveInventory}
-                className="px-4 py-1.5 rounded-lg bg-[#7D4F27] hover:bg-[#633C1B] text-white font-bold text-xs"
+                className="px-4 py-2 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white font-bold text-xs cursor-pointer"
               >
                 Simpan Bahan
               </button>
@@ -2749,15 +2732,15 @@ export const OwnerDashboardView: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-[#E3D3C4] overflow-hidden flex flex-col">
             <div className="p-4 bg-[#2C1D11] text-[#FFF5EA] flex items-center justify-between">
-              <h3 className="font-bold text-sm">
+              <h3 className="font-bold text-base sm:text-lg">
                 {editingUserId ? 'Edit Akun Staf' : 'Tambah Staf Kafe'}
               </h3>
-              <button onClick={() => setIsUserModalOpen(false)} className="text-stone-300 hover:text-white">
+              <button onClick={() => setIsUserModalOpen(false)} className="text-stone-300 hover:text-white cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-4 space-y-3 text-xs">
+            <div className="p-5 space-y-3 text-xs sm:text-sm">
               <div>
                 <label className="font-bold text-[#2C1D11] block mb-1">Nama Lengkap:</label>
                 <input
@@ -2765,11 +2748,11 @@ export const OwnerDashboardView: React.FC = () => {
                   value={userForm.name}
                   onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
                   placeholder="Contoh: Rian Pratama"
-                  className="w-full p-2 rounded-lg border border-[#E3D3C4]"
+                  className="w-full p-2.5 rounded-xl border border-[#E3D3C4]"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold text-[#2C1D11] block mb-1">Username:</label>
                   <input
@@ -2777,7 +2760,7 @@ export const OwnerDashboardView: React.FC = () => {
                     value={userForm.username}
                     onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
                     placeholder="rian_pos"
-                    className="w-full p-2 rounded-lg border border-[#E3D3C4]"
+                    className="w-full p-2.5 rounded-xl border border-[#E3D3C4]"
                   />
                 </div>
                 <div>
@@ -2785,25 +2768,25 @@ export const OwnerDashboardView: React.FC = () => {
                   <select
                     value={userForm.role}
                     onChange={(e) => setUserForm({ ...userForm, role: e.target.value as any })}
-                    className="w-full p-2 rounded-lg border border-[#E3D3C4]"
+                    className="w-full p-2.5 rounded-xl border border-[#E3D3C4]"
                   >
                     <option value="cashier">Kasir (POS & Billing)</option>
-                    <option value="waitress">Waitress (Floor & Order Meja)</option>
+                    <option value="waitress">Waitress (Floor & Order)</option>
                     <option value="barista">Barista (Bar & Minuman)</option>
                     <option value="chef">Chef (Dapur & Makanan)</option>
-                    <option value="owner">Owner / Manager (Laporan & Menu)</option>
+                    <option value="owner">Owner / Manager</option>
                   </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="font-bold text-[#2C1D11] text-xs">PIN Akses Tablet (4 digit):</label>
+                    <label className="font-bold text-[#2C1D11]">PIN Akses Tablet:</label>
                     <button
                       type="button"
                       onClick={() => setShowModalPin(!showModalPin)}
-                      className="text-[10px] font-bold text-[#7D4F27] hover:text-[#5A3515] flex items-center gap-1 cursor-pointer"
+                      className="text-xs font-bold text-[#7D4F27] hover:text-[#5A3515] flex items-center gap-1 cursor-pointer"
                     >
                       {showModalPin ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                       <span>{showModalPin ? 'Tutup' : 'Lihat'}</span>
@@ -2816,42 +2799,41 @@ export const OwnerDashboardView: React.FC = () => {
                       value={userForm.pin}
                       onChange={(e) => setUserForm({ ...userForm, pin: e.target.value })}
                       placeholder="1234"
-                      className="w-full p-2 pr-9 rounded-lg border border-[#E3D3C4] font-mono text-sm tracking-wider"
+                      className="w-full p-2.5 pl-3 pr-9 rounded-xl border border-[#E3D3C4] font-mono text-sm tracking-wider"
                     />
                     <button
                       type="button"
                       onClick={() => setShowModalPin(!showModalPin)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
-                      title={showModalPin ? "Sembunyikan PIN" : "Lihat PIN"}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
                     >
                       {showModalPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
                 <div>
-                  <label className="font-bold text-[#2C1D11] block mb-1">No. HP / WhatsApp:</label>
+                  <label className="font-bold text-[#2C1D11] block mb-1">No. HP / WA:</label>
                   <input
                     type="text"
                     value={userForm.phone}
                     onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })}
                     placeholder="+628..."
-                    className="w-full p-2 rounded-lg border border-[#E3D3C4]"
+                    className="w-full p-2.5 rounded-xl border border-[#E3D3C4]"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="p-3 bg-[#FBF8F5] border-t border-[#E3D3C4] flex justify-end gap-2">
+            <div className="p-4 bg-[#FBF8F5] border-t border-[#E3D3C4] flex justify-end gap-2">
               <button
                 onClick={() => setIsUserModalOpen(false)}
-                className="px-3 py-1.5 text-xs text-stone-600 hover:bg-stone-200 rounded-lg"
+                className="px-4 py-2 text-stone-600 hover:bg-stone-200 rounded-xl cursor-pointer"
               >
                 Batal
               </button>
               <button
                 disabled={!userForm.name.trim()}
                 onClick={handleSaveUser}
-                className="px-4 py-1.5 rounded-lg bg-[#7D4F27] hover:bg-[#633C1B] text-white font-bold text-xs"
+                className="px-4 py-2 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white font-bold text-xs cursor-pointer"
               >
                 Simpan Staf
               </button>

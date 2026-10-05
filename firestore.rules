@@ -11,42 +11,49 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Users Collection (Staf & Login)
+    // 1. DATA AKUN PENGGUNA: Disimpan di Local Storage (Tidak di Cloud Firestore)
     match /users/{userId} {
-      allow read, write: if isValidId(userId);
+      allow read, write: if false;
     }
 
-    // Menu Items Collection
-    match /menu_items/{itemId} {
-      allow read, write: if isValidId(itemId);
-    }
-
-    // Tables Status (1-30)
-    match /tables/{tableId} {
-      allow read, write: if isValidId(tableId);
-    }
-
-    // Active Orders (Dapur, Bar, Waitress, Kasir)
-    match /active_orders/{orderId} {
-      allow read, write: if isValidId(orderId);
-    }
-
-    // Completed Orders (Riwayat Transaksi & Struk Kasir)
+    // 2. DATA TRANSAKSI UANG MASUK (completed_orders / Penjualan Lunas) - DISIMPAN DI FIREBASE
     match /completed_orders/{orderId} {
-      allow read, write: if isValidId(orderId);
+      allow read: if true;
+      allow write: if isValidId(orderId);
     }
 
-    // Expenses (Pengeluaran Operasional)
+    // 3. DATA TRANSAKSI UANG KELUAR (expenses / Pengeluaran Operasional) - DISIMPAN DI FIREBASE
     match /expenses/{expenseId} {
-      allow read, write: if isValidId(expenseId);
+      allow read: if true;
+      allow write: if isValidId(expenseId);
     }
 
-    // Inventory (Bahan Baku)
+    // 4. OPERASIONAL KAFE HARIAN (Staf Kasir, Waitress, Barista, Chef & Owner)
+    // Menu & Stok Minuman/Makanan
+    match /menu_items/{itemId} {
+      allow read: if true;
+      allow write: if isValidId(itemId);
+    }
+
+    // Status Meja 1-30
+    match /tables/{tableId} {
+      allow read: if true;
+      allow write: if isValidId(tableId);
+    }
+
+    // Antrean Pesanan Aktif Dapur & Bar (KDS/BDS/Waitress Order)
+    match /active_orders/{orderId} {
+      allow read: if true;
+      allow write: if isValidId(orderId);
+    }
+
+    // Stok Bahan Baku
     match /inventory/{inventoryId} {
-      allow read, write: if isValidId(inventoryId);
+      allow read: if true;
+      allow write: if isValidId(inventoryId);
     }
 
-    // Test / health check connection
+    // Tes Koneksi
     match /test/{testId} {
       allow read, write: if true;
     }
