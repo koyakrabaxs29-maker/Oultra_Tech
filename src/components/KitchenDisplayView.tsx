@@ -184,99 +184,86 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({ defaultS
         </div>
       )}
 
-      {/* KDS Header */}
-      <div className="bg-[#1C130B] rounded-2xl p-5 text-[#FFF5EA] border border-[#3D2513] shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#8C5223] to-[#542F10] flex items-center justify-center text-white border border-[#A8713D]/40 shadow-inner">
+      {/* KDS Header - Ultra-Compact & Simpel */}
+      <div className="bg-[#180E07] rounded-lg px-2.5 sm:px-3 py-1.5 text-[#FFF5EA] border border-[#382010] shadow-2xs flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-6 h-6 rounded-md bg-[#2B170B] flex items-center justify-center text-amber-300 border border-[#A8713D]/30 shadow-inner shrink-0">
             {activeRole === 'barista' || stationFilter === 'bar' ? (
-              <Coffee className="w-7 h-7 text-amber-300" />
+              <Coffee className="w-3.5 h-3.5" />
             ) : (
-              <ChefHat className="w-7 h-7 text-amber-300" />
+              <ChefHat className="w-3.5 h-3.5" />
             )}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display text-2xl font-bold text-[#F7E6D4] leading-tight">
-                {activeRole === 'barista'
-                  ? 'Bar Display System (BDS)'
-                  : activeRole === 'chef'
-                  ? 'Kitchen Display System (KDS)'
-                  : 'Kitchen & Bar Display'}
-              </h1>
-              <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                activeRole === 'barista'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                  : activeRole === 'chef'
-                  ? 'bg-orange-500/20 text-orange-300 border border-orange-500/40'
-                  : 'bg-stone-500/20 text-stone-300 border border-stone-500/40'
-              }`}>
-                {activeRole === 'barista' ? '☕ Barista (Minuman)' : activeRole === 'chef' ? '👨‍🍳 Chef (Makanan)' : 'Mode Gabungan'}
-              </span>
-            </div>
-          </div>
+          <h1 className="font-display text-xs sm:text-sm font-bold text-[#F7E6D4] truncate">
+            {activeRole === 'barista'
+              ? 'Bar Display System (BDS)'
+              : activeRole === 'chef'
+              ? 'Kitchen Display System (KDS)'
+              : 'Kitchen & Bar Display'}
+          </h1>
         </div>
 
-        {/* Station Filter Buttons */}
-        <div className="flex flex-wrap items-center gap-2 bg-[#2B1B0F] p-1.5 rounded-xl border border-[#4A2E19]">
+        {/* Station Filter Pills - Ultra-Compact Strip */}
+        <div className="flex items-center gap-0.5 bg-[#221308] p-0.5 rounded-md border border-[#381F0E] overflow-x-auto scrollbar-none shrink-0">
           <button
             onClick={() => setStationFilter('all')}
-            className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+            className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-all whitespace-nowrap cursor-pointer ${
               stationFilter === 'all'
-                ? 'bg-[#7D4F27] text-white font-bold shadow-sm'
-                : 'text-[#C4AD99] hover:text-white'
+                ? 'bg-[#7D4F27] text-white shadow-2xs font-bold'
+                : 'text-[#C4AD99] hover:text-white hover:bg-[#2C180A]'
             }`}
           >
             Semua ({kitchenTickets.length})
           </button>
           <button
             onClick={() => setStationFilter('bar')}
-            className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-2 py-0.5 rounded text-[11px] font-semibold flex items-center gap-1 transition-all whitespace-nowrap cursor-pointer ${
               stationFilter === 'bar'
-                ? 'bg-amber-600 text-white shadow-sm'
-                : 'text-[#C4AD99] hover:text-white'
+                ? 'bg-amber-600 text-white shadow-2xs font-bold'
+                : 'text-[#C4AD99] hover:text-white hover:bg-[#2C180A]'
             }`}
           >
-            <Coffee className="w-4 h-4 text-amber-300" />
-            <span>Bar Minuman ({barTicketsCount})</span>
+            <Coffee className="w-3 h-3 text-amber-300" />
+            <span>Bar ({barTicketsCount})</span>
           </button>
           <button
             onClick={() => setStationFilter('kitchen')}
-            className={`px-3.5 py-2 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-2 py-0.5 rounded text-[11px] font-semibold flex items-center gap-1 transition-all whitespace-nowrap cursor-pointer ${
               stationFilter === 'kitchen'
-                ? 'bg-amber-600 text-white shadow-sm'
-                : 'text-[#C4AD99] hover:text-white'
+                ? 'bg-amber-600 text-white shadow-2xs font-bold'
+                : 'text-[#C4AD99] hover:text-white hover:bg-[#2C180A]'
             }`}
           >
-            <Utensils className="w-4 h-4 text-orange-300" />
-            <span>Dapur Makanan ({kitchenOnlyTicketsCount})</span>
+            <Utensils className="w-3 h-3 text-orange-300" />
+            <span>Dapur ({kitchenOnlyTicketsCount})</span>
           </button>
           <button
             onClick={() => setStationFilter('additions')}
-            className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-2 py-0.5 rounded text-[11px] font-semibold flex items-center gap-1 transition-all whitespace-nowrap cursor-pointer ${
               stationFilter === 'additions'
-                ? 'bg-amber-500 text-black shadow-sm'
+                ? 'bg-amber-500 text-black shadow-2xs font-bold'
                 : ordersWithAdditions.length > 0
-                ? 'text-amber-300 bg-amber-950/70 animate-pulse'
-                : 'text-[#C4AD99] hover:text-white'
+                ? 'text-amber-300 bg-amber-950/60 animate-pulse'
+                : 'text-[#C4AD99] hover:text-white hover:bg-[#2C180A]'
             }`}
             title="Tiket dengan menu tambahan dari Waitress"
           >
-            <Flame className="w-4 h-4 text-amber-400" />
+            <Flame className="w-3 h-3 text-amber-400" />
             <span>+Tambahan ({ordersWithAdditions.length})</span>
           </button>
           <button
             onClick={() => setStationFilter('delayed')}
-            className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-2 py-0.5 rounded text-[11px] font-semibold flex items-center gap-1 transition-all whitespace-nowrap cursor-pointer ${
               stationFilter === 'delayed'
-                ? 'bg-red-700 text-white shadow-sm'
+                ? 'bg-red-700 text-white shadow-2xs font-bold'
                 : delayedOrders.length > 0
-                ? 'text-red-400 bg-red-950/40'
-                : 'text-[#C4AD99] hover:text-white'
+                ? 'text-red-400 bg-red-950/50'
+                : 'text-[#C4AD99] hover:text-white hover:bg-[#2C180A]'
             }`}
             title="Tiket pesanan di atas 15 menit"
           >
-            <AlertTriangle className="w-4 h-4 text-amber-400" />
-            <span>⚠️ Terlambat ({delayedOrders.length})</span>
+            <AlertTriangle className="w-3 h-3 text-amber-400" />
+            <span>Terlambat ({delayedOrders.length})</span>
           </button>
         </div>
       </div>

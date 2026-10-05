@@ -174,7 +174,7 @@ CREATE TABLE inventory_items (
         <div className="flex items-center gap-2 px-4 sm:px-5 py-2 bg-[#150D06] border-b border-[#311A0C] overflow-x-auto scrollbar-none">
           <button
             onClick={() => setActiveTab('guide')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-span transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'guide'
                 ? 'bg-[#7D4F27] text-white shadow-sm'
                 : 'text-[#A88B74] hover:text-[#F3E5D8]'
@@ -186,7 +186,7 @@ CREATE TABLE inventory_items (
 
           <button
             onClick={() => setActiveTab('erd')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-span transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'erd'
                 ? 'bg-[#7D4F27] text-white shadow-sm'
                 : 'text-[#A88B74] hover:text-[#F3E5D8]'
@@ -198,7 +198,7 @@ CREATE TABLE inventory_items (
 
           <button
             onClick={() => setActiveTab('api')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-span transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'api'
                 ? 'bg-[#7D4F27] text-white shadow-sm'
                 : 'text-[#A88B74] hover:text-[#F3E5D8]'
@@ -228,7 +228,7 @@ CREATE TABLE inventory_items (
 
               <div className="space-y-3.5">
                 {/* Step 1 */}
-                <div className="p-4 bg-[#150D06] rounded-xl border border-[#311A0C] space-y-2">
+                <div className="p-4 bg-[#D2A679]/80 backdrop-vlur-md rounded-xl border border-[#F5DEB3]/30 space-y-2">
                   <div className="flex items-center gap-2 text-[#D4A373] font-bold text-xs">
                     <span className="w-5 h-5 rounded-full bg-[#7D4F27] text-white flex items-center justify-center text-[10px]">1</span>
                     <span>Persiapan Repositori & Stack Frontend/Backend</span>
@@ -249,7 +249,7 @@ npm run dev
                 </div>
 
                 {/* Step 2 */}
-                <div className="p-4 bg-[#150D06] rounded-xl border border-[#311A0C] space-y-2">
+                <div className="p-4 bg-[#D2A679]/80 backdrop-blur-md rounded-xl border border-[#F5DEB3]/30 space-y-2">
                   <div className="flex items-center gap-2 text-[#D4A373] font-bold text-xs">
                     <span className="w-5 h-5 rounded-full bg-[#7D4F27] text-white flex items-center justify-center text-[10px]">2</span>
                     <span>Setup Database PostgreSQL & Eksekusi Skema DDL</span>

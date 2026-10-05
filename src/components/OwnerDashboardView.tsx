@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useCafe } from '../context/CafeContext';
-import { MenuCategory, MenuItem, InventoryItem, UserAccount, UserRole, Order, MenuAddOn, DEFAULT_CATEGORY_ADDONS } from '../types';
+import { MenuCategory, MenuItem, InventoryItem, UserAccount, UserRole, Order, OrderItem, OperationalExpense, MenuAddOn, DEFAULT_CATEGORY_ADDONS } from '../types';
 import { formatRupiah, formatFullDateTime } from '../utils/formatters';
 import { ProfitLossReportView } from './ProfitLossReportView';
 import { EditTransactionModal } from './EditTransactionModal';
@@ -100,11 +100,23 @@ export const OwnerDashboardView: React.FC = () => {
     updateUser, 
     deleteUser,
     currentUser,
-    onlineSessions
+    onlineSessions,
+    showToast
   } = useCafe();
 
   const [activeTab, setActiveTab] = useState<'analytics' | 'orders' | 'profit_loss' | 'menu' | 'inventory' | 'users'>('analytics');
-  const [cashflowPeriod, setCashflowPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  
+  // ENHANCED CASHFLOW & REKAP FILTER STATE
+  const [cashflowPeriod, setCashflowPeriod] = useState<'daily' | 'yesterday' | 'weekly' | 'monthly' | 'custom' | 'all'>('daily');
+  const [cashflowStartDate, setCashflowStartDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [cashflowEndDate, setCashflowEndDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [cashflowTypeFilter, setCashflowTypeFilter] = useState<'all' | 'inflow' | 'outflow'>('all');
+  const [cashflowPaymentFilter, setCashflowPaymentFilter] = useState<'all' | 'cash' | 'qris' | 'bank_transfer'>('all');
+  const [cashflowStaffFilter, setCashflowStaffFilter] = useState<string>('all');
+  const [cashflowCategoryFilter, setCashflowCategoryFilter] = useState<string>('all');
+  const [cashflowSearch, setCashflowSearch] = useState<string>('');
+  const [isFilterPanelExpanded, setIsFilterPanelExpanded] = useState<boolean>(false);
+  const [selectedRecapTab, setSelectedRecapTab] = useState<'all' | 'inflow' | 'outflow'>('all');
 
   // OWNER ACCESS AUTHENTICATION STATE
   const [isOwnerAuthenticated, setIsOwnerAuthenticated] = useState<boolean>(() => {
@@ -269,63 +281,182 @@ export const OwnerDashboardView: React.FC = () => {
     avatar: '☕',
   });
 
-  // Helper for cashflow date filtering
-  const isDateInPeriod = (dateStr?: string, period: 'daily' | 'weekly' | 'monthly' = 'daily') => {
+  // Helper for cashflow date filtering with comprehensive period options
+  const isDateInFilter = (dateStr?: string) => {
     if (!dateStr) return false;
     const itemDate = new Date(dateStr);
     const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const todayEnd = todayStart + 24 * 60 * 60 * 1000 - 1;
 
-    if (period === 'daily') {
-      return (
-        itemDate.getFullYear() === now.getFullYear() &&
-        itemDate.getMonth() === now.getMonth() &&
-        itemDate.getDate() === now.getDate()
-      );
-    } else if (period === 'weekly') {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(now.getDate() - 7);
-      sevenDaysAgo.setHours(0, 0, 0, 0);
-      return itemDate >= sevenDaysAgo && itemDate <= now;
-    } else if (period === 'monthly') {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(now.getDate() - 30);
-      thirtyDaysAgo.setHours(0, 0, 0, 0);
-      return itemDate >= thirtyDaysAgo && itemDate <= now;
+    if (cashflowPeriod === 'daily') {
+      const itemTime = itemDate.getTime();
+      return itemTime >= todayStart && itemTime <= todayEnd;
+    } else if (cashflowPeriod === 'yesterday') {
+      const yestStart = todayStart - 24 * 60 * 60 * 1000;
+      const yestEnd = todayStart - 1;
+      const itemTime = itemDate.getTime();
+      return itemTime >= yestStart && itemTime <= yestEnd;
+    } else if (cashflowPeriod === 'weekly') {
+      const sevenDaysAgo = todayStart - 7 * 24 * 60 * 60 * 1000;
+      return itemDate.getTime() >= sevenDaysAgo;
+    } else if (cashflowPeriod === 'monthly') {
+      const thirtyDaysAgo = todayStart - 30 * 24 * 60 * 60 * 1000;
+      return itemDate.getTime() >= thirtyDaysAgo;
+    } else if (cashflowPeriod === 'custom') {
+      if (!cashflowStartDate) return true;
+      const start = new Date(`${cashflowStartDate}T00:00:00`).getTime();
+      const end = cashflowEndDate ? new Date(`${cashflowEndDate}T23:59:59`).getTime() : Date.now();
+      const itemTime = itemDate.getTime();
+      return itemTime >= start && itemTime <= end;
     }
-    return true;
+    return true; // 'all'
   };
 
-  // Cashflow summaries for all periods
-  const getCashflowStats = (period: 'daily' | 'weekly' | 'monthly') => {
-    const periodOrders = completedOrders.filter(o => isDateInPeriod(o.updatedAt || o.createdAt, period));
-    const periodExpenses = expenses.filter(e => isDateInPeriod(e.date, period));
+  // Filtered orders for cashflow recap
+  const filteredCashflowOrders = useMemo(() => {
+    return completedOrders.filter((order) => {
+      if (!isDateInFilter(order.updatedAt || order.createdAt)) return false;
 
-    const totalInflow = periodOrders.reduce((sum, o) => sum + o.total, 0);
-    const totalOutflow = periodExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const netCashflow = totalInflow - totalOutflow;
-    const orderCount = periodOrders.length;
-    const expenseCount = periodExpenses.length;
+      if (cashflowPaymentFilter !== 'all' && (order.paymentMethod || 'cash') !== cashflowPaymentFilter) {
+        return false;
+      }
 
+      if (cashflowStaffFilter !== 'all') {
+        const staff = order.waitressName || '';
+        if (!staff.toLowerCase().includes(cashflowStaffFilter.toLowerCase())) return false;
+      }
+
+      if (cashflowSearch.trim()) {
+        const q = cashflowSearch.toLowerCase();
+        const matchNum = order.orderNumber?.toLowerCase().includes(q);
+        const matchCust = order.customerName?.toLowerCase().includes(q);
+        const matchTable = String(order.tableNumber).includes(q);
+        const matchItems = order.items?.some((it) => it.name.toLowerCase().includes(q));
+        if (!matchNum && !matchCust && !matchTable && !matchItems) return false;
+      }
+
+      return true;
+    });
+  }, [completedOrders, cashflowPeriod, cashflowStartDate, cashflowEndDate, cashflowPaymentFilter, cashflowStaffFilter, cashflowSearch]);
+
+  // Filtered expenses for cashflow recap
+  const filteredCashflowExpenses = useMemo(() => {
+    return expenses.filter((exp) => {
+      if (!isDateInFilter(exp.date)) return false;
+
+      if (cashflowCategoryFilter !== 'all' && exp.category !== cashflowCategoryFilter) {
+        return false;
+      }
+
+      if (cashflowSearch.trim()) {
+        const q = cashflowSearch.toLowerCase();
+        const matchName = exp.name.toLowerCase().includes(q);
+        const matchNotes = (exp.notes || '').toLowerCase().includes(q);
+        const matchCat = exp.category.toLowerCase().includes(q);
+        if (!matchName && !matchNotes && !matchCat) return false;
+      }
+
+      return true;
+    });
+  }, [expenses, cashflowPeriod, cashflowStartDate, cashflowEndDate, cashflowCategoryFilter, cashflowSearch]);
+
+  // Dynamic totals based on current active filters
+  const filteredInflow = filteredCashflowOrders.reduce((sum: number, o: Order) => sum + o.total, 0);
+  const filteredOutflow = filteredCashflowExpenses.reduce((sum: number, e: OperationalExpense) => sum + e.amount, 0);
+  const filteredNetCash = filteredInflow - filteredOutflow;
+
+  // Function to Export Filtered Recap
+  const handleExportCashflowRecap = () => {
+    const rows: string[][] = [
+      ['REKAP TRANSAKSI & ARUS KAS (UANG MASUK & KELUAR) - NADIRA CAFE & RESTO'],
+      [`Filter Periode: ${cashflowPeriod.toUpperCase()} ${cashflowPeriod === 'custom' ? `(${cashflowStartDate} s/d ${cashflowEndDate})` : ''}`],
+      [`Filter Aliran: ${cashflowTypeFilter === 'all' ? 'Semua (Masuk & Keluar)' : cashflowTypeFilter === 'inflow' ? 'Hanya Uang Masuk' : 'Hanya Uang Keluar'}`],
+      [`Tanggal Ekspor: ${new Date().toLocaleDateString('id-ID')} ${new Date().toLocaleTimeString('id-ID')}`],
+      [''],
+      ['RINGKASAN TOTAL REKAP TERFILTER:'],
+      ['Total Uang Masuk (Pemasukan)', String(filteredInflow)],
+      ['Total Uang Keluar (Pengeluaran)', String(filteredOutflow)],
+      ['Kas Bersih (Net Cashflow)', String(filteredNetCash), filteredNetCash >= 0 ? 'SURPLUS' : 'DEFISIT'],
+      [''],
+      ['RINCIAN REKAP TRANSAKSI:']
+    ];
+
+    if (cashflowTypeFilter === 'all' || cashflowTypeFilter === 'inflow') {
+      rows.push(['--- DAFTAR UANG MASUK (TRANSAKSI PENJUALAN KASIR) ---']);
+      rows.push(['No. Order', 'Meja', 'Pelanggan', 'Tanggal & Waktu', 'Kasir/Staf', 'Metode Pembayaran', 'Item Pesanan', 'Subtotal', 'PPN', 'Total Bayar']);
+      filteredCashflowOrders.forEach((o: Order) => {
+        const itemSummary = o.items.map((it: OrderItem) => `${it.name} (${it.quantity}x)`).join('; ');
+        rows.push([
+          o.orderNumber,
+          `Meja #${o.tableNumber}`,
+          `"${o.customerName}"`,
+          formatFullDateTime(o.updatedAt || o.createdAt),
+          `"${o.waitressName || 'Kasir'}"`,
+          (o.paymentMethod || 'cash').toUpperCase(),
+          `"${itemSummary}"`,
+          String(o.subtotal || 0),
+          String(o.tax || 0),
+          String(o.total || 0)
+        ]);
+      });
+      rows.push(['']);
+    }
+
+    if (cashflowTypeFilter === 'all' || cashflowTypeFilter === 'outflow') {
+      rows.push(['--- DAFTAR UANG KELUAR (BIAYA OPERASIONAL) ---']);
+      rows.push(['Nama Beban/Biaya', 'Kategori', 'Tanggal', 'Catatan/Keterangan', 'Nominal Pengeluaran']);
+      filteredCashflowExpenses.forEach((e: OperationalExpense) => {
+        rows.push([
+          `"${e.name}"`,
+          e.category,
+          e.date,
+          `"${e.notes || ''}"`,
+          String(e.amount)
+        ]);
+      });
+    }
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + rows.map((r) => r.join(',')).join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Rekap_Uang_Masuk_Keluar_NADIRA_${cashflowPeriod}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Preset summary calculations for comparison badges
+  const getStaticPeriodStats = (period: 'daily' | 'weekly' | 'monthly') => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const pOrders = completedOrders.filter((o) => {
+      const t = new Date(o.updatedAt || o.createdAt).getTime();
+      if (period === 'daily') return t >= todayStart;
+      if (period === 'weekly') return t >= (todayStart - 7 * 24 * 60 * 60 * 1000);
+      return t >= (todayStart - 30 * 24 * 60 * 60 * 1000);
+    });
+    const pExpenses = expenses.filter((e) => {
+      const t = new Date(e.date).getTime();
+      if (period === 'daily') return t >= todayStart;
+      if (period === 'weekly') return t >= (todayStart - 7 * 24 * 60 * 60 * 1000);
+      return t >= (todayStart - 30 * 24 * 60 * 60 * 1000);
+    });
+    const inflow = pOrders.reduce((s, o) => s + o.total, 0);
+    const outflow = pExpenses.reduce((s, e) => s + e.amount, 0);
     return {
-      totalInflow,
-      totalOutflow,
-      netCashflow,
-      orderCount,
-      expenseCount,
-      periodOrders,
-      periodExpenses
+      inflow,
+      outflow,
+      net: inflow - outflow,
+      orderCount: pOrders.length,
+      expenseCount: pExpenses.length,
     };
   };
 
-  const dailyCashflow = getCashflowStats('daily');
-  const weeklyCashflow = getCashflowStats('weekly');
-  const monthlyCashflow = getCashflowStats('monthly');
-
-  const currentCashflow = cashflowPeriod === 'daily' 
-    ? dailyCashflow 
-    : cashflowPeriod === 'weekly' 
-      ? weeklyCashflow 
-      : monthlyCashflow;
+  const dailyCashflow = getStaticPeriodStats('daily');
+  const weeklyCashflow = getStaticPeriodStats('weekly');
+  const monthlyCashflow = getStaticPeriodStats('monthly');
 
   // KPI Calculations
   const totalRevenue = completedOrders.reduce((sum, o) => sum + o.total, 0);
@@ -737,9 +868,10 @@ export const OwnerDashboardView: React.FC = () => {
       {activeTab === 'analytics' && (
         <div className="space-y-6">
 
-          {/* LAPORAN UANG MASUK & KELUAR (HARIAN, MINGGUAN, BULANAN) */}
-          <div className="bg-white rounded-2xl border border-[#E3D3C4] p-5 sm:p-6 shadow-sm space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#F0E4D8]">
+          {/* LAPORAN UANG MASUK & KELUAR (DENGAN FILTER REKAP LENGKAP) */}
+          <div className="bg-white rounded-2xl border border-[#E3D3C4] p-5 sm:p-6 shadow-sm space-y-5">
+            {/* Header & Main Controls */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#F0E4D8]">
               <div>
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-[#7D4F27] text-white flex items-center justify-center font-bold shadow-xs">
@@ -748,68 +880,220 @@ export const OwnerDashboardView: React.FC = () => {
                   <h3 className="font-display text-base sm:text-lg font-bold text-[#2C1D11]">
                     Laporan Uang Masuk & Keluar
                   </h3>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 font-bold border border-amber-200">
+                    Rekap Terfilter
+                  </span>
                 </div>
                 <p className="text-xs text-[#7A614D] mt-1">
-                  Monitoring arus kas masuk (pembayaran pesanan pelanggan) & uang keluar (biaya operasional kafe).
+                  Monitoring arus kas masuk (pembayaran kasir) & uang keluar (pengeluaran operasional) dengan filter rekap transaksi fleksibel.
                 </p>
               </div>
 
-              {/* Tombol Pemilih Periode: Harian, Mingguan, Bulanan */}
-              <div className="flex items-center gap-1.5 p-1 bg-[#FBF8F5] border border-[#E3D3C4] rounded-xl self-start md:self-auto">
+              {/* Action Buttons: Toggle Filter, Export & Print */}
+              <div className="flex flex-wrap items-center gap-2">
                 <button
-                  id="btn-period-daily"
-                  onClick={() => setCashflowPeriod('daily')}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    cashflowPeriod === 'daily'
-                      ? 'bg-[#7D4F27] text-white shadow-xs'
-                      : 'text-[#7A614D] hover:bg-[#F3ECE4]'
+                  id="btn-toggle-cashflow-filter"
+                  onClick={() => setIsFilterPanelExpanded(!isFilterPanelExpanded)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+                    isFilterPanelExpanded || cashflowTypeFilter !== 'all' || cashflowPaymentFilter !== 'all' || cashflowStaffFilter !== 'all' || cashflowCategoryFilter !== 'all' || cashflowSearch.trim() || cashflowPeriod === 'custom'
+                      ? 'bg-amber-100 text-[#5A3E29] border-amber-300'
+                      : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border-stone-200'
                   }`}
+                  title="Buka / Tutup Filter Tambahan"
                 >
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>Harian</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${cashflowPeriod === 'daily' ? 'bg-white/20 text-white' : 'bg-stone-200 text-stone-600'}`}>
-                    Hari Ini
-                  </span>
+                  <Filter className="w-3.5 h-3.5 text-[#7D4F27]" />
+                  <span>Filter Rekap</span>
+                  {(cashflowTypeFilter !== 'all' || cashflowPaymentFilter !== 'all' || cashflowStaffFilter !== 'all' || cashflowCategoryFilter !== 'all' || cashflowSearch.trim() || cashflowPeriod === 'custom') && (
+                    <span className="w-2 h-2 rounded-full bg-amber-600"></span>
+                  )}
                 </button>
 
                 <button
-                  id="btn-period-weekly"
-                  onClick={() => setCashflowPeriod('weekly')}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    cashflowPeriod === 'weekly'
-                      ? 'bg-[#7D4F27] text-white shadow-xs'
-                      : 'text-[#7A614D] hover:bg-[#F3ECE4]'
-                  }`}
+                  id="btn-export-cashflow-csv"
+                  onClick={handleExportCashflowRecap}
+                  className="px-3 py-1.5 rounded-xl bg-[#7D4F27] hover:bg-[#633C1B] text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  title="Unduh Rekap Transaksi Terfilter (CSV)"
                 >
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>Mingguan</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${cashflowPeriod === 'weekly' ? 'bg-white/20 text-white' : 'bg-stone-200 text-stone-600'}`}>
-                    7 Hari
-                  </span>
-                </button>
-
-                <button
-                  id="btn-period-monthly"
-                  onClick={() => setCashflowPeriod('monthly')}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    cashflowPeriod === 'monthly'
-                      ? 'bg-[#7D4F27] text-white shadow-xs'
-                      : 'text-[#7A614D] hover:bg-[#F3ECE4]'
-                  }`}
-                >
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>Bulanan</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${cashflowPeriod === 'monthly' ? 'bg-white/20 text-white' : 'bg-stone-200 text-stone-600'}`}>
-                    30 Hari
-                  </span>
+                  <Download className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Export Rekap CSV</span>
+                  <span className="sm:hidden">CSV</span>
                 </button>
               </div>
             </div>
 
-            {/* 3 Kartu Ringkasan: Uang Masuk, Uang Keluar, Arus Kas Bersih */}
+            {/* Filter Rekap Transaksi: Modern, Simpel, dengan Tombol Terapkan */}
+            <div className="bg-[#FAF6F2] p-3 sm:p-4 rounded-2xl border border-[#E3D3C4] shadow-2xs space-y-3">
+              {/* Row 1: Header & Period Segmented Pills */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-[#7D4F27]" />
+                  <span className="text-xs font-bold text-[#5A3E29]">
+                    Periode Rekap:
+                  </span>
+                </div>
+
+                {/* Period Pills */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[
+                    { key: 'daily', label: 'Hari Ini' },
+                    { key: 'yesterday', label: 'Kemarin' },
+                    { key: 'weekly', label: '7 Hari' },
+                    { key: 'monthly', label: 'Bulan Ini' },
+                    { key: 'custom', label: 'Pilih Tanggal' },
+                    { key: 'all', label: 'Semua Waktu' },
+                  ].map((p) => (
+                    <button
+                      key={p.key}
+                      id={`btn-cashflow-period-${p.key}`}
+                      onClick={() => {
+                        setCashflowPeriod(p.key as any);
+                        if (p.key !== 'custom') {
+                          showToast(`📅 Periode rekap: ${p.label}`);
+                        }
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        cashflowPeriod === p.key
+                          ? 'bg-[#7D4F27] text-white shadow-xs'
+                          : 'bg-white text-[#7A614D] hover:bg-[#EDE1D5] hover:text-[#2C1D11] border border-[#E3D3C4]/60'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Row 2: Advanced Filter Inputs (Date, Type, Payment, Search) */}
+              {(isFilterPanelExpanded || cashflowPeriod === 'custom') && (
+                <div className="pt-3 border-t border-[#E8DFD6] space-y-3 animate-in fade-in duration-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    
+                    {/* Filter 1: Custom Date Range */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-[#7A614D] uppercase tracking-wider block">
+                        Rentang Tanggal
+                      </label>
+                      <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-[#E3D3C4]">
+                        <input
+                          type="date"
+                          value={cashflowStartDate}
+                          onChange={(e) => {
+                            setCashflowStartDate(e.target.value);
+                            setCashflowPeriod('custom');
+                          }}
+                          className="w-full text-xs py-1 px-1.5 bg-transparent text-[#2C1D11] focus:outline-none"
+                        />
+                        <span className="text-xs text-stone-400 font-medium">s/d</span>
+                        <input
+                          type="date"
+                          value={cashflowEndDate}
+                          onChange={(e) => {
+                            setCashflowEndDate(e.target.value);
+                            setCashflowPeriod('custom');
+                          }}
+                          className="w-full text-xs py-1 px-1.5 bg-transparent text-[#2C1D11] focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Filter 2: Jenis Rekap Transaksi */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-[#7A614D] uppercase tracking-wider block">
+                        Jenis Rekap
+                      </label>
+                      <select
+                        value={cashflowTypeFilter}
+                        onChange={(e) => setCashflowTypeFilter(e.target.value as any)}
+                        className="w-full text-xs py-2 px-3 rounded-xl border border-[#E3D3C4] bg-white text-[#2C1D11] focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
+                      >
+                        <option value="all">Semua (Masuk & Keluar)</option>
+                        <option value="inflow">📥 Hanya Uang Masuk (Penjualan)</option>
+                        <option value="outflow">📤 Hanya Uang Keluar (Biaya)</option>
+                      </select>
+                    </div>
+
+                    {/* Filter 3: Metode Pembayaran */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-[#7A614D] uppercase tracking-wider block">
+                        Metode Pembayaran
+                      </label>
+                      <select
+                        value={cashflowPaymentFilter}
+                        onChange={(e) => setCashflowPaymentFilter(e.target.value as any)}
+                        className="w-full text-xs py-2 px-3 rounded-xl border border-[#E3D3C4] bg-white text-[#2C1D11] focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
+                      >
+                        <option value="all">Semua Metode Pembayaran</option>
+                        <option value="cash">💵 Tunai (Cash)</option>
+                        <option value="qris">📱 QRIS Digital</option>
+                        <option value="bank_transfer">💳 Transfer Bank / Debit</option>
+                      </select>
+                    </div>
+
+                    {/* Filter 4: Cari Transaksi */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-[#7A614D] uppercase tracking-wider block">
+                        Pencarian Kata Kunci
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={cashflowSearch}
+                          onChange={(e) => setCashflowSearch(e.target.value)}
+                          placeholder="No. Order / Pelanggan / Biaya..."
+                          className="w-full text-xs py-2 pl-8 pr-7 rounded-xl border border-[#E3D3C4] bg-white text-[#2C1D11] focus:outline-none focus:ring-1 focus:ring-[#7D4F27]"
+                        />
+                        <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                        {cashflowSearch && (
+                          <button
+                            onClick={() => setCashflowSearch('')}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Actions Row: Tombol Terapkan Filter & Reset */}
+                  <div className="flex items-center justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCashflowPeriod('daily');
+                        setCashflowTypeFilter('all');
+                        setCashflowPaymentFilter('all');
+                        setCashflowStaffFilter('all');
+                        setCashflowCategoryFilter('all');
+                        setCashflowSearch('');
+                        showToast('🔄 Seluruh filter rekap telah di-reset ke hari ini.');
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-[#5A3E29] text-xs font-semibold transition-all cursor-pointer"
+                    >
+                      Reset Filter
+                    </button>
+
+                    <button
+                      type="button"
+                      id="btn-apply-cashflow-filter"
+                      onClick={() => {
+                        showToast('✅ Filter rekap transaksi berhasil diterapkan!');
+                      }}
+                      className="px-5 py-2 rounded-xl bg-[#7D4F27] hover:bg-[#653E1D] text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Terapkan Filter</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 3 Live Summary KPI Cards (Calculated directly from filtered data) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               
-              {/* Uang Masuk */}
+              {/* Card 1: Uang Masuk Terfilter */}
               <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 space-y-1">
                 <div className="flex items-center justify-between text-xs font-bold text-emerald-800">
                   <span className="flex items-center gap-1.5">
@@ -817,18 +1101,18 @@ export const OwnerDashboardView: React.FC = () => {
                     Uang Masuk (Pemasukan)
                   </span>
                   <span className="text-[11px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">
-                    {currentCashflow.orderCount} Transaksi
+                    {filteredCashflowOrders.length} Transaksi
                   </span>
                 </div>
                 <div className="text-2xl font-extrabold text-emerald-700">
-                  {formatRupiah(currentCashflow.totalInflow)}
+                  {formatRupiah(filteredInflow)}
                 </div>
                 <p className="text-[11px] text-emerald-800/80">
-                  Periode {cashflowPeriod === 'daily' ? 'Hari Ini' : cashflowPeriod === 'weekly' ? '7 Hari Terakhir' : '30 Hari Terakhir'}
+                  Total pembayaran kasir sesuai kriteria filter
                 </p>
               </div>
 
-              {/* Uang Keluar */}
+              {/* Card 2: Uang Keluar Terfilter */}
               <div className="p-4 rounded-xl border border-rose-200 bg-rose-50/50 space-y-1">
                 <div className="flex items-center justify-between text-xs font-bold text-rose-800">
                   <span className="flex items-center gap-1.5">
@@ -836,20 +1120,20 @@ export const OwnerDashboardView: React.FC = () => {
                     Uang Keluar (Pengeluaran)
                   </span>
                   <span className="text-[11px] bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full font-semibold">
-                    {currentCashflow.expenseCount} Pos Biaya
+                    {filteredCashflowExpenses.length} Pos Biaya
                   </span>
                 </div>
                 <div className="text-2xl font-extrabold text-rose-700">
-                  {formatRupiah(currentCashflow.totalOutflow)}
+                  {formatRupiah(filteredOutflow)}
                 </div>
                 <p className="text-[11px] text-rose-800/80">
-                  Biaya operasional, gaji & bahan penunjang
+                  Biaya operasional & belanja bahan terfilter
                 </p>
               </div>
 
-              {/* Kas Bersih */}
+              {/* Card 3: Arus Kas Bersih Terfilter */}
               <div className={`p-4 rounded-xl border space-y-1 ${
-                currentCashflow.netCashflow >= 0 
+                filteredNetCash >= 0 
                   ? 'border-amber-200 bg-[#FFFDF9]' 
                   : 'border-rose-200 bg-rose-50/30'
               }`}>
@@ -859,232 +1143,233 @@ export const OwnerDashboardView: React.FC = () => {
                     Selisih Kas Bersih (Net Cash)
                   </span>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                    currentCashflow.netCashflow >= 0
+                    filteredNetCash >= 0
                       ? 'bg-emerald-100 text-emerald-800'
                       : 'bg-rose-100 text-rose-800'
                   }`}>
-                    {currentCashflow.netCashflow >= 0 ? 'Surplus' : 'Defisit'}
+                    {filteredNetCash >= 0 ? 'Surplus' : 'Defisit'}
                   </span>
                 </div>
                 <div className={`text-2xl font-extrabold ${
-                  currentCashflow.netCashflow >= 0 ? 'text-[#7D4F27]' : 'text-rose-600'
+                  filteredNetCash >= 0 ? 'text-[#7D4F27]' : 'text-rose-600'
                 }`}>
-                  {formatRupiah(currentCashflow.netCashflow)}
+                  {formatRupiah(filteredNetCash)}
                 </div>
                 <p className="text-[11px] text-stone-500">
-                  {currentCashflow.netCashflow >= 0 
-                    ? `Surplus kas sebesar ${formatRupiah(currentCashflow.netCashflow)}`
-                    : `Pengeluaran melebihi pemasukan kas`}
+                  {filteredNetCash >= 0 
+                    ? `Surplus saldo kas sebesar ${formatRupiah(filteredNetCash)}`
+                    : `Pengeluaran melebihi pemasukan kas terfilter`}
                 </p>
               </div>
 
             </div>
 
-            {/* Rincian Komparasi 3 Periode Sekaligus (Harian, Mingguan, Bulanan) */}
-            <div className="rounded-xl border border-[#E3D3C4] overflow-hidden">
-              <div className="bg-[#FBF8F5] px-4 py-3 border-b border-[#E3D3C4] flex items-center justify-between">
-                <span className="font-bold text-xs text-[#2C1D11] flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-[#7D4F27]" />
-                  Tabel Ringkasan Komparasi: Harian, Mingguan & Bulanan
-                </span>
-                <span className="text-[11px] text-[#7A614D]">
-                  Data sinkron otomatis dengan kasir & log pengeluaran
-                </span>
-              </div>
+            {/* TABBED TRANSACTION RECAP SECTION */}
+            <div className="border border-[#E3D3C4] rounded-xl overflow-hidden bg-white">
+              {/* Tabs for Inflow / Outflow / Combined View */}
+              <div className="bg-[#FBF8F5] px-4 py-2.5 border-b border-[#E3D3C4] flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setSelectedRecapTab('all')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      selectedRecapTab === 'all'
+                        ? 'bg-[#7D4F27] text-white shadow-xs'
+                        : 'text-[#7A614D] hover:bg-[#EDE1D5]'
+                    }`}
+                  >
+                    <span>Semua Rekap</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                      selectedRecapTab === 'all' ? 'bg-white/20 text-white' : 'bg-stone-200 text-stone-700'
+                    }`}>
+                      {filteredCashflowOrders.length + filteredCashflowExpenses.length}
+                    </span>
+                  </button>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#FAF6F0] text-[#5A3E29] font-bold border-b border-[#E3D3C4]">
-                    <tr>
-                      <th className="p-3">Periode Waktu</th>
-                      <th className="p-3 text-right text-emerald-700">Uang Masuk</th>
-                      <th className="p-3 text-right text-rose-700">Uang Keluar</th>
-                      <th className="p-3 text-right text-[#2C1D11]">Kas Bersih (Net)</th>
-                      <th className="p-3 text-center">Status Keuangan</th>
-                      <th className="p-3 text-center">Aksi Cepat</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#F0E4D8]">
-                    {/* Harian */}
-                    <tr className={`hover:bg-stone-50 transition-colors ${cashflowPeriod === 'daily' ? 'bg-[#FAEDCD]/20' : ''}`}>
-                      <td className="p-3 font-bold text-[#2C1D11] flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        <div>
-                          <div>Harian (Hari Ini)</div>
-                          <span className="text-[10px] text-stone-500 font-normal">{new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                        </div>
-                      </td>
-                      <td className="p-3 text-right font-bold text-emerald-700">
-                        {formatRupiah(dailyCashflow.totalInflow)}
-                        <span className="block text-[10px] text-stone-400 font-normal">({dailyCashflow.orderCount} pesanan)</span>
-                      </td>
-                      <td className="p-3 text-right font-bold text-rose-700">
-                        {formatRupiah(dailyCashflow.totalOutflow)}
-                        <span className="block text-[10px] text-stone-400 font-normal">({dailyCashflow.expenseCount} biaya)</span>
-                      </td>
-                      <td className="p-3 text-right font-extrabold text-[#7D4F27]">
-                        {formatRupiah(dailyCashflow.netCashflow)}
-                      </td>
-                      <td className="p-3 text-center">
-                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          dailyCashflow.netCashflow >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                        }`}>
-                          {dailyCashflow.netCashflow >= 0 ? 'Surplus' : 'Defisit'}
-                        </span>
-                      </td>
-                      <td className="p-3 text-center">
-                        <button
-                          onClick={() => setCashflowPeriod('daily')}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                            cashflowPeriod === 'daily' ? 'bg-[#7D4F27] text-white' : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
-                          }`}
-                        >
-                          Lihat Rincian
-                        </button>
-                      </td>
-                    </tr>
+                  <button
+                    onClick={() => setSelectedRecapTab('inflow')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      selectedRecapTab === 'inflow'
+                        ? 'bg-emerald-700 text-white shadow-xs'
+                        : 'text-emerald-800 hover:bg-emerald-50'
+                    }`}
+                  >
+                    <ArrowDownRight className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Uang Masuk (Kasir)</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                      selectedRecapTab === 'inflow' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+                    }`}>
+                      {filteredCashflowOrders.length}
+                    </span>
+                  </button>
 
-                    {/* Mingguan */}
-                    <tr className={`hover:bg-stone-50 transition-colors ${cashflowPeriod === 'weekly' ? 'bg-[#FAEDCD]/20' : ''}`}>
-                      <td className="p-3 font-bold text-[#2C1D11] flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                        <div>
-                          <div>Mingguan (7 Hari Terakhir)</div>
-                          <span className="text-[10px] text-stone-500 font-normal">Rentang 7 hari operasional</span>
-                        </div>
-                      </td>
-                      <td className="p-3 text-right font-bold text-emerald-700">
-                        {formatRupiah(weeklyCashflow.totalInflow)}
-                        <span className="block text-[10px] text-stone-400 font-normal">({weeklyCashflow.orderCount} pesanan)</span>
-                      </td>
-                      <td className="p-3 text-right font-bold text-rose-700">
-                        {formatRupiah(weeklyCashflow.totalOutflow)}
-                        <span className="block text-[10px] text-stone-400 font-normal">({weeklyCashflow.expenseCount} biaya)</span>
-                      </td>
-                      <td className="p-3 text-right font-extrabold text-[#7D4F27]">
-                        {formatRupiah(weeklyCashflow.netCashflow)}
-                      </td>
-                      <td className="p-3 text-center">
-                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          weeklyCashflow.netCashflow >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                        }`}>
-                          {weeklyCashflow.netCashflow >= 0 ? 'Surplus' : 'Defisit'}
-                        </span>
-                      </td>
-                      <td className="p-3 text-center">
-                        <button
-                          onClick={() => setCashflowPeriod('weekly')}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                            cashflowPeriod === 'weekly' ? 'bg-[#7D4F27] text-white' : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
-                          }`}
-                        >
-                          Lihat Rincian
-                        </button>
-                      </td>
-                    </tr>
-
-                    {/* Bulanan */}
-                    <tr className={`hover:bg-stone-50 transition-colors ${cashflowPeriod === 'monthly' ? 'bg-[#FAEDCD]/20' : ''}`}>
-                      <td className="p-3 font-bold text-[#2C1D11] flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                        <div>
-                          <div>Bulanan (30 Hari Terakhir)</div>
-                          <span className="text-[10px] text-stone-500 font-normal">Akumulasi siklus bulanan kafe</span>
-                        </div>
-                      </td>
-                      <td className="p-3 text-right font-bold text-emerald-700">
-                        {formatRupiah(monthlyCashflow.totalInflow)}
-                        <span className="block text-[10px] text-stone-400 font-normal">({monthlyCashflow.orderCount} pesanan)</span>
-                      </td>
-                      <td className="p-3 text-right font-bold text-rose-700">
-                        {formatRupiah(monthlyCashflow.totalOutflow)}
-                        <span className="block text-[10px] text-stone-400 font-normal">({monthlyCashflow.expenseCount} biaya)</span>
-                      </td>
-                      <td className="p-3 text-right font-extrabold text-[#7D4F27]">
-                        {formatRupiah(monthlyCashflow.netCashflow)}
-                      </td>
-                      <td className="p-3 text-center">
-                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          monthlyCashflow.netCashflow >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                        }`}>
-                          {monthlyCashflow.netCashflow >= 0 ? 'Surplus' : 'Defisit'}
-                        </span>
-                      </td>
-                      <td className="p-3 text-center">
-                        <button
-                          onClick={() => setCashflowPeriod('monthly')}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                            cashflowPeriod === 'monthly' ? 'bg-[#7D4F27] text-white' : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
-                          }`}
-                        >
-                          Lihat Rincian
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Sub-Rincian Item Arus Kas yang Aktif Dipilih */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-              {/* Kolom Kiri: Rincian Uang Masuk */}
-              <div className="border border-[#E3D3C4] rounded-xl p-4 space-y-3 bg-[#FDFBF9]">
-                <div className="flex items-center justify-between pb-2 border-b border-[#F0E4D8]">
-                  <span className="font-bold text-xs text-[#2C1D11] flex items-center gap-1.5">
-                    <ArrowDownRight className="w-3.5 h-3.5 text-emerald-600" />
-                    Rincian Pemasukan ({cashflowPeriod === 'daily' ? 'Hari Ini' : cashflowPeriod === 'weekly' ? '7 Hari' : '30 Hari'})
-                  </span>
-                  <span className="text-[11px] font-bold text-emerald-700">
-                    Total: {formatRupiah(currentCashflow.totalInflow)}
-                  </span>
+                  <button
+                    onClick={() => setSelectedRecapTab('outflow')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      selectedRecapTab === 'outflow'
+                        ? 'bg-rose-700 text-white shadow-xs'
+                        : 'text-rose-800 hover:bg-rose-50'
+                    }`}
+                  >
+                    <ArrowUpRight className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Uang Keluar (Biaya)</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                      selectedRecapTab === 'outflow' ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-800'
+                    }`}>
+                      {filteredCashflowExpenses.length}
+                    </span>
+                  </button>
                 </div>
 
-                {currentCashflow.periodOrders.length === 0 ? (
-                  <p className="text-xs text-stone-400 italic py-2 text-center">Belum ada transaksi pada periode ini.</p>
-                ) : (
-                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                    {currentCashflow.periodOrders.slice(0, 6).map((ord) => (
-                      <div key={ord.id} className="bg-white p-2.5 rounded-lg border border-[#E3D3C4]/60 flex items-center justify-between text-xs">
-                        <div>
-                          <div className="font-bold text-[#2C1D11]">{ord.orderNumber} - {ord.customerName}</div>
-                          <span className="text-[10px] text-stone-400">Meja #{ord.tableNumber} • {ord.paymentMethod?.toUpperCase()}</span>
-                        </div>
-                        <span className="font-bold text-emerald-700">{formatRupiah(ord.total)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Kolom Kanan: Rincian Uang Keluar */}
-              <div className="border border-[#E3D3C4] rounded-xl p-4 space-y-3 bg-[#FDFBF9]">
-                <div className="flex items-center justify-between pb-2 border-b border-[#F0E4D8]">
-                  <span className="font-bold text-xs text-[#2C1D11] flex items-center gap-1.5">
-                    <ArrowUpRight className="w-3.5 h-3.5 text-rose-600" />
-                    Rincian Pengeluaran ({cashflowPeriod === 'daily' ? 'Hari Ini' : cashflowPeriod === 'weekly' ? '7 Hari' : '30 Hari'})
-                  </span>
-                  <span className="text-[11px] font-bold text-rose-700">
-                    Total: {formatRupiah(currentCashflow.totalOutflow)}
-                  </span>
+                <div className="text-[11px] text-[#7A614D] font-medium hidden sm:block">
+                  Menampilkan {selectedRecapTab === 'all' ? filteredCashflowOrders.length + filteredCashflowExpenses.length : selectedRecapTab === 'inflow' ? filteredCashflowOrders.length : filteredCashflowExpenses.length} data
                 </div>
-
-                {currentCashflow.periodExpenses.length === 0 ? (
-                  <p className="text-xs text-stone-400 italic py-2 text-center">Tidak ada catatan pengeluaran pada periode ini.</p>
-                ) : (
-                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                    {currentCashflow.periodExpenses.map((exp) => (
-                      <div key={exp.id} className="bg-white p-2.5 rounded-lg border border-[#E3D3C4]/60 flex items-center justify-between text-xs">
-                        <div>
-                          <div className="font-bold text-[#2C1D11]">{exp.name}</div>
-                          <span className="text-[10px] text-stone-400">{exp.category} • {exp.date}</span>
-                        </div>
-                        <span className="font-bold text-rose-700">{formatRupiah(exp.amount)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
+
+              {/* TAB 1: ALL / INFLOW (ORDERS RECAP) */}
+              {(selectedRecapTab === 'all' || selectedRecapTab === 'inflow') && (
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-[#2C1D11] flex items-center gap-1.5">
+                      <ArrowDownRight className="w-4 h-4 text-emerald-600" />
+                      Rekap Transaksi Uang Masuk (Penjualan Kasir)
+                    </h4>
+                    <span className="text-xs font-extrabold text-emerald-700">
+                      Total: {formatRupiah(filteredInflow)}
+                    </span>
+                  </div>
+
+                  {filteredCashflowOrders.length === 0 ? (
+                    <div className="text-center py-6 border border-dashed border-stone-200 rounded-xl bg-stone-50 text-xs text-stone-400">
+                      Tidak ada transaksi uang masuk yang cocok dengan filter yang dipilih.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-[#FAF6F0] text-[#5A3E29] font-bold border-b border-[#E3D3C4]">
+                          <tr>
+                            <th className="p-2.5">No. Order</th>
+                            <th className="p-2.5">Meja & Pelanggan</th>
+                            <th className="p-2.5">Waktu Transaksi</th>
+                            <th className="p-2.5">Kasir / Waitress</th>
+                            <th className="p-2.5 text-center">Metode Bayar</th>
+                            <th className="p-2.5 text-right">Nominal Masuk</th>
+                            <th className="p-2.5 text-center">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#F0E4D8]">
+                          {filteredCashflowOrders.map((ord: Order) => (
+                            <tr key={ord.id} className="hover:bg-stone-50 transition-colors">
+                              <td className="p-2.5 font-bold text-[#2C1D11]">
+                                {ord.orderNumber}
+                              </td>
+                              <td className="p-2.5">
+                                <div className="font-semibold text-stone-800">{ord.customerName}</div>
+                                <span className="text-[10px] text-stone-500">Meja #{ord.tableNumber}</span>
+                              </td>
+                              <td className="p-2.5 text-stone-600 text-[11px]">
+                                {formatFullDateTime(ord.updatedAt || ord.createdAt)}
+                              </td>
+                              <td className="p-2.5 text-stone-600">
+                                {ord.waitressName || 'Kasir'}
+                              </td>
+                              <td className="p-2.5 text-center">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                  ord.paymentMethod === 'cash'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : ord.paymentMethod === 'qris'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'bg-purple-100 text-purple-800'
+                                }`}>
+                                  {ord.paymentMethod || 'cash'}
+                                </span>
+                              </td>
+                              <td className="p-2.5 text-right font-extrabold text-emerald-700">
+                                +{formatRupiah(ord.total)}
+                              </td>
+                              <td className="p-2.5 text-center">
+                                <div className="flex items-center justify-center gap-1">
+                                  <button
+                                    onClick={() => setEditingTransaction(ord)}
+                                    className="p-1 text-[#7D4F27] hover:bg-[#FAEDCD] rounded cursor-pointer"
+                                    title="Edit Transaksi"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => setDeletingTransaction(ord)}
+                                    className="p-1 text-rose-600 hover:bg-rose-50 rounded cursor-pointer"
+                                    title="Hapus Transaksi"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 2: ALL / OUTFLOW (EXPENSES RECAP) */}
+              {(selectedRecapTab === 'all' || selectedRecapTab === 'outflow') && (
+                <div className="p-4 space-y-3 border-t border-[#E3D3C4] bg-[#FFFDFB]">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-[#2C1D11] flex items-center gap-1.5">
+                      <ArrowUpRight className="w-4 h-4 text-rose-600" />
+                      Rekap Transaksi Uang Keluar (Beban & Pengeluaran Kafe)
+                    </h4>
+                    <span className="text-xs font-extrabold text-rose-700">
+                      Total: {formatRupiah(filteredOutflow)}
+                    </span>
+                  </div>
+
+                  {filteredCashflowExpenses.length === 0 ? (
+                    <div className="text-center py-6 border border-dashed border-stone-200 rounded-xl bg-stone-50 text-xs text-stone-400">
+                      Tidak ada catatan pengeluaran yang cocok dengan filter yang dipilih.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-[#FAF6F0] text-[#5A3E29] font-bold border-b border-[#E3D3C4]">
+                          <tr>
+                            <th className="p-2.5">Nama Pengeluaran</th>
+                            <th className="p-2.5">Kategori Beban</th>
+                            <th className="p-2.5">Tanggal</th>
+                            <th className="p-2.5">Keterangan / Catatan</th>
+                            <th className="p-2.5 text-right">Nominal Keluar</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#F0E4D8]">
+                          {filteredCashflowExpenses.map((exp: OperationalExpense) => (
+                            <tr key={exp.id} className="hover:bg-stone-50 transition-colors">
+                              <td className="p-2.5 font-bold text-[#2C1D11]">
+                                {exp.name}
+                              </td>
+                              <td className="p-2.5">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-stone-100 text-stone-700 border border-stone-200">
+                                  {exp.category}
+                                </span>
+                              </td>
+                              <td className="p-2.5 text-stone-600 text-[11px]">
+                                {exp.date}
+                              </td>
+                              <td className="p-2.5 text-stone-500 italic text-[11px]">
+                                {exp.notes || '-'}
+                              </td>
+                              <td className="p-2.5 text-right font-extrabold text-rose-700">
+                                -{formatRupiah(exp.amount)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
           </div>
