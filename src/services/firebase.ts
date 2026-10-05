@@ -4,7 +4,9 @@ import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = firebaseConfig.firestoreDatabaseId 
+  ? getFirestore(app, firebaseConfig.firestoreDatabaseId) 
+  : getFirestore(app);
 export const auth = getAuth(app);
 
 export enum OperationType {
@@ -44,7 +46,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 export async function testFirestoreConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
-    console.log('✅ Firebase Firestore connected successfully to cloud database:', firebaseConfig.firestoreDatabaseId);
+    console.log('✅ Firebase Firestore connected successfully to cloud database:', firebaseConfig.firestoreDatabaseId || '(default)');
     return true;
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {
