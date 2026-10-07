@@ -471,9 +471,6 @@ export const WaitressView: React.FC = () => {
                 Kitchen & Bar Order
               </h1>
             </div>
-            <p className="text-xs text-[#7A614D] line-clamp-1">
-              Pemesanan meja, porsi Reguler/Large, level gula, es, dan pedas.
-            </p>
           </div>
         </div>
 

@@ -127,11 +127,8 @@ export const CashierView: React.FC = () => {
           </div>
           <div>
             <h1 className="font-display text-xl sm:text-2xl font-bold text-[#2C1D11]">
-              Kasir POS & Sistem Pembayaran
+              Kasir
             </h1>
-            <p className="text-xs text-[#7A614D]">
-              Kelola tagihan meja, konfirmasi pembayaran Tunai/QRIS/Transfer, dan cetak struk resmi.
-            </p>
           </div>
         </div>
 

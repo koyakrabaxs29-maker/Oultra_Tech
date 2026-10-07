@@ -277,15 +277,10 @@ export const ProfitLossReportView: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="font-display text-lg sm:text-xl font-bold text-[#2C1D11]">
-              Laporan Keuangan Laba Rugi (Profit & Loss)
+              Laporan Keuangan
             </h2>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
-              Executive Statement
-            </span>
           </div>
-          <p className="text-xs text-[#7A614D] mt-1">
-            Analisis komprehensif omset penjualan, HPP bahan baku, beban operasional, dan margin laba bersih.
-          </p>
+
         </div>
 
         {/* Period Selector & Actions */}
@@ -449,7 +444,7 @@ export const ProfitLossReportView: React.FC = () => {
               <h3 className="font-display text-base sm:text-lg font-bold text-[#2C1D11]">
                 Rincian Laporan Laba Rugi Komprehensif
               </h3>
-              <span className="text-xs text-[#7A614D]">Format Standar Akuntansi Kafe</span>
+
             </div>
             <span className="text-xs font-semibold text-stone-500 bg-stone-100 px-2.5 py-1 rounded-md">
               Periode: {period === 'today' ? 'Hari Ini' : period === '7days' ? '7 Hari Terakhir' : period === '30days' ? '30 Hari Ini' : 'Semua Data'}
