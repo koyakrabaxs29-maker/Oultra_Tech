@@ -153,16 +153,12 @@ export const LoginView: React.FC = () => {
               Café & Resto
             </p>
             
-            <div className="h-[2px] w-12 bg-[#7D4F27] my-5"></div>
-            
-            <p className="text-sm text-[#C4AD99] leading-relaxed font-medium">
-              Sistem POS & Kitchen Display System terintegrasi. Masuk ke panel Anda untuk mengelola order, dapur, kasir, dan laporan keuangan.
-            </p>
+
           </div>
 
           <div className="relative z-10 pt-6 border-t border-[#3D2817]">
             <p className="text-[11px] text-[#A88C74] font-medium leading-relaxed">
-              © {new Date().getFullYear()} NADIRA POS • Keamanan Multi-Perangkat Terenkripsi.
+              © NADIRA Cafe & Resto 2026. All rights reserved. Designed with ❤️ by NADIRA Cafe & Resto Team.
             </p>
           </div>
         </div>
@@ -263,18 +259,7 @@ export const LoginView: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Khusus Owner: Autentikasi Google Firebase */}
-                <div className="pt-2 border-t border-[#F0E4D8]/80 text-center">
-                  <button
-                    type="button"
-                    onClick={handleGoogleOwnerLogin}
-                    disabled={isGoogleLoggingIn}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#25180E] hover:bg-[#3D2513] text-amber-300 text-xs font-bold transition-all shadow-sm cursor-pointer border border-amber-500/30"
-                  >
-                    <span>👑</span>
-                    <span>{isGoogleLoggingIn ? 'Memverifikasi...' : 'Login Khusus Owner via Google Firebase'}</span>
-                  </button>
-                </div>
+
               </div>
             )}
 
@@ -395,9 +380,6 @@ export const LoginView: React.FC = () => {
                   <h2 className="text-2xl font-black text-[#25180E] tracking-tight font-display">
                     Masuk Akun Staf
                   </h2>
-                  <p className="text-xs text-[#705642]">
-                    Masukkan kredensial terdaftar untuk masuk ke aplikasi.
-                  </p>
                 </div>
 
                 {loginError && (
@@ -486,6 +468,10 @@ export const LoginView: React.FC = () => {
           {/* Quick Info & Default Credentials section removed for security */}
         </div>
       </div>
+
+      <p className="mt-5 text-center text-[11px] text-[#8A6F57] z-10 md:hidden px-4 max-w-sm">
+        © NADIRA Cafe & Resto 2026. All rights reserved. Designed with ❤️ by NADIRA Cafe & Resto Team.
+      </p>
 
       {/* Change Password Modal */}
       <ChangePasswordModal

@@ -37,13 +37,22 @@ const MainAppContent: React.FC = () => {
       />
 
       {/* Main View Container */}
-      <main className="flex-1 pb-16">
+      <main className="flex-1 pb-8">
         {activeRole === 'waitress' && <WaitressView />}
         {activeRole === 'barista' && <KitchenDisplayView defaultStation="bar" />}
         {activeRole === 'chef' && <KitchenDisplayView defaultStation="kitchen" />}
         {activeRole === 'cashier' && <CashierView />}
         {activeRole === 'owner' && <OwnerDashboardView />}
       </main>
+
+      {/* Application Footer */}
+      <footer className="mt-auto py-4 px-4 sm:px-6 border-t border-[#E3D3C4] bg-white/90 backdrop-blur-xs text-center text-xs text-[#7A614D]">
+        <div className="max-w-7xl mx-auto flex items-center justify-center">
+          <p className="font-medium">
+            © NADIRA Cafe & Resto 2026. All rights reserved. Designed with ❤️ by NADIRA Cafe & Resto Team.
+          </p>
+        </div>
+      </footer>
 
       {/* Floating System Notification Toast */}
       {toastMessage && (
